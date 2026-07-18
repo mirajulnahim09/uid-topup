@@ -14,8 +14,8 @@ export default async function ToolsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">টুলস</h1>
-        <p className="mt-0.5 text-sm text-slate-500">ব্যাকআপ ও রক্ষণাবেক্ষণ মোড।</p>
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">টুলস</h1>
+        <p className="mt-1.5 text-sm font-light text-slate-500">ব্যাকআপ ও রক্ষণাবেক্ষণ মোড।</p>
       </div>
 
       {/* ── Announcement ── */}

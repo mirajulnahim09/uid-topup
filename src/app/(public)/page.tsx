@@ -53,7 +53,7 @@ export default async function HomePage() {
       {/* Notice bar */}
       {notice && (
         <div className="border-b border-amber-200 bg-amber-50">
-          <div className="mx-auto flex max-w-7xl gap-2.5 px-4 py-2.5">
+          <div className="mx-auto flex max-w-6xl gap-2.5 page-x py-2.5">
             <span aria-hidden="true">📢</span>
             <p className="text-sm font-medium leading-relaxed text-amber-800">{notice}</p>
           </div>
@@ -68,13 +68,13 @@ export default async function HomePage() {
 
       {/* Banner slider */}
       {(banners?.length ?? 0) > 0 && (
-        <div className="mx-auto max-w-7xl px-4 pt-5">
+        <div className="mx-auto max-w-6xl page-x pt-6">
           <BannerSlider banners={banners} />
         </div>
       )}
 
       {/* Products */}
-      <div className="mx-auto max-w-7xl px-4 py-10">
+      <div className="mx-auto max-w-6xl page-x page-y">
         <ProductGrid categories={cats} />
       </div>
     </>

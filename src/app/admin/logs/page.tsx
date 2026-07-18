@@ -33,8 +33,8 @@ export default async function AdminLogs({
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">অ্যাডমিন লগ</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">অ্যাডমিন লগ</h1>
+        <p className="mt-1.5 text-sm font-light text-slate-500">
           কে কখন কী করেছে — সব রেকর্ড এখানে। টাকা নিয়ে ঝামেলা হলে এখানে দেখুন।
         </p>
       </div>

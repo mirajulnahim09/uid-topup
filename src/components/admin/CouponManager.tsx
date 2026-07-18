@@ -122,7 +122,7 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label className="label">কুপন কোড</label>
-              <input
+              <input aria-label="কুপন কোড"
                 className="input font-mono uppercase"
                 value={form.code}
                 onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
@@ -132,7 +132,7 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
 
             <div>
               <label className="label">ধরন</label>
-              <select className="input" value={form.type} onChange={set('type')}>
+              <select aria-label="ধরন" className="input" value={form.type} onChange={set('type')}>
                 <option value="PERCENT">শতকরা (%)</option>
                 <option value="FIXED">নির্দিষ্ট (৳)</option>
               </select>
@@ -151,7 +151,7 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
 
             <div>
               <label className="label">সর্বনিম্ন অর্ডার (৳)</label>
-              <input
+              <input aria-label="সর্বনিম্ন অর্ডার (৳)"
                 className="input" type="number" step="0.01"
                 value={form.minOrder} onChange={set('minOrder')}
                 placeholder="0"
@@ -161,7 +161,7 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
             {form.type === 'PERCENT' && (
               <div>
                 <label className="label">সর্বোচ্চ ছাড় (৳)</label>
-                <input
+                <input aria-label="সর্বোচ্চ ছাড় (৳)"
                   className="input" type="number" step="0.01"
                   value={form.maxDiscount} onChange={set('maxDiscount')}
                   placeholder="সীমা নেই"
@@ -171,7 +171,7 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
 
             <div>
               <label className="label">মোট ব্যবহার সীমা</label>
-              <input
+              <input aria-label="মোট ব্যবহার সীমা"
                 className="input" type="number"
                 value={form.usageLimit} onChange={set('usageLimit')}
                 placeholder="আনলিমিটেড"
@@ -180,7 +180,7 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
 
             <div>
               <label className="label">প্রতি ইউজার সীমা</label>
-              <input
+              <input aria-label="প্রতি ইউজার সীমা"
                 className="input" type="number"
                 value={form.perUserLimit} onChange={set('perUserLimit')}
               />
@@ -188,7 +188,7 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
 
             <div>
               <label className="label">মেয়াদ শেষ</label>
-              <input
+              <input aria-label="মেয়াদ শেষ"
                 className="input" type="date"
                 value={form.expiresAt} onChange={set('expiresAt')}
               />

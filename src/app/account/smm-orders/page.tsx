@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import AutoRefresh from '@/components/AutoRefresh';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -30,9 +31,10 @@ export default async function SmmOrdersPage() {
 
   return (
     <div className="space-y-5">
+      <AutoRefresh seconds={30} />
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">SMM অর্ডার</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">SMM অর্ডার</h1>
+        <p className="mt-1.5 text-sm font-light text-slate-500">
           YouTube / Netflix / Prime সহ সাবস্ক্রিপশন সার্ভিসের অর্ডার
         </p>
       </div>

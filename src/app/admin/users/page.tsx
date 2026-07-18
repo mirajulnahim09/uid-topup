@@ -20,12 +20,17 @@ export default async function AdminUsers({ searchParams }: { searchParams: { q?:
       : {},
     orderBy: { createdAt: 'desc' },
     take: 100,
-    include: { _count: { select: { orders: true, deposits: true, referrals: true } } },
+    // ★ শুধু প্রয়োজনীয় ফিল্ড — password hash কখনো DB ছেড়ে বের হয় না
+    select: {
+      id: true, name: true, email: true, phone: true, role: true,
+      balance: true, isBanned: true, status: true, referralCode: true, createdAt: true,
+      _count: { select: { orders: true, deposits: true, referrals: true } },
+    },
   });
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold text-slate-900">ইউজার ম্যানেজমেন্ট</h1>
+      <h1 className="lux-text text-2xl font-medium sm:text-[27px]">ইউজার ম্যানেজমেন্ট</h1>
       <UserTable
         q={q ?? ''}
         users={users.map((u: (typeof users)[number]) => ({

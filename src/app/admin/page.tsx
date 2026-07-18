@@ -107,8 +107,8 @@ export default async function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">অ্যাডমিন হোম</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">অ্যাডমিন হোম</h1>
+        <p className="mt-1.5 text-sm font-light text-slate-500">
           এখান থেকেই সব কাজ শেষ করতে পারবেন — অন্য পেজে যেতে হবে না।
         </p>
       </div>

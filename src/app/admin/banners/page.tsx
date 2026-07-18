@@ -11,8 +11,8 @@ export default async function AdminBanners() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">ব্যানার ছবি</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">ব্যানার ছবি</h1>
+        <p className="mt-1.5 text-sm font-light text-slate-500">
           হোমপেজের উপরে যে বড় ছবি স্লাইড হয় — এখান থেকে বদলান।
         </p>
       </div>

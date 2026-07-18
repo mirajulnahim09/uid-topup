@@ -17,10 +17,10 @@ export default async function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="mx-auto max-w-lg space-y-5">
+    <div className="mx-auto max-w-2xl space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">আমার তথ্য</h1>
-        <p className="mt-0.5 text-sm text-slate-500">নাম, নাম্বার ও পাসওয়ার্ড বদলান।</p>
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">আমার তথ্য</h1>
+        <p className="mt-1.5 text-sm font-light text-slate-500">নাম, নাম্বার ও পাসওয়ার্ড বদলান।</p>
       </div>
 
       <ProfileEditor name={user.name} phone={user.phone} email={user.email} />

@@ -41,7 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       <AdminNav pendingDeposits={pendingDeposits} pendingOrders={pendingOrders} />
 
-      <main id="main" className="mx-auto max-w-7xl px-4 py-6 sm:py-7">{children}</main>
+      <main id="main" className="mx-auto max-w-7xl page-x py-8 sm:py-7">{children}</main>
     </div>
   );
 }

@@ -81,7 +81,7 @@ export default function Navbar({
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl" style={{ background: 'linear-gradient(180deg,rgba(7,5,18,.92),rgba(7,5,18,.55))', borderBottom: '1px solid var(--line)' }}>
-      <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,#ff2d78,#22e0ee,#8b5cf6,transparent)' }} />
+      <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(230,197,132,.7),rgba(167,219,255,.5),transparent)' }} />
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex h-16 items-center justify-between gap-3">
           {/* Logo */}
@@ -92,7 +92,7 @@ export default function Navbar({
             ) : (
               <>
                 <div
-                  className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#8b5cf6] to-[#ff2d78] text-lg font-black text-white shadow-[0_0_20px_rgba(255,45,120,0.5)]"
+                  className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#5b4fe0] to-[#9a8cf7] text-lg font-black text-white shadow-[0_0_20px_rgba(154,140,247,0.45)]"
                   aria-hidden="true"
                 >
                   {siteName.charAt(0).toUpperCase()}
@@ -169,7 +169,7 @@ export default function Navbar({
                   </button>
 
                   {bell && (
-                    <div className="animate-pop absolute right-0 top-full mt-2 w-80 overflow-hidden rounded-xl border border-[rgba(139,92,246,0.24)] bg-[#120e28] shadow-2xl">
+                    <div className="animate-pop absolute right-0 top-full mt-2 w-80 overflow-hidden rounded-xl border border-[rgba(139,92,246,0.24)] bg-[#0a0c1a] shadow-2xl">
                       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
                         <p className="text-sm font-bold text-slate-900">নোটিফিকেশন</p>
                         <Link
@@ -230,7 +230,7 @@ export default function Navbar({
                 </Link>
 
                 {isAdmin && (
-                  <Link href="/admin" className="rounded-lg bg-gradient-to-r from-[#8b5cf6] to-[#ff2d78] px-3 py-2 text-sm font-bold text-white transition hover:brightness-110">
+                  <Link href="/admin" className="rounded-lg bg-gradient-to-r from-[#e6c584] to-[#c9a86a] px-3 py-2 text-sm font-bold text-[#08070f] transition hover:brightness-110">
                     অ্যাডমিন
                   </Link>
                 )}
@@ -317,7 +317,7 @@ export default function Navbar({
                   নোটিফিকেশন
                 </Link>
                 {isAdmin && (
-                  <Link href="/admin" onClick={() => setMenu(false)} className="block rounded-lg bg-gradient-to-r from-[#8b5cf6] to-[#ff2d78] px-3 py-3 text-sm font-bold text-white">
+                  <Link href="/admin" onClick={() => setMenu(false)} className="block rounded-lg bg-gradient-to-r from-[#e6c584] to-[#c9a86a] px-3 py-3 text-sm font-bold text-[#08070f]">
                     অ্যাডমিন প্যানেল
                   </Link>
                 )}

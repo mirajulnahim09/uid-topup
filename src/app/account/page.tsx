@@ -33,7 +33,7 @@ export default async function AccountPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-900">আমার প্রোফাইল</h1>
+      <h1 className="lux-text text-2xl font-medium sm:text-[27px]">আমার প্রোফাইল</h1>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100 p-5">

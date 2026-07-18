@@ -69,8 +69,8 @@ export default async function ReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">রিপোর্ট</h1>
-        <p className="mt-0.5 text-sm text-slate-500">বিক্রি, রিচার্জ ও সেরা পণ্য/গ্রাহক — সাথে CSV ডাউনলোড।</p>
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">রিপোর্ট</h1>
+        <p className="mt-1.5 text-sm font-light text-slate-500">বিক্রি, রিচার্জ ও সেরা পণ্য/গ্রাহক — সাথে CSV ডাউনলোড।</p>
       </div>
 
       {/* ── সময়ভিত্তিক সারাংশ ── */}

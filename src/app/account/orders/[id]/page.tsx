@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import AutoRefresh from '@/components/AutoRefresh';
 import { notFound } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -25,6 +26,7 @@ export default async function OrderDetail({ params }: { params: { id: string } }
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
+      <AutoRefresh seconds={30} />
       <Link
         href="/account/orders"
         className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-rose-600"
@@ -33,7 +35,7 @@ export default async function OrderDetail({ params }: { params: { id: string } }
       </Link>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">
           অর্ডার <span className="font-mono text-rose-600">#{order.orderNo}</span>
         </h1>
         <Badge status={order.status} />

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import AutoRefresh from '@/components/AutoRefresh';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -21,7 +22,8 @@ export default async function OrdersPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold text-slate-900">আমার অর্ডার</h1>
+      <AutoRefresh seconds={30} />
+      <h1 className="lux-text text-2xl font-medium sm:text-[27px]">আমার অর্ডার</h1>
 
       {orders.length === 0 ? (
         <div className="card py-16 text-center">

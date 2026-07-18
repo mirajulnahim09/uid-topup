@@ -17,15 +17,15 @@ export default async function AdminSite() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">সেটিংস</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">সেটিংস</h1>
+        <p className="mt-1.5 text-sm font-light text-slate-500">
           সাইটের নাম, নোটিশ, সোশ্যাল লিংক ও পেমেন্ট নাম্বার।
         </p>
       </div>
 
       <div className="rounded-xl border-2 border-rose-200 bg-rose-50 p-4">
         <p className="text-sm leading-relaxed text-rose-800">
-          ⚠️ <strong>সবচেয়ে জরুরি:</strong> "💳 পেমেন্ট নাম্বার" ট্যাবে গিয়ে আপনার নিজের bKash /
+          ⚠️ <strong>সবচেয়ে জরুরি:</strong> &ldquo;💳 পেমেন্ট নাম্বার&rdquo; ট্যাবে গিয়ে আপনার নিজের bKash /
           Nagad নাম্বার বসান। ডিফল্ট নাম্বার রেখে দিলে কাস্টমারের টাকা আপনার কাছে আসবে না!
         </p>
       </div>

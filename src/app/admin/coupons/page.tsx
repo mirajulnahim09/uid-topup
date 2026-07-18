@@ -13,7 +13,7 @@ export default async function AdminCoupons() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">কুপন ও ডিসকাউন্ট</h1>
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">কুপন ও ডিসকাউন্ট</h1>
         <p className="mt-1 text-sm text-slate-400">
           ব্যবহৃত কুপন ডিলিট করা যায় না — শুধু বন্ধ করা যায় (অর্ডারের ইতিহাস রক্ষার জন্য)।
         </p>

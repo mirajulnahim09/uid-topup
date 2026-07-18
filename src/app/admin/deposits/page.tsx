@@ -24,7 +24,7 @@ export default async function AdminDeposits({
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold text-slate-900">ডিপোজিট রিকোয়েস্ট</h1>
+      <h1 className="lux-text text-2xl font-medium sm:text-[27px]">ডিপোজিট রিকোয়েস্ট</h1>
       <DepositTable
         current={status ?? 'ALL'}
         deposits={deposits.map((d: (typeof deposits)[number]) => ({

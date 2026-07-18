@@ -228,7 +228,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
         {dlg?.action === 'COMPLETE' && (
           <div className="mb-3">
             <label className="label">প্লেয়ার নাম (ঐচ্ছিক)</label>
-            <input
+            <input aria-label="প্লেয়ার নাম (ঐচ্ছিক)"
               className="input"
               value={pname}
               onChange={(e) => setPname(e.target.value)}
@@ -238,7 +238,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
         )}
         <div>
           <label className="label">নোট (কাস্টমার দেখবে) {dlg?.action === 'FAIL' && '(কারণ)'}</label>
-          <input
+          <input aria-label="নোট (কাস্টমার দেখবে) {dlg?.action === 'FAIL' && '(কারণ)'}"
             className="input"
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -247,7 +247,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
         </div>
         <div className="mt-3">
           <label className="label">🔒 ইনটারনাল নোট (শুধু অ্যাডমিন — কাস্টমার দেখবে না)</label>
-          <input
+          <input aria-label="🔒 ইনটারনাল নোট (শুধু অ্যাডমিন — কাস্টমার দেখবে না)"
             className="input"
             value={inote}
             onChange={(e) => setInote(e.target.value)}

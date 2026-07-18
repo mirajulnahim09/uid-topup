@@ -134,7 +134,7 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
                       <span className="badge bg-purple-100 text-purple-700">ADMIN</span>
                     )}
                   </div>
-                  <div className="text-xs text-slate-400">{u.email}</div>
+                  <div className="break-all text-xs text-slate-400">{u.email}</div>
                   <div className="font-mono text-xs text-slate-400">{u.phone}</div>
                 </td>
 
@@ -219,7 +219,7 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
         <div className="space-y-3">
           <div>
             <label className="label">পরিমাণ (+ / −)</label>
-            <input
+            <input aria-label="পরিমাণ (+ / −)"
               className="input" type="number" step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -228,7 +228,7 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
           </div>
           <div>
             <label className="label">কারণ (বাধ্যতামূলক)</label>
-            <input
+            <input aria-label="কারণ (বাধ্যতামূলক)"
               className="input"
               value={note}
               onChange={(e) => setNote(e.target.value)}

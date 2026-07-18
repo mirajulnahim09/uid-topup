@@ -34,12 +34,12 @@ export default function CustomCursor() {
       if (t.closest('a,button,[role="button"],input,select,textarea')) {
         ring.style.width = '54px';
         ring.style.height = '54px';
-        ring.style.borderColor = 'rgba(255,45,120,.7)';
+        ring.style.borderColor = 'rgba(230,197,132,.8)';
         dot.style.opacity = '.4';
       } else {
         ring.style.width = '34px';
         ring.style.height = '34px';
-        ring.style.borderColor = 'rgba(34,224,238,.6)';
+        ring.style.borderColor = 'rgba(230,197,132,.45)';
         dot.style.opacity = '1';
       }
     };
@@ -69,12 +69,12 @@ export default function CustomCursor() {
       <div
         ref={dotRef}
         className="pointer-events-none fixed z-[9999] h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{ background: 'radial-gradient(circle,#22e0ee,transparent 70%)', mixBlendMode: 'screen' }}
+        style={{ background: 'radial-gradient(circle,#a7dbff,transparent 70%)', mixBlendMode: 'screen' }}
       />
       <div
         ref={ringRef}
         className="pointer-events-none fixed z-[9998] h-[34px] w-[34px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{ border: '1.5px solid rgba(34,224,238,.6)', transition: 'width .25s,height .25s,border-color .25s' }}
+        style={{ border: '1.5px solid rgba(230,197,132,.45)', transition: 'width .25s,height .25s,border-color .25s' }}
       />
     </div>
   );

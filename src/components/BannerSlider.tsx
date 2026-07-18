@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import SafeImage from '@/components/fx/SafeImage';
 import Link from 'next/link';
 
 type B = {
@@ -40,12 +41,12 @@ export default function BannerSlider({ banners }: { banners: B[] }) {
 
   const slide = (
     <div className="relative h-full w-full">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <SafeImage
         src={b.image}
         alt={b.title || 'ব্যানার'}
-        className="h-full w-full object-cover"
-        loading={i === 0 ? 'eager' : 'lazy'}
+        sizes="(max-width:768px) 100vw, 1100px"
+        className="object-cover"
+        priority={i === 0}
       />
       {(b.title || b.subtitle) && (
         <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/85 via-black/30 to-transparent p-5 sm:p-7">

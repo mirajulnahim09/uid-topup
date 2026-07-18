@@ -26,8 +26,8 @@ export default async function NotificationsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">নোটিফিকেশন</h1>
-        <p className="mt-0.5 text-sm text-slate-500">সব খবর এক জায়গায়।</p>
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">নোটিফিকেশন</h1>
+        <p className="mt-1.5 text-sm font-light text-slate-500">সব খবর এক জায়গায়।</p>
       </div>
 
       {items.length === 0 ? (

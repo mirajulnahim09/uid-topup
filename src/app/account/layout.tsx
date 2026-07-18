@@ -15,7 +15,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar siteName={siteName} />
-      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      <main id="main" className="mx-auto w-full max-w-5xl flex-1 page-x page-y">
         {children}
       </main>
       <Footer />

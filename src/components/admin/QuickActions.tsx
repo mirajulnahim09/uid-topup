@@ -304,7 +304,7 @@ export default function QuickActions({
         onCancel={() => setDep(null)}
       >
         <label className="label">নোট {dep?.action === 'REJECT' && '(কারণ)'}</label>
-        <input
+        <input aria-label="নোট {dep?.action === 'REJECT' && '(কারণ)'}"
           className="input"
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -331,7 +331,7 @@ export default function QuickActions({
         onCancel={() => setOrd(null)}
       >
         <label className="label">নোট {ord?.action === 'FAIL' && '(কারণ)'}</label>
-        <input
+        <input aria-label="নোট {ord?.action === 'FAIL' && '(কারণ)'}"
           className="input"
           value={note}
           onChange={(e) => setNote(e.target.value)}

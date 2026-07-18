@@ -39,15 +39,15 @@ export default function AnnouncementForm() {
       <div className="mt-4 space-y-3">
         <div>
           <label className="label">শিরোনাম</label>
-          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} placeholder="যেমন: ঈদ অফার!" />
+          <input aria-label="শিরোনাম" className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} placeholder="যেমন: ঈদ অফার!" />
         </div>
         <div>
           <label className="label">বার্তা</label>
-          <textarea className="input min-h-[70px]" value={body} onChange={(e) => setBody(e.target.value)} maxLength={500} placeholder="বিস্তারিত লিখুন..." />
+          <textarea aria-label="বার্তা" className="input min-h-[70px]" value={body} onChange={(e) => setBody(e.target.value)} maxLength={500} placeholder="বিস্তারিত লিখুন..." />
         </div>
         <div>
           <label className="label">লিংক (ঐচ্ছিক)</label>
-          <input className="input" value={link} onChange={(e) => setLink(e.target.value)} maxLength={200} placeholder="/faq বা https://..." />
+          <input aria-label="লিংক (ঐচ্ছিক)" className="input" value={link} onChange={(e) => setLink(e.target.value)} maxLength={200} placeholder="/faq বা https://..." />
         </div>
         <button onClick={send} disabled={busy} className="btn-primary">
           {busy ? 'পাঠানো হচ্ছে...' : 'সবাইকে পাঠান'}

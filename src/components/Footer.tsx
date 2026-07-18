@@ -23,7 +23,7 @@ export default async function Footer() {
   return (
     <footer className="relative mt-16" style={{ borderTop: '1px solid var(--line)' }}>
       {/* neon top line */}
-      <div className="absolute left-0 right-0 top-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,#ff2d78,#22e0ee,#8b5cf6,transparent)' }} />
+      <div className="absolute left-0 right-0 top-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(230,197,132,.7),rgba(167,219,255,.5),transparent)' }} />
 
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -31,7 +31,7 @@ export default async function Footer() {
           <div>
             <div className="mb-2 flex items-center gap-2.5">
               <span className="grid h-10 w-10 place-items-center rounded-xl text-xl floaty"
-                style={{ background: 'linear-gradient(135deg,#8b5cf6,#ff2d78)', boxShadow: '0 0 22px rgba(255,45,120,.5)' }}>💎</span>
+                style={{ background: 'linear-gradient(135deg,#5b4fe0,#9a8cf7)', boxShadow: '0 0 22px rgba(154,140,247,.45)' }}>💎</span>
               <div>
                 <h2 className="grad-text text-lg font-extrabold uppercase leading-none">{siteName}</h2>
                 <p className="mt-0.5 text-[11px] font-semibold" style={{ color: 'var(--mut)' }}>কম দামে ভালো সার্ভিস</p>
@@ -60,7 +60,7 @@ export default async function Footer() {
 
           {/* links */}
           <div>
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--cyan)' }}>লিংক</h2>
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--gold)' }}>লিংক</h2>
             <ul className="space-y-2.5 text-sm" style={{ color: 'var(--mut)' }}>
               <li><Link href="/" className="fnav">হোম</Link></li>
               <li><Link href="/faq" className="fnav">সাধারণ প্রশ্ন</Link></li>
@@ -71,7 +71,7 @@ export default async function Footer() {
 
           {/* policies */}
           <div>
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--cyan)' }}>নীতিমালা</h2>
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--gold)' }}>নীতিমালা</h2>
             <ul className="space-y-2.5 text-sm" style={{ color: 'var(--mut)' }}>
               <li><Link href="/terms" className="fnav">শর্তাবলী</Link></li>
               <li><Link href="/privacy" className="fnav">গোপনীয়তা</Link></li>
@@ -81,7 +81,7 @@ export default async function Footer() {
 
           {/* support */}
           <div>
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--cyan)' }}>সাপোর্ট</h2>
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--gold)' }}>সাপোর্ট</h2>
             <ul className="space-y-2.5 text-sm" style={{ color: 'var(--mut)' }}>
               {settings?.support_email && (
                 <li>ইমেইল: <a href={`mailto:${settings.support_email}`} className="fnav">{settings.support_email}</a></li>
@@ -102,7 +102,7 @@ export default async function Footer() {
         </div>
       </div>
 
-      <style>{`.fnav{transition:color .2s,padding .2s}.fnav:hover{color:#22e0ee;padding-left:4px}`}</style>
+      <style>{`.fnav{transition:color .2s,padding .2s}.fnav:hover{color:#e6c584;padding-left:5px}`}</style>
     </footer>
   );
 }

@@ -28,7 +28,8 @@ const CSP = [
   "object-src 'none'",           // Flash/plugin — সম্পূর্ণ বন্ধ
   "frame-src 'none'",            // কোনো iframe নয়
   "frame-ancestors 'none'",      // clickjacking — আমাদের সাইট iframe এ বসানো যাবে না
-  "form-action 'self'",          // ফর্ম শুধু নিজের সাইটে submit হবে
+  // ফর্ম নিজের সাইটে; Google OAuth এর জন্য accounts.google.com অনুমোদিত
+  "form-action 'self' https://accounts.google.com",
   "base-uri 'self'",             // <base> ট্যাগ দিয়ে হাইজ্যাক নয়
   "manifest-src 'self'",
   "worker-src 'self' blob:",

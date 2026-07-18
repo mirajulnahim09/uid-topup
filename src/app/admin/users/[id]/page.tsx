@@ -12,7 +12,10 @@ export const metadata = { title: 'কাস্টমার বিস্তার
 export default async function CustomerDetail({ params }: { params: { id: string } }) {
   const user = await prisma.user.findUnique({
     where: { id: params.id },
-    include: {
+    // ★ password hash ইচ্ছাকৃতভাবে বাদ — কখনো এই পেজে আসবে না
+    select: {
+      id: true, name: true, email: true, phone: true, role: true,
+      balance: true, isBanned: true, status: true, referralCode: true, createdAt: true,
       referredBy: { select: { name: true, referralCode: true } },
       _count: { select: { orders: true, deposits: true, referrals: true } },
       orders: { orderBy: { createdAt: 'desc' }, take: 25 },
@@ -41,12 +44,12 @@ export default async function CustomerDetail({ params }: { params: { id: string 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="grid h-14 w-14 place-items-center rounded-2xl text-xl font-bold text-white"
-            style={{ background: 'linear-gradient(135deg,#8b5cf6,#ff2d78)', boxShadow: '0 0 24px rgba(255,45,120,.5)' }}>
+            style={{ background: 'linear-gradient(135deg,#5b4fe0,#9a8cf7)', boxShadow: '0 0 24px rgba(154,140,247,.45)' }}>
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900">{user.name}</h1>
+              <h1 className="lux-text text-2xl font-medium sm:text-[27px]">{user.name}</h1>
               {isAdmin && <span className="badge bg-purple-100 text-purple-700">ADMIN</span>}
               {user.status === 'ACTIVE'
                 ? <span className="badge border border-emerald-200 bg-emerald-100 text-emerald-700">সক্রিয়</span>
@@ -54,7 +57,7 @@ export default async function CustomerDetail({ params }: { params: { id: string 
                 ? <span className="badge border border-amber-200 bg-amber-100 text-amber-700">সাময়িক স্থগিত</span>
                 : <span className="badge border border-red-200 bg-red-100 text-red-700">স্থায়ীভাবে বন্ধ</span>}
             </div>
-            <p className="text-sm text-slate-400">{user.email} · {user.phone}</p>
+            <p className="break-all text-sm text-slate-400">{user.email} · {user.phone}</p>
           </div>
         </div>
         <CustomerActions userId={user.id} name={user.name} balance={Number(user.balance)} isAdmin={isAdmin} status={user.status} />
@@ -63,10 +66,10 @@ export default async function CustomerDetail({ params }: { params: { id: string 
       {/* ── স্ট্যাট কার্ড ── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { l: 'বর্তমান ব্যালেন্স', v: bdt(user.balance), c: '#22e0ee' },
-          { l: 'মোট খরচ', v: bdt(spent), c: '#ff2d78' },
-          { l: 'মোট রিচার্জ', v: bdt(recharged), c: '#10b981' },
-          { l: 'মোট অর্ডার', v: String(user._count.orders), c: '#ffcf5a' },
+          { l: 'বর্তমান ব্যালেন্স', v: bdt(user.balance), c: '#a7dbff' },
+          { l: 'মোট খরচ', v: bdt(spent), c: '#e6c584' },
+          { l: 'মোট রিচার্জ', v: bdt(recharged), c: '#7fe0bb' },
+          { l: 'মোট অর্ডার', v: String(user._count.orders), c: '#e6c584' },
         ].map((s) => (
           <div key={s.l} className="card p-4">
             <p className="text-xs text-slate-400">{s.l}</p>
@@ -79,7 +82,7 @@ export default async function CustomerDetail({ params }: { params: { id: string 
       <div className="card p-5">
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">প্রোফাইল</h2>
         <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <div><dt className="text-slate-400">রেফারেল কোড</dt><dd className="font-mono text-slate-900">{user.referralCode}</dd></div>
+          <div><dt className="text-slate-400">রেফারেল কোড</dt><dd className="break-all font-mono text-slate-900">{user.referralCode}</dd></div>
           <div><dt className="text-slate-400">রেফার করেছেন</dt><dd className="text-slate-900">{user.referredBy ? `${user.referredBy.name} (${user.referredBy.referralCode})` : '—'}</dd></div>
           <div><dt className="text-slate-400">যাকে রেফার করেছে</dt><dd className="text-slate-900">{user._count.referrals} জন</dd></div>
           <div><dt className="text-slate-400">যোগদান</dt><dd className="text-slate-900">{fmtDate(user.createdAt.toISOString())}</dd></div>

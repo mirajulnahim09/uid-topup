@@ -58,7 +58,7 @@ export default function NavProgress() {
       aria-hidden="true"
     >
       <div
-        className="h-full bg-gradient-to-r from-rose-500 to-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.6)]"
+        className="h-full bg-gradient-to-r from-[#a7dbff] to-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.6)]"
         style={{
           width: `${width}%`,
           transition: width === 100 ? 'width 0.15s ease-out' : 'width 0.3s ease-out',

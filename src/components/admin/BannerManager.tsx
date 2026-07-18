@@ -99,7 +99,7 @@ export default function BannerManager({ banners }: { banners: B[] }) {
       {/* ── কীভাবে কাজ করে ── */}
       <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-4">
         <p className="text-sm leading-relaxed text-blue-800">
-          <strong>💡 কীভাবে কাজ করে:</strong> নিচে ছবি টেনে এনে ছেড়ে দিন → "ব্যানার যোগ করুন" চাপুন
+          <strong>💡 কীভাবে কাজ করে:</strong> নিচে ছবি টেনে এনে ছেড়ে দিন → &ldquo;ব্যানার যোগ করুন&rdquo; চাপুন
           → সাথে সাথেই হোমপেজের উপরে দেখাবে। একাধিক ব্যানার দিলে স্লাইড হবে।
         </p>
       </div>
@@ -120,7 +120,7 @@ export default function BannerManager({ banners }: { banners: B[] }) {
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <div>
             <label className="label">শিরোনাম (ঐচ্ছিক)</label>
-            <input
+            <input aria-label="শিরোনাম (ঐচ্ছিক)"
               className="input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -129,7 +129,7 @@ export default function BannerManager({ banners }: { banners: B[] }) {
           </div>
           <div>
             <label className="label">ছোট লেখা (ঐচ্ছিক)</label>
-            <input
+            <input aria-label="ছোট লেখা (ঐচ্ছিক)"
               className="input"
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
@@ -138,7 +138,7 @@ export default function BannerManager({ banners }: { banners: B[] }) {
           </div>
           <div>
             <label className="label">ক্লিক করলে কোথায় যাবে (ঐচ্ছিক)</label>
-            <input
+            <input aria-label="ক্লিক করলে কোথায় যাবে (ঐচ্ছিক)"
               className="input"
               value={link}
               onChange={(e) => setLink(e.target.value)}

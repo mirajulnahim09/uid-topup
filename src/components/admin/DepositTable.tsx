@@ -108,7 +108,7 @@ export default function DepositTable({ deposits, current }: { deposits: D[]; cur
                 </td>
                 <td>
                   <code className="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-amber-700">
-                    {d.trxId}
+                    <span className="break-all">{d.trxId}</span>
                   </code>
                 </td>
                 <td className="font-mono text-xs">{d.senderNo}</td>
@@ -186,7 +186,7 @@ export default function DepositTable({ deposits, current }: { deposits: D[]; cur
         onCancel={() => setDlg(null)}
       >
         <label className="label">নোট {dlg?.action === 'REJECT' && '(কারণ)'}</label>
-        <input
+        <input aria-label="নোট {dlg?.action === 'REJECT' && '(কারণ)'}"
           className="input"
           value={note}
           onChange={(e) => setNote(e.target.value)}

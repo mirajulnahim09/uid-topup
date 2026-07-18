@@ -166,7 +166,7 @@ export default function ProfileEditor({
 
               <div>
                 <label className="label">ইমেইল</label>
-                <input className="input" value={email} disabled />
+                <input aria-label="ইমেইল" className="input" value={email} disabled />
                 <p className="mt-1 text-xs text-slate-400">
                   ইমেইল বদলানো যায় না — সাপোর্টে যোগাযোগ করুন।
                 </p>

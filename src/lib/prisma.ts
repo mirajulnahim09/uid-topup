@@ -1,4 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import { assertEnv } from './env';
+
+// ★ DB ছোঁয়ার আগেই env যাচাই — ভুল কনফিগ নীরবে পাশ কাটাতে পারবে না
+assertEnv();
 
 const g = globalThis as unknown as { prisma?: PrismaClient };
 

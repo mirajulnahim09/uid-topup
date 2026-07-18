@@ -34,7 +34,7 @@ export default async function DepositPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Add Money</h1>
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">Add Money</h1>
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2">
           <span className="text-xs text-emerald-700/70">বর্তমান ব্যালেন্স </span>
           <span className="font-bold text-emerald-700">{bdt(user?.balance ?? 0)}</span>

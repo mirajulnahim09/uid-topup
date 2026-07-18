@@ -18,7 +18,7 @@ export default async function AdminProducts() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">প্রোডাক্ট, ছবি ও দাম</h1>
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">প্রোডাক্ট, ছবি ও দাম</h1>
         <p className="mt-1 text-sm text-slate-400">
           ছবিতে ক্লিক করে বদলান। দাম বদলালে শুধু নতুন অর্ডারে প্রভাব পড়বে — পুরনো অর্ডারে দাম
           snapshot হিসেবে সংরক্ষিত।

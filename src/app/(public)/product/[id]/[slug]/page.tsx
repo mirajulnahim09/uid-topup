@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import SafeImage from '@/components/fx/SafeImage';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import OrderForm from '@/components/OrderForm';
@@ -61,7 +62,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
   if (!product || !product.isActive) notFound();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-5 sm:py-7">
+    <div className="mx-auto max-w-6xl page-x page-y">
       {/* ★ uidtopup স্টাইল — banner header */}
       <header className="animate-fade-up relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-purple-800 shadow-lg">
         <div
@@ -73,10 +74,9 @@ export default async function ProductPage({ params }: { params: { id: string } }
           aria-hidden="true"
         />
         <div className="relative flex items-center gap-4 p-5 sm:p-7">
-          <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-white/15 shadow-lg backdrop-blur sm:h-20 sm:w-20">
+          <div className="relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-white/15 shadow-lg backdrop-blur sm:h-20 sm:w-20">
             {product.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.image} alt="" className="h-full w-full object-cover" />
+              <SafeImage src={product.image} alt="" sizes="80px" className="object-cover" />
             ) : (
               <span className="text-3xl" aria-hidden="true">💎</span>
             )}

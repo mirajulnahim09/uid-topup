@@ -111,12 +111,12 @@ export default function CustomerActions({
         <div className="space-y-3">
           <div>
             <label className="label">পরিমাণ (+ / −)</label>
-            <input className="input" type="number" step="0.01" value={amount}
+            <input aria-label="পরিমাণ (+ / −)" className="input" type="number" step="0.01" value={amount}
               onChange={(e) => setAmount(e.target.value)} placeholder="যেমন: 100 বা -50" />
           </div>
           <div>
             <label className="label">কারণ (বাধ্যতামূলক)</label>
-            <input className="input" value={note} onChange={(e) => setNote(e.target.value)}
+            <input aria-label="কারণ (বাধ্যতামূলক)" className="input" value={note} onChange={(e) => setNote(e.target.value)}
               placeholder="যেমন: ম্যানুয়াল রিফান্ড" />
           </div>
         </div>

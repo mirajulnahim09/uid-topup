@@ -24,7 +24,7 @@ export default async function AdminOrders({
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold text-slate-900">অর্ডার ম্যানেজমেন্ট</h1>
+      <h1 className="lux-text text-2xl font-medium sm:text-[27px]">অর্ডার ম্যানেজমেন্ট</h1>
       <OrderTable
         current={status ?? 'ALL'}
         orders={orders.map((o: (typeof orders)[number]) => ({

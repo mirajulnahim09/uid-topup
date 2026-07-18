@@ -3,21 +3,19 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * ★ পুরো সাইটের global animated background।
- *   root layout এ একবার বসানো — তাই সব পেজে animation দেখা যায়।
- *   - particle network (মাউসের সাথে reactive)
- *   - aurora orbs (নড়াচড়া)
- *   - floating diamonds
- *   পারফরম্যান্স: particle সীমিত, মোবাইলে হালকা, reduced-motion respect।
+ * ★ Maison global background — সব পেজে (root layout এ একবার)।
+ *   স্তর: mesh gradient · godrays · starfield (parallax) · golden dust · spotlight
+ *   পারফরম্যান্স: canvas সীমিত, মোবাইলে হালকা, reduced-motion respect।
  */
 export default function SiteBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const spotRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const canvas = canvasRef.current;
+    const spot = spotRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -25,25 +23,22 @@ export default function SiteBackground() {
     const touch = window.matchMedia('(hover: none)').matches;
     let W = (canvas.width = window.innerWidth);
     let H = (canvas.height = window.innerHeight);
-    const mouse = { x: -999, y: -999 };
+    let px = 0, py = 0;
+    let mx = W / 2, my = H / 2, sx = mx, sy = my;
 
-    const N = touch ? 28 : 64;
-    const COL = ['34,224,238', '255,45,120', '255,207,90', '139,92,246'];
-    const ps = Array.from({ length: N }, () => ({
+    const stars = Array.from({ length: touch ? 34 : 100 }, () => ({
       x: Math.random() * W,
       y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
-      r: Math.random() * 1.8 + 0.6,
+      z: Math.random() * 0.9 + 0.1,
+      r: Math.random() * 1.2 + 0.3,
+      t: Math.random() * 6.3,
     }));
 
-    const onResize = () => {
-      W = canvas.width = window.innerWidth;
-      H = canvas.height = window.innerHeight;
-    };
+    const onResize = () => { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; };
     const onMove = (e: MouseEvent) => {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
+      mx = e.clientX; my = e.clientY;
+      px = e.clientX / window.innerWidth - 0.5;
+      py = e.clientY / window.innerHeight - 0.5;
     };
     window.addEventListener('resize', onResize);
     window.addEventListener('mousemove', onMove);
@@ -51,43 +46,19 @@ export default function SiteBackground() {
     let raf = 0;
     const draw = () => {
       ctx.clearRect(0, 0, W, H);
-      for (let i = 0; i < ps.length; i++) {
-        const p = ps[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0 || p.x > W) p.vx *= -1;
-        if (p.y < 0 || p.y > H) p.vy *= -1;
-        const dx = mouse.x - p.x,
-          dy = mouse.y - p.y,
-          md = Math.hypot(dx, dy);
-        if (md < 140) {
-          p.x += (dx / md) * 0.6;
-          p.y += (dy / md) * 0.6;
-        }
+      for (const s of stars) {
+        s.t += 0.02;
+        const tw = 0.32 + Math.abs(Math.sin(s.t)) * 0.68;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, 7);
-        ctx.fillStyle = 'rgba(180,200,255,.6)';
+        ctx.arc(s.x + px * s.z * 24, s.y + py * s.z * 24, s.r, 0, 7);
+        ctx.fillStyle = `rgba(210,218,255,${tw * s.z})`;
         ctx.fill();
-        for (let j = i + 1; j < ps.length; j++) {
-          const q = ps[j],
-            d = Math.hypot(p.x - q.x, p.y - q.y);
-          if (d < 116) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(q.x, q.y);
-            ctx.strokeStyle = `rgba(${COL[i % 4]},${(1 - d / 116) * 0.3})`;
-            ctx.lineWidth = 0.7;
-            ctx.stroke();
-          }
-        }
-        if (md < 160) {
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-          ctx.lineTo(mouse.x, mouse.y);
-          ctx.strokeStyle = `rgba(34,224,238,${(1 - md / 160) * 0.4})`;
-          ctx.lineWidth = 0.8;
-          ctx.stroke();
-        }
+      }
+      if (spot && !touch) {
+        sx += (mx - sx) * 0.06;
+        sy += (my - sy) * 0.06;
+        spot.style.left = sx + 'px';
+        spot.style.top = sy + 'px';
       }
       raf = requestAnimationFrame(draw);
     };
@@ -102,25 +73,57 @@ export default function SiteBackground() {
 
   return (
     <div aria-hidden="true">
-      {/* aurora orbs */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <span className="absolute -left-[10%] -top-[12%] h-[52vw] w-[52vw] rounded-full opacity-50 blur-[90px] floaty" style={{ background: '#8b5cf6', mixBlendMode: 'screen', animationDuration: '18s' }} />
-        <span className="absolute -right-[12%] top-[8%] h-[46vw] w-[46vw] rounded-full opacity-50 blur-[90px] floaty" style={{ background: '#ff6b2c', mixBlendMode: 'screen', animationDuration: '23s' }} />
-        <span className="absolute -bottom-[16%] left-[18%] h-[42vw] w-[42vw] rounded-full opacity-40 blur-[90px] floaty" style={{ background: '#ff2d78', mixBlendMode: 'screen', animationDuration: '20s' }} />
+      {/* mesh gradient — ৪ স্তর */}
+      <div className="pointer-events-none fixed inset-0 z-0 opacity-[.55]" style={{ filter: 'blur(90px)' }}>
+        <span className="floaty absolute rounded-full" style={{ width: '48vw', height: '48vw', background: '#4a3fb0', top: '-14%', left: '2%', animationDuration: '24s' }} />
+        <span className="floaty absolute rounded-full" style={{ width: '38vw', height: '38vw', background: '#1e3a6e', top: '12%', right: '-6%', animationDuration: '30s' }} />
+        <span className="floaty absolute rounded-full opacity-50" style={{ width: '30vw', height: '30vw', background: '#6b4f2a', bottom: '2%', left: '26%', animationDuration: '28s' }} />
+        <span className="floaty absolute rounded-full opacity-40" style={{ width: '26vw', height: '26vw', background: '#7a2f55', bottom: '20%', right: '14%', animationDuration: '34s' }} />
       </div>
-      {/* grid overlay */}
+
+      {/* volumetric godrays */}
       <div
-        className="pointer-events-none fixed inset-0 z-0 opacity-40"
+        className="halo-pulse pointer-events-none fixed left-1/2 top-[-22%] z-0 -translate-x-1/2"
         style={{
-          backgroundImage:
-            'linear-gradient(rgba(139,92,246,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,.06) 1px,transparent 1px)',
-          backgroundSize: '44px 44px',
-          maskImage: 'radial-gradient(ellipse at 50% 0%,#000 30%,transparent 75%)',
-          WebkitMaskImage: 'radial-gradient(ellipse at 50% 0%,#000 30%,transparent 75%)',
+          width: '86vw', height: '92vh', filter: 'blur(7px)',
+          background:
+            'conic-gradient(from 180deg at 50% 0,transparent 41%,rgba(154,140,247,.11) 45%,transparent 49%,rgba(167,219,255,.09) 53%,transparent 57%,rgba(230,197,132,.08) 61%,transparent 65%)',
         }}
       />
-      {/* particle network */}
+
+      {/* starfield */}
       <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-0" />
+
+      {/* golden dust */}
+      <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
+        {Array.from({ length: 16 }).map((_, i) => (
+          <span
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              bottom: '-8px',
+              left: `${(i * 6.7 + 3) % 100}%`,
+              width: `${2 + (i % 3)}px`,
+              height: `${2 + (i % 3)}px`,
+              background: 'rgba(230,197,132,.7)',
+              boxShadow: '0 0 8px rgba(230,197,132,.8)',
+              animation: `dust-rise ${9 + (i % 8)}s linear ${i * 0.9}s infinite`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* spotlight — cursor follow */}
+      <div
+        ref={spotRef}
+        className="pointer-events-none fixed z-[1] hidden -translate-x-1/2 -translate-y-1/2 rounded-full md:block"
+        style={{
+          width: 620, height: 620,
+          background: 'radial-gradient(circle,rgba(154,140,247,.10),rgba(167,219,255,.05) 40%,transparent 68%)',
+        }}
+      />
+
+      <style>{`@keyframes dust-rise{0%{transform:translateY(0) translateX(0);opacity:0}12%{opacity:1}88%{opacity:.6}100%{transform:translateY(-104vh) translateX(30px);opacity:0}}`}</style>
     </div>
   );
 }

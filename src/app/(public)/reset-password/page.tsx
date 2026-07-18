@@ -61,7 +61,7 @@ function ResetForm() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-12 sm:py-16">
+    <div className="mx-auto max-w-md page-x page-y">
       <div className="card p-6 sm:p-7">
         <h1 className="mb-1 text-2xl font-bold text-slate-900">নতুন পাসওয়ার্ড</h1>
         <p className="mb-6 text-sm text-slate-400">একটি শক্তিশালী নতুন পাসওয়ার্ড দিন।</p>

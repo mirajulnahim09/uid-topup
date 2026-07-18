@@ -111,7 +111,7 @@ export default function SiteManager({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="label">সাইটের নাম</label>
-              <input
+              <input aria-label="সাইটের নাম"
                 className="input"
                 value={s.site_name}
                 onChange={(e) => setS({ ...s, site_name: e.target.value })}
@@ -120,7 +120,7 @@ export default function SiteManager({
 
             <div className="sm:col-span-2">
               <label className="label">নোটিশ (হোমপেজে দেখাবে)</label>
-              <input
+              <input aria-label="নোটিশ (হোমপেজে দেখাবে)"
                 className="input"
                 value={s.site_notice}
                 onChange={(e) => setS({ ...s, site_notice: e.target.value })}
@@ -131,7 +131,7 @@ export default function SiteManager({
 
             <div>
               <label className="label">হিরো শিরোনাম</label>
-              <input
+              <input aria-label="হিরো শিরোনাম"
                 className="input"
                 value={s.hero_title}
                 onChange={(e) => setS({ ...s, hero_title: e.target.value })}
@@ -141,7 +141,7 @@ export default function SiteManager({
 
             <div>
               <label className="label">হিরো উপশিরোনাম</label>
-              <input
+              <input aria-label="হিরো উপশিরোনাম"
                 className="input"
                 value={s.hero_subtitle}
                 onChange={(e) => setS({ ...s, hero_subtitle: e.target.value })}
@@ -151,7 +151,7 @@ export default function SiteManager({
 
             <div>
               <label className="label">সর্বনিম্ন ডিপোজিট (৳)</label>
-              <input
+              <input aria-label="সর্বনিম্ন ডিপোজিট (৳)"
                 className="input" type="number"
                 value={s.min_deposit}
                 onChange={(e) => setS({ ...s, min_deposit: e.target.value })}
@@ -160,7 +160,7 @@ export default function SiteManager({
 
             <div>
               <label className="label">সর্বোচ্চ ডিপোজিট (৳)</label>
-              <input
+              <input aria-label="সর্বোচ্চ ডিপোজিট (৳)"
                 className="input" type="number"
                 value={s.max_deposit}
                 onChange={(e) => setS({ ...s, max_deposit: e.target.value })}
@@ -169,7 +169,7 @@ export default function SiteManager({
 
             <div>
               <label className="label">রেফারেল বোনাস (৳)</label>
-              <input
+              <input aria-label="রেফারেল বোনাস (৳)"
                 className="input" type="number"
                 value={s.referral_bonus}
                 onChange={(e) => setS({ ...s, referral_bonus: e.target.value })}
@@ -179,7 +179,7 @@ export default function SiteManager({
 
             <div>
               <label className="label">বোনাসের জন্য সর্বনিম্ন ডিপোজিট (৳)</label>
-              <input
+              <input aria-label="বোনাসের জন্য সর্বনিম্ন ডিপোজিট (৳)"
                 className="input" type="number"
                 value={s.referral_min_deposit}
                 onChange={(e) => setS({ ...s, referral_min_deposit: e.target.value })}
@@ -189,7 +189,7 @@ export default function SiteManager({
 
             <div>
               <label className="label">সাপোর্ট ইমেইল</label>
-              <input
+              <input aria-label="সাপোর্ট ইমেইল"
                 className="input" type="email"
                 value={s.support_email}
                 onChange={(e) => setS({ ...s, support_email: e.target.value })}
@@ -198,7 +198,7 @@ export default function SiteManager({
 
             <div>
               <label className="label">সাপোর্ট ফোন</label>
-              <input
+              <input aria-label="সাপোর্ট ফোন"
                 className="input"
                 value={s.support_phone}
                 onChange={(e) => setS({ ...s, support_phone: e.target.value })}
@@ -207,7 +207,7 @@ export default function SiteManager({
 
             <div className="sm:col-span-2">
               <label className="label">সাপোর্ট সময়</label>
-              <input
+              <input aria-label="সাপোর্ট সময়"
                 className="input"
                 value={s.support_hours}
                 onChange={(e) => setS({ ...s, support_hours: e.target.value })}
@@ -235,7 +235,7 @@ export default function SiteManager({
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="label">প্ল্যাটফর্ম</label>
-                <select
+                <select aria-label="প্ল্যাটফর্ম"
                   className="input"
                   value={newSocial.platform}
                   onChange={(e) => setNewSocial({ ...newSocial, platform: e.target.value })}
@@ -247,7 +247,7 @@ export default function SiteManager({
               </div>
               <div>
                 <label className="label">লিংক</label>
-                <input
+                <input aria-label="লিংক"
                   className="input"
                   value={newSocial.url}
                   onChange={(e) => setNewSocial({ ...newSocial, url: e.target.value })}
@@ -256,7 +256,7 @@ export default function SiteManager({
               </div>
               <div>
                 <label className="label">লেবেল (ঐচ্ছিক)</label>
-                <input
+                <input aria-label="লেবেল (ঐচ্ছিক)"
                   className="input"
                   value={newSocial.label}
                   onChange={(e) => setNewSocial({ ...newSocial, label: e.target.value })}
@@ -347,7 +347,7 @@ export default function SiteManager({
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <label className="label">মাধ্যম</label>
-                <select
+                <select aria-label="মাধ্যম"
                   className="input"
                   value={newPay.method}
                   onChange={(e) => setNewPay({ ...newPay, method: e.target.value })}
@@ -359,7 +359,7 @@ export default function SiteManager({
               </div>
               <div>
                 <label className="label">নাম্বার</label>
-                <input
+                <input aria-label="নাম্বার"
                   className="input font-mono"
                   value={newPay.accountNo}
                   onChange={(e) => setNewPay({ ...newPay, accountNo: e.target.value })}
@@ -368,7 +368,7 @@ export default function SiteManager({
               </div>
               <div>
                 <label className="label">ধরন</label>
-                <select
+                <select aria-label="ধরন"
                   className="input"
                   value={newPay.accountType}
                   onChange={(e) => setNewPay({ ...newPay, accountType: e.target.value })}
@@ -380,7 +380,7 @@ export default function SiteManager({
               </div>
               <div>
                 <label className="label">নির্দেশনা</label>
-                <input
+                <input aria-label="নির্দেশনা"
                   className="input"
                   value={newPay.instruction}
                   onChange={(e) => setNewPay({ ...newPay, instruction: e.target.value })}

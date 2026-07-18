@@ -226,7 +226,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="label">ক্যাটাগরি</label>
-                  <select
+                  <select aria-label="ক্যাটাগরি"
                     className="input"
                     value={newProd.categoryId}
                     onChange={(e) => setNewProd({ ...newProd, categoryId: e.target.value })}
@@ -240,7 +240,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
 
                 <div>
                   <label className="label">প্রোডাক্টের নাম</label>
-                  <input
+                  <input aria-label="প্রোডাক্টের নাম"
                     className="input"
                     value={newProd.name}
                     onChange={(e) => setNewProd({ ...newProd, name: e.target.value })}
@@ -250,7 +250,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
 
                 <div>
                   <label className="label">কী চাইবে (UID লেবেল)</label>
-                  <input
+                  <input aria-label="কী চাইবে (UID লেবেল)"
                     className="input"
                     value={newProd.uidLabel}
                     onChange={(e) => setNewProd({ ...newProd, uidLabel: e.target.value })}
@@ -260,7 +260,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
 
                 <div>
                   <label className="label">ছোট বর্ণনা</label>
-                  <input
+                  <input aria-label="ছোট বর্ণনা"
                     className="input"
                     value={newProd.description}
                     onChange={(e) => setNewProd({ ...newProd, description: e.target.value })}
@@ -271,7 +271,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
 
               <div>
                 <label className="label">কাস্টমারকে সাহায্য (ঐচ্ছিক)</label>
-                <input
+                <input aria-label="কাস্টমারকে সাহায্য (ঐচ্ছিক)"
                   className="input"
                   value={newProd.uidHint}
                   onChange={(e) => setNewProd({ ...newProd, uidHint: e.target.value })}
@@ -288,7 +288,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
               </button>
 
               <p className="text-xs text-slate-500">
-                তৈরির পর প্রোডাক্ট খুলে "+ নতুন প্যাকেজ" দিয়ে দাম যোগ করুন।
+                তৈরির পর প্রোডাক্ট খুলে &ldquo;+ নতুন প্যাকেজ&rdquo; দিয়ে দাম যোগ করুন।
               </p>
             </div>
           </div>
@@ -689,7 +689,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
           <div className="space-y-3">
             <div>
               <label className="label">নাম</label>
-              <input
+              <input aria-label="নাম"
                 className="input"
                 value={editProd.name}
                 onChange={(e) => setEditProd({ ...editProd, name: e.target.value })}
@@ -697,7 +697,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
             </div>
             <div>
               <label className="label">ছোট বর্ণনা</label>
-              <input
+              <input aria-label="ছোট বর্ণনা"
                 className="input"
                 value={editProd.description ?? ''}
                 onChange={(e) => setEditProd({ ...editProd, description: e.target.value })}
@@ -705,7 +705,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
             </div>
             <div>
               <label className="label">কী চাইবে (UID লেবেল)</label>
-              <input
+              <input aria-label="কী চাইবে (UID লেবেল)"
                 className="input"
                 value={editProd.uidLabel}
                 onChange={(e) => setEditProd({ ...editProd, uidLabel: e.target.value })}
@@ -713,7 +713,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
             </div>
             <div>
               <label className="label">কাস্টমারকে সাহায্য</label>
-              <input
+              <input aria-label="কাস্টমারকে সাহায্য"
                 className="input"
                 value={editProd.uidHint ?? ''}
                 onChange={(e) => setEditProd({ ...editProd, uidHint: e.target.value })}
@@ -737,7 +737,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
         <div className="space-y-3">
           <div>
             <label className="label">প্যাকেজের নাম</label>
-            <input
+            <input aria-label="প্যাকেজের নাম"
               className="input"
               value={newVar.label}
               onChange={(e) => setNewVar({ ...newVar, label: e.target.value })}
@@ -748,7 +748,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">বিক্রয় দাম (৳)</label>
-              <input
+              <input aria-label="বিক্রয় দাম (৳)"
                 className="input" type="number" step="0.01"
                 value={newVar.price}
                 onChange={(e) => setNewVar({ ...newVar, price: e.target.value })}
@@ -757,7 +757,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
             </div>
             <div>
               <label className="label">ক্রয় দাম (৳)</label>
-              <input
+              <input aria-label="ক্রয় দাম (৳)"
                 className="input" type="number" step="0.01"
                 value={newVar.costPrice}
                 onChange={(e) => setNewVar({ ...newVar, costPrice: e.target.value })}
@@ -767,7 +767,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
           </div>
           <div>
             <label className="label">স্টক (−1 = আনলিমিটেড)</label>
-            <input
+            <input aria-label="স্টক (−1 = আনলিমিটেড)"
               className="input" type="number"
               value={newVar.stock}
               onChange={(e) => setNewVar({ ...newVar, stock: e.target.value })}
