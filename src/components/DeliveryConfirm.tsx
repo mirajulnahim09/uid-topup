@@ -26,6 +26,7 @@ export default function DeliveryConfirm({
   disputed,
   hasReview,
   disputeWindowDays,
+  referralCode,
 }: {
   orderId: string;
   orderNo: number;
@@ -33,6 +34,8 @@ export default function DeliveryConfirm({
   disputed: boolean;
   hasReview: boolean;
   disputeWindowDays: number;
+  /** ★ 5.4 — না থাকলে রেফারেল অংশটি দেখানো হয় না */
+  referralCode?: string | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -45,6 +48,21 @@ export default function DeliveryConfirm({
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [body, setBody] = useState('');
+  const [refCopied, setRefCopied] = useState(false);
+
+  // ★ রেফারেল লিংক কপি (5.4) — ReferralCard এর মতোই origin-ভিত্তিক
+  async function copyReferral() {
+    if (!referralCode) return;
+    const link = `${window.location.origin}/register?ref=${referralCode}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setRefCopied(true);
+      toast.success('রেফারেল লিংক কপি হয়েছে');
+      setTimeout(() => setRefCopied(false), 2000);
+    } catch {
+      toast.error('কপি করা যায়নি');
+    }
+  }
 
   async function answer(arrived: boolean) {
     setBusy(true);
@@ -121,6 +139,41 @@ export default function DeliveryConfirm({
           <p className="text-sm" style={{ color: 'var(--mut)' }}>
             ✓ ডেলিভারি নিশ্চিত করা হয়েছে — রিভিউর জন্য ধন্যবাদ।
           </p>
+
+          {/* ★★★ রেফারেল আমন্ত্রণ — ঠিক এই মুহূর্তে (5.4)
+              গ্রাহক এইমাত্র জিনিস পেয়েছেন এবং ভালো রেটিং দিয়েছেন।
+              সন্তুষ্টি এখানেই সর্বোচ্চ, তাই বন্ধুকে বলার অনুরোধের
+              জন্য এটিই একমাত্র সৎ মুহূর্ত।
+
+              ⚠️ অর্ডারের আগে বা ডেলিভারির অপেক্ষার সময় এটি দেখানো
+              হয় না — তখন গ্রাহক জানেনই না জিনিসটা পাবেন কি না,
+              আর তখন সুপারিশ চাওয়া মানে ভরসা নষ্ট করা। */}
+          {referralCode && (
+            <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--hair)' }}>
+              <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
+                বন্ধুকে জানাবেন?
+              </p>
+              <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--mut)' }}>
+                আপনার কোড দিয়ে কেউ প্রথম টপ-আপ করলে আপনি বোনাস পাবেন।
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <code
+                  className="rounded-md px-3 py-2 font-mono text-sm"
+                  style={{ background: 'var(--glass)', border: '1px solid var(--hair)', color: 'var(--gold)' }}
+                >
+                  {referralCode}
+                </code>
+                <button
+                  type="button"
+                  onClick={copyReferral}
+                  className="btn-ghost min-h-[40px] px-4 text-sm"
+                  aria-label="রেফারেল লিংক কপি করুন"
+                >
+                  {refCopied ? '✓ কপি হয়েছে' : 'লিংক কপি'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       );
     }

@@ -3237,3 +3237,142 @@ implementation plan.
 - The `terms/page.tsx` harassment-clause discrepancy found in Batch C still awaits an owner
   decision — it is a legal-copy question, not a code fix.
 - `AUDIT_REPORT.md` items outside Phase 4 scope remain as recorded there.
+
+---
+
+# PHASE 5 — NICE-TO-HAVE ENHANCEMENTS
+
+## Scope assessment before starting
+
+Phase 5 has 14 tasks. A survey before writing any code found that **most cannot be completed
+without owner input**, and two contradict a decision already made. The roadmap's own precedent
+applies here — *"1.6, 1.7, 1.8 are blocked on external inputs and are explicitly not marked
+complete"*.
+
+Two tasks were also found **already built** and were not redone:
+
+- **5.11** — `OrderForm` already rendered "স্টক শেষ", strikethrough `oldPrice`, "জনপ্রিয়", and a
+  low-stock warning at the variant level. Only the catalogue-card level was missing.
+- **5.1 (submission half)** — the `Review` model, `POST /api/review`, and the rating form in
+  `DeliveryConfirm` all existed from Phase 2. Reviews were being **collected but never displayed**,
+  so the trust-building purpose was not actually being served.
+
+---
+
+## Batch A — 5.11 Status badges · 5.12 Related items ✅
+
+### 5.11 — badges where the decision is actually made
+Variant-level badges existed; the catalogue grid had none. A customer could browse, click a
+product, and only then discover every package was sold out.
+
+Flags are computed **server-side** and passed as two primitives (`soldOut`, `discountPct`) rather
+than shipping variant rows to the client (CLAUDE.md §7, §15). Only three variant fields are
+selected.
+
+Two deliberate rules:
+
+- **"সব শেষ" outranks the discount badge.** Advertising a discount on something unbuyable is a
+  cruel joke.
+- **A product with zero variants is not "sold out."** That is a different state (no packages
+  configured yet); showing a false "Sold Out" would be worse than showing nothing.
+- Discount % ignores out-of-stock variants — a discount you cannot buy is not a discount.
+
+**`stock = -1` means untracked/unlimited in this codebase**, not "negative stock". The new logic
+uses `=== 0` exactly, matching `OrderForm`'s existing convention.
+
+### 5.12 — related items
+Same-category products, current one excluded, capped at 4, rendered as a Server Component (zero
+client JS). No recommendation algorithm — deliberately. Click/purchase-history recommendations
+would need data this site does not collect, and at this catalogue size would produce noise.
+
+### Verification — Playwright
+
+The live data had **zero** sold-out and **zero** discounted variants, so the badges could not be
+exercised as-is. Temporary QA data was applied to two single-variant products, verified, then
+restored:
+
+| Check | Result |
+|---|---|
+| 5.12 related section renders, current product excluded | ✅ 4 items |
+| "সব শেষ" badge on fully sold-out product | ✅ |
+| "21% ছাড়" badge on discounted product | ✅ |
+| Other products show no badge | ✅ |
+| Badges disappear after data restore (proves data-driven, not hardcoded) | ✅ |
+
+> The 21% (not 20%) is correct: integer `oldPrice` 53 against price 42 is 20.75%, rounded to 21.
+
+**QA data restored and verified field-by-field against captured originals** — `v26` and `v27` both
+back to `stock=-1`, `oldPrice=null`.
+
+---
+
+## Batch B — 5.1 Review display · 5.4 Referral prompt ✅ (one caveat)
+
+### 5.1 — the missing half
+Reviews had been collected since Phase 2 and shown to nobody. Product pages now display the
+average, the count, and the six most recent published reviews.
+
+No "verified purchase" badge is rendered — `/api/review` already makes an unverified review
+impossible (own order, COMPLETED, customer-confirmed, one per order), so the badge would be
+decoration rather than information.
+
+**Privacy:** only the customer's **first name** is shown. They consented to leaving feedback, not
+to publishing their full name.
+
+Nothing renders at all when a product has no reviews — "no reviews yet" harms a new product while
+conveying nothing.
+
+### 5.4 — referral prompt at the one honest moment
+Placed in the post-review success state: the customer has just received their order **and** rated
+it. That is peak satisfaction and the only point where asking for a referral is not presumptuous.
+Deliberately **not** shown before ordering or while awaiting delivery — asking someone to
+recommend you before you have delivered is how trust is lost.
+
+`referralCode` is passed from the server (single-field `select`, per CLAUDE.md §8) rather than
+fetched client-side.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | ✅ Pass |
+| `npm run lint` | ✅ Pass |
+| `npm run build` | ✅ Pass |
+| 5.1 review section on product 1 (real data, 1 published review) | ✅ stars, avg 5, "1 টি রিভিউ" |
+| 5.1 first-name-only privacy truncation | ✅ renders "Phase2" |
+| 5.1 hidden on products with no reviews | ✅ |
+
+> **⚠️ 5.4 was not browser-verified.** Its prompt only appears after a specific customer both
+> confirms delivery and submits a review, which requires authenticating as that user. Their
+> password is not known, and resetting it to enable a test would be a destructive change to real
+> account data. The code passes typecheck, lint and build, but that is not the same as a live run.
+> Needs either a test login or authorisation to create a throwaway account.
+
+---
+
+## Phase 5 — remaining work is blocked, not undone
+
+| Task | Status | Blocker |
+|---|---|---|
+| 5.1 | ✅ Complete | — |
+| 5.11 | ✅ Complete | — |
+| 5.12 | ✅ Complete | — |
+| 5.4 | ✅ Built, unverified | needs a test login |
+| 5.2 Catalogue depth + bundles | ⛔ Blocked | needs real products, prices, bundle definitions |
+| 5.3 Telegram/Messenger channel | ⛔ Blocked | needs the actual channel + who staffs it |
+| 5.5 Wallet top-up bonus | ⛔ Blocked | **money rules are a business decision** — bonus %, thresholds, caps, abuse limits |
+| 5.6 Loyalty (every 10th order) | ⛔ Blocked | reward value; depends on 5.5 |
+| 5.7 Tutorial videos | ⛔ Blocked | needs real video URLs |
+| 5.8 Bengali SEO blog | ⛔ Blocked | content strategy; XL |
+| 5.13 Dual-currency display | ⛔ Blocked | needs an FX rate source — a hardcoded rate silently goes stale and misprices |
+| 5.14 Native app wrapper | ⛔ Blocked | XL; outside this codebase |
+| 5.9 Reseller API + scoped keys | ❌ **Conflicts** | introduces a second privileged tier — contradicts the single-role decision (4.10) |
+| 5.10 Affiliate programme | ❌ **Conflicts** | depends on 5.9 |
+
+**Nothing further can be implemented honestly without owner input.** The money-affecting tasks
+(5.5, 5.6) are the sharpest case: inventing a bonus percentage would be inventing business policy
+with real financial consequences.
+
+### Status
+**Phase 5 partially complete — 3 delivered and verified, 1 delivered pending verification, 8
+blocked on input, 2 conflicting with a prior decision.**

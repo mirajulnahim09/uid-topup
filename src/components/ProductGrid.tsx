@@ -6,7 +6,12 @@ import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Diamond from '@/components/fx/Diamond';
 
-type P = { id: number; name: string; slug: string; image: string | null; description: string | null };
+type P = {
+  id: number; name: string; slug: string; image: string | null; description: string | null;
+  // ★ 5.11 — সার্ভারে হিসাব করা ব্যাজ
+  soldOut?: boolean;
+  discountPct?: number;
+};
 type C = { id: number; name: string; icon: string | null; products: P[] };
 
 export default function ProductGrid({ categories }: { categories: C[] }) {
@@ -107,6 +112,21 @@ export default function ProductGrid({ categories }: { categories: C[] }) {
                         {/* sheen */}
                         <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                           style={{ background: 'linear-gradient(115deg,transparent 38%,rgba(255,255,255,.09),transparent 62%)' }} />
+
+                        {/* ★ অবস্থা-ব্যাজ (5.11)
+                            "সব শেষ" ছাড়ের উপরে প্রাধান্য পায় — যা কেনাই
+                            যাবে না তার ছাড় দেখানো নিষ্ঠুর রসিকতা। */}
+                        {p.soldOut ? (
+                          <span className="absolute left-2.5 top-2.5 rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-wider backdrop-blur"
+                            style={{ background: 'rgba(10,10,18,.72)', color: 'var(--mut)', border: '1px solid var(--hair)', letterSpacing: '.1em' }}>
+                            সব শেষ
+                          </span>
+                        ) : (p.discountPct ?? 0) > 0 ? (
+                          <span className="absolute left-2.5 top-2.5 rounded-md px-2 py-1 text-[9px] font-bold uppercase backdrop-blur"
+                            style={{ background: 'rgba(230,197,132,.16)', color: 'var(--gold)', border: '1px solid rgba(230,197,132,.42)', letterSpacing: '.1em' }}>
+                            {p.discountPct}% ছাড়
+                          </span>
+                        ) : null}
                       </div>
                       {/* body */}
                       <div className="p-4">

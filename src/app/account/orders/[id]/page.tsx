@@ -27,7 +27,7 @@ export default async function OrderDetail({
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return null;
 
-  const [order, settings] = await Promise.all([
+  const [order, settings, me] = await Promise.all([
     prisma.order.findUnique({
       where: { id: params.id },
       include: {
@@ -41,6 +41,12 @@ export default async function OrderDetail({
       },
     }),
     getSettings(),
+    // ★ রেফারেল কোড (5.4) — শুধু এই একটি ফিল্ড, পুরো User সারি নয়
+    //   (CLAUDE.md §8: User এ সবসময় `select`)
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { referralCode: true },
+    }),
   ]);
 
   // ★ শুধু নিজের অর্ডার দেখা যাবে — অন্যের ID দিলেও নয়
@@ -183,6 +189,7 @@ export default async function OrderDetail({
           disputed={Boolean(order.deliveryDisputedAt)}
           hasReview={Boolean(order.review)}
           disputeWindowDays={Number(settings.dispute_window_days || 3)}
+          referralCode={me?.referralCode}
         />
       )}
 

@@ -1,5 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import SafeImage from '@/components/fx/SafeImage';
+import RelatedProducts from '@/components/RelatedProducts';
+import ProductReviews from '@/components/ProductReviews';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import OrderForm from '@/components/OrderForm';
@@ -74,7 +76,7 @@ export default async function ProductPage({
   const id = Number(params.id);
   if (isNaN(id) || id < 1) notFound();
 
-  const [product, settings, channels] = await Promise.all([
+  const [product, settings, channels, related, reviews, reviewStats] = await Promise.all([
     prisma.product.findUnique({
       where: { id },
       include: {
@@ -90,6 +92,40 @@ export default async function ProductPage({
     prisma.paymentChannel.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
+    }),
+    // ★ একই ক্যাটাগরির অন্য প্রোডাক্ট (5.12)
+    //   ⚠️ `product` এখনো লোড হয়নি, তাই categoryId এখানে সরাসরি
+    //   জানা নেই — তাই nested query তে বর্তমান প্রোডাক্টের ক্যাটাগরি
+    //   বের করা হয়। এতে Promise.all এর সমান্তরালতা নষ্ট হয় না।
+    prisma.product.findMany({
+      where: {
+        isActive: true,
+        id: { not: id },
+        category: { is: { isActive: true, products: { some: { id } } } },
+      },
+      orderBy: { sortOrder: 'asc' },
+      take: 4,
+      select: {
+        id: true, name: true, slug: true, image: true,
+        variants: { where: { isActive: true }, select: { stock: true } },
+      },
+    }),
+    // ★ প্রকাশ্য রিভিউ (5.1) — এই প্রোডাক্টের যেকোনো ভ্যারিয়েন্টের
+    //   অর্ডারের বিপরীতে দেওয়া। `select` দিয়ে কেবল প্রয়োজনীয়
+    //   ফিল্ড — গ্রাহকের ইমেইল/ব্যালেন্স কখনোই নয় (CLAUDE.md §8)।
+    prisma.review.findMany({
+      where: { isPublished: true, order: { is: { variant: { is: { productId: id } } } } },
+      orderBy: { createdAt: 'desc' },
+      take: 6,
+      select: {
+        id: true, rating: true, body: true, createdAt: true,
+        user: { select: { name: true } },
+      },
+    }),
+    prisma.review.aggregate({
+      where: { isPublished: true, order: { is: { variant: { is: { productId: id } } } } },
+      _count: { _all: true },
+      _avg: { rating: true },
     }),
   ]);
 
@@ -162,6 +198,32 @@ export default async function ProductPage({
           stock: v.stock,
           isPopular: v.isPopular,
           deliveryMinutes: v.deliveryMinutes,
+        }))}
+      />
+
+      {/* ★ প্রকাশ্য রিভিউ (5.1) — ক্রস-সেলের আগে, কারণ আস্থা আগে,
+          পরের কেনাকাটার প্রস্তাব পরে */}
+      <ProductReviews
+        count={reviewStats._count._all}
+        average={reviewStats._avg.rating}
+        items={reviews.map((r: (typeof reviews)[number]) => ({
+          id: r.id,
+          rating: r.rating,
+          body: r.body,
+          createdAt: r.createdAt,
+          // ★ কেবল প্রথম নাম — গোপনীয়তা (উপরের নোট দ্রষ্টব্য)
+          name: (r.user?.name ?? 'গ্রাহক').trim().split(/\s+/)[0],
+        }))}
+      />
+
+      {/* ★ ক্রস-সেল (5.12) — অর্ডার ফর্মের পরে, কারণ মূল কাজ আগে */}
+      <RelatedProducts
+        items={related.map((r: (typeof related)[number]) => ({
+          id: r.id,
+          name: r.name,
+          slug: r.slug,
+          image: r.image,
+          soldOut: r.variants.length > 0 && r.variants.every((v) => v.stock === 0),
         }))}
       />
     </div>

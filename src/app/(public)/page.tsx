@@ -27,7 +27,16 @@ export default async function HomePage() {
           products: {
             where: { isActive: true },
             orderBy: { sortOrder: 'asc' },
-            select: { id: true, name: true, slug: true, image: true, description: true },
+            select: {
+              id: true, name: true, slug: true, image: true, description: true,
+              // ★ ব্যাজের জন্য ন্যূনতম তথ্য (5.11) — গ্রাহক যেন ভেতরে
+              //   ঢুকে তবেই "সব শেষ" জানতে না পারে। পুরো variant সারি
+              //   আনা হয় না, কেবল তিনটি ফিল্ড (CLAUDE.md §15)।
+              variants: {
+                where: { isActive: true },
+                select: { stock: true, price: true, oldPrice: true },
+              },
+            },
           },
         },
       }),
@@ -57,7 +66,33 @@ export default async function HomePage() {
       id: c.id,
       name: c.name,
       icon: c.icon,
-      products: c.products,
+      // ★ ব্যাজ সার্ভারেই হিসাব করে ফেলা হয় (5.11) — ক্লায়েন্টে কেবল
+      //   দুটি প্রিমিটিভ যায়, পুরো variant তালিকা নয় (CLAUDE.md §7)।
+      products: (c.products ?? []).map((p: any) => {
+        const vs: Array<{ stock: number; price: any; oldPrice: any }> = p.variants ?? [];
+
+        // ⚠️ variant না থাকলে "সব শেষ" বলা যাবে না — সেটি ভিন্ন অবস্থা
+        //   (এখনো প্যাকেজ যোগ করা হয়নি)। মিথ্যা "Sold Out" দেখানোর
+        //   চেয়ে কিছু না দেখানোই ভালো।
+        const soldOut = vs.length > 0 && vs.every((v) => v.stock === 0);
+
+        // ★ সর্বোচ্চ ছাড় — শুধু স্টকে আছে এমন প্যাকেজ ধরে, কারণ
+        //   শেষ হয়ে যাওয়া প্যাকেজের ছাড় দেখানো বিভ্রান্তিকর।
+        let discountPct = 0;
+        for (const v of vs) {
+          if (v.stock === 0) continue;
+          const price = Number(v.price);
+          const old = v.oldPrice == null ? 0 : Number(v.oldPrice);
+          if (old > price && old > 0) {
+            discountPct = Math.max(discountPct, Math.round(((old - price) / old) * 100));
+          }
+        }
+
+        return {
+          id: p.id, name: p.name, slug: p.slug, image: p.image,
+          description: p.description, soldOut, discountPct,
+        };
+      }),
     }));
 
   return (
