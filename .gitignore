@@ -6,3 +6,12 @@ out
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+
+# ★ QA / verification artifacts — regenerable, not source.
+#   Playwright যাচাইয়ের সময় তৈরি হওয়া স্ক্রিনশট। রিপোর্টে এগুলোর
+#   ফলাফল লেখা আছে, তাই বাইনারি ফাইলগুলো রিপোতে রাখার দরকার নেই।
+.playwright-mcp/
+impl-*.png
+qa-*.png
+homepage*.png
+research-*.png

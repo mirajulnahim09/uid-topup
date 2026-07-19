@@ -23,9 +23,34 @@ export type AdminAction =
   | 'PRODUCT_DELETE'
   | 'VARIANT_DELETE'
   | 'COUPON_CREATE'
+  | 'COUPON_UPDATE'
   | 'COUPON_DELETE'
   | 'SETTINGS_CHANGE'
-  | 'BACKUP_DOWNLOAD';
+  | 'BACKUP_DOWNLOAD'
+  // ★★★ পেমেন্ট নাম্বার — পুরো অ্যাডমিন প্যানেলের সবচেয়ে ঝুঁকিপূর্ণ
+  //     পরিবর্তন। নাম্বার বদলে দিলে **সব গ্রাহকের টাকা অন্য কোথাও
+  //     চলে যাবে**। তাই এটি অবশ্যই লগ হতে হবে (3.3)।
+  | 'PAYMENT_CREATE'
+  | 'PAYMENT_UPDATE'
+  | 'PAYMENT_DELETE'
+  | 'PRODUCT_UPDATE'
+  | 'VARIANT_CREATE'
+  | 'VARIANT_UPDATE'
+  | 'BANNER_CREATE'
+  | 'BANNER_UPDATE'
+  | 'BANNER_DELETE'
+  | 'SOCIAL_CREATE'
+  | 'SOCIAL_UPDATE'
+  | 'SOCIAL_DELETE'
+  // ★ ফুলফিলমেন্ট claim (3.7) — TAKEOVER আলাদা করে রাখা জরুরি:
+  //   "আমি কাজ করছিলাম, কেউ কেড়ে নিয়ে দুবার ডেলিভারি দিয়েছে"
+  //   — এই বিরোধ মেটানোর একমাত্র প্রমাণ এটি।
+  | 'ORDER_CLAIM'
+  | 'ORDER_RELEASE'
+  | 'ORDER_TAKEOVER'
+  // ★ আংশিক রিফান্ড (3.14) — পূর্ণ রিফান্ড থেকে আলাদা রাখা জরুরি,
+  //   কারণ দুটোর ব্যবসায়িক অর্থ আলাদা এবং বিরোধে প্রশ্নও আলাদা
+  | 'ORDER_PARTIAL_REFUND';
 
 export async function adminLog(opts: {
   adminId: string;

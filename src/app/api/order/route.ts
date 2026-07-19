@@ -7,6 +7,11 @@ import { emailOrderPlaced } from '@/lib/email';
 import { notify, notifyAdmins } from '@/lib/notify';
 import { round2 } from '@/lib/money';
 import { cleanText } from '@/lib/sanitize';
+import { getSettings } from '@/lib/settings';
+import { computeSlaDueAt, slaFromSettings } from '@/lib/sla';
+import { recordOrderEvent } from '@/lib/orderEvents';
+import { generateTrackToken } from '@/lib/tracking';
+import { debitWallet } from '@/lib/services/wallet';
 
 export async function POST(req: Request) {
   try {
@@ -27,6 +32,10 @@ export async function POST(req: Request) {
     const playerName = parsed.data.playerName
       ? cleanText(parsed.data.playerName, 80)
       : null;
+
+    // ★ ডেলিভারির ডেডলাইন — transaction এর বাইরে হিসাব করা হয়
+    //   (সেটিংস পড়া, লক লাগে না) কিন্তু অর্ডারে সংরক্ষিত হয়
+    const slaDueAt = computeSlaDueAt(slaFromSettings(await getSettings()));
 
     // ═══════════════════════════════════════════
     // ★★★ পুরো money flow একটাই transaction
@@ -109,11 +118,12 @@ export async function POST(req: Request) {
           );
         }
 
-        // 1️⃣ ব্যালেন্স কাটা
-        const updatedUser = await tx.user.update({
-          where: { id: user.id },
-          data: { balance: { decrement: finalPrice } },
-        });
+        // 1️⃣ ব্যালেন্স কাটা — লেজার সহ, এক ধাপে (4.1)
+        //    ⚠️ যথেষ্ট ব্যালেন্স আছে কি না তা উপরে লক করা রো দেখে
+        //      ইতিমধ্যে যাচাই হয়েছে; সার্ভিস সেটা আবার করে না।
+        //    ⚠️ ordering: অর্ডার তৈরির **পরে** লেজার লিখতে হয় (refId
+        //      লাগে), তাই এখানে শুধু ব্যালেন্স আটকে রাখা যায় না —
+        //      নিচে অর্ডার তৈরির পর debitWallet ডাকা হয়েছে।
 
         // 2️⃣ স্টক কমানো
         // 2️⃣ স্টক কমানো — লক করা আসল stock দেখে
@@ -125,6 +135,8 @@ export async function POST(req: Request) {
         }
 
         // 3️⃣ অর্ডার (snapshot সহ — পরে দাম বদলালেও পুরনো অর্ডার অক্ষত)
+        //    ★ slaDueAt ও snapshot — পরে সেটিংস বদলালেও এই গ্রাহককে
+        //      দেওয়া প্রতিশ্রুতি অপরিবর্তিত থাকবে
         const order = await tx.order.create({
           data: {
             userId: user.id,
@@ -138,32 +150,45 @@ export async function POST(req: Request) {
             variantName: variant.label,
             couponId,
             status: 'PENDING',
+            slaDueAt,
+            // ★ লগইন ছাড়া ট্র্যাক করার গোপন টোকেন
+            trackToken: generateTrackToken(),
           },
         });
 
         // 4️⃣ কুপন consume
         if (couponId) await consumeCoupon(tx, couponId, user.id, order.id, discount);
 
-        // 5️⃣ Ledger — audit trail
-        await tx.ledgerEntry.create({
-          data: {
-            userId: user.id,
-            type: 'ORDER',
-            amount: -finalPrice,
-            balanceAfter: updatedUser.balance,
-            refId: order.id,
-            note:
-              `${variant.product.name} — ${variant.label}` +
-              (couponLabel ? ` (কুপন: ${couponLabel}, −৳${discount.toFixed(2)})` : ''),
-          },
+        // 4️⃣.৫ ঘটনাপঞ্জির প্রথম এন্ট্রি — একই transaction এ, তাই
+        //      অর্ডার থাকলে তার শুরুর রেকর্ডও নিশ্চিতভাবে থাকবে
+        await recordOrderEvent(tx, {
+          orderId: order.id,
+          status: 'PENDING',
+          note: 'অর্ডার গ্রহণ করা হয়েছে — পেমেন্ট ওয়ালেট থেকে কাটা হয়েছে',
+          actorType: 'CUSTOMER',
+          actorId: user.id,
+        });
+
+        // 5️⃣ ব্যালেন্স কাটা + খতিয়ান — একসাথে, আলাদা করা যায় না (4.1)
+        const newBalance = await debitWallet({
+          tx,
+          userId: user.id,
+          amount: finalPrice,
+          type: 'ORDER',
+          refId: order.id,
+          note:
+            `${variant.product.name} — ${variant.label}` +
+            (couponLabel ? ` (কুপন: ${couponLabel}, −৳${discount.toFixed(2)})` : ''),
         });
 
         return {
+          orderId: order.id,
           orderNo: order.orderNo,
+          trackToken: order.trackToken,
           productName: order.productName,
           variantName: order.variantName,
           price: finalPrice,
-          newBalance: Number(updatedUser.balance),
+          newBalance: Number(newBalance),
         };
       },
       { timeout: 15000 }
@@ -190,6 +215,8 @@ export async function POST(req: Request) {
 
     return Response.json({
       success: true,
+      // ★ রসিদ পেজে নিয়ে যেতে orderId দরকার (2.11)
+      orderId: result.orderId,
       orderNo: result.orderNo,
       balance: result.newBalance.toFixed(2),
       message: `অর্ডার #${result.orderNo} গ্রহণ করা হয়েছে। শীঘ্রই প্রসেস করা হবে।`,

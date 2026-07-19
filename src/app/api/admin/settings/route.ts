@@ -1,7 +1,10 @@
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, apiError, ApiError } from '@/lib/guard';
+import { invalidateSettings } from '@/lib/settings';
 import { cleanText, safeUrl } from '@/lib/sanitize';
 import { revalidatePath } from 'next/cache';
+import { adminLog } from '@/lib/adminLog';
+import { getIp } from '@/lib/rateLimit';
 
 // ★ শুধু এই key গুলো লেখা যাবে — arbitrary key নয়
 const ALLOWED = new Set([
@@ -18,9 +21,14 @@ const NUM_KEYS = new Set([
   'min_deposit', 'max_deposit', 'referral_bonus', 'referral_min_deposit',
 ]);
 
+/**
+ * ★ সাইট সেটিংস — এখানে min/max ডিপোজিট, রেফারেল বোনাস ও
+ *   maintenance mode বদলানো যায়। সবগুলোই ব্যবসায়িক প্রভাব ফেলে,
+ *   তাই কে কী বদলাল তা লগ হওয়া দরকার (3.3, AUDIT_REPORT.md M2)।
+ */
 export async function POST(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const body = await req.json();
     if (typeof body !== 'object' || !body) throw new ApiError('অবৈধ ডেটা', 400);
 
@@ -64,7 +72,21 @@ export async function POST(req: Request) {
       )
     );
 
+    // ★ কোন কোন সেটিং বদলাল — নাম উল্লেখ করে, যাতে পরে
+    //   "কে ডিপোজিট সীমা বদলেছিল" খুঁজে বের করা যায়
+    if (updates.length > 0) {
+      adminLog({
+        adminId: admin.id,
+        adminName: admin.name,
+        action: 'SETTINGS_CHANGE',
+        detail: updates.map((u) => `${u.key}=${u.value}`).join(', '),
+        ip: getIp(req),
+      }).catch(() => {});
+    }
+
     revalidatePath('/', 'layout');
+    // ★ ক্যাশ বাতিল (4.6) — পরিবর্তন যেন সাথে সাথেই কার্যকর হয়
+    invalidateSettings();
     return Response.json({ success: true, updated: updates.length });
   } catch (e) {
     return apiError(e);

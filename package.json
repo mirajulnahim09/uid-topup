@@ -11,8 +11,9 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "db:constraints": "psql \"$DATABASE_URL\" -f prisma/constraints.sql",
-    "db:setup": "prisma db push && tsx prisma/seed.ts"
+    "db:constraints": "tsx prisma/apply-constraints.ts",
+    "db:setup": "prisma db push && tsx prisma/seed.ts && tsx prisma/apply-constraints.ts",
+    "test:money": "tsx scripts/money-invariants.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -22,7 +23,7 @@
     "@vercel/blob": "^0.27.0",
     "bcryptjs": "^2.4.3",
     "framer-motion": "^11.11.9",
-    "next": "14.2.15",
+    "next": "^14.2.35",
     "next-auth": "^4.24.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -36,7 +37,7 @@
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^14.2.15",
+    "eslint-config-next": "^14.2.35",
     "postcss": "^8.4.47",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.13",

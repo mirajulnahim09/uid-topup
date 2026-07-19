@@ -33,6 +33,7 @@ model User {
   ledger        LedgerEntry[]
   couponUses    CouponUse[]
   notifications Notification[]
+  reviews       Review[]
 
   @@index([createdAt])
   @@index([referredById])
@@ -44,8 +45,16 @@ enum UserStatus {
   BLOCKED
 }
 
+/// ★ ভূমিকা — ইচ্ছাকৃতভাবে **দুটিই**: গ্রাহক ও মালিক।
+///
+///   স্তরভিত্তিক অ্যাডমিন (STAFF) ব্যবসায়িক সিদ্ধান্তে বাদ দেওয়া
+///   হয়েছে: পুরো অ্যাডমিন প্যানেল — ডিপোজিট অনুমোদন, অর্ডার
+///   প্রসেসিং, ব্যালেন্স সমন্বয়, গ্রাহক ব্যবস্থাপনা, সার্চ,
+///   রিফান্ড, সেটিংস — কেবল মালিকই চালান। একটিমাত্র প্রশাসনিক
+///   ভূমিকা রাখায় অনুমতির নিয়ম সরল ও দ্ব্যর্থহীন থাকে।
 enum Role {
   USER
+  /// মালিক — সম্পূর্ণ অ্যাডমিন প্যানেল
   ADMIN
 }
 
@@ -70,6 +79,9 @@ model Product {
   needsUid    Boolean  @default(true)
   uidLabel    String   @default("Player UID")
   uidHint     String?
+  /// ★ কোন সার্ভিস দিয়ে UID যাচাই হবে। null = যাচাই সম্ভব নয়,
+  ///   তখন double-entry (দুইবার লিখে মিলিয়ে দেখা) fallback চলবে।
+  uidValidationProvider String?
   sortOrder   Int      @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -81,6 +93,9 @@ model Product {
   @@index([isActive])
 }
 
+/// ★ প্যাকেজভিত্তিক ডেলিভারি প্রতিশ্রুতি (2.14)
+///   কিছু প্যাকেজ (যেমন সাবস্ক্রিপশন) স্বাভাবিকভাবেই বেশি সময় নেয়।
+///   একই "Instant" ব্যাজ সবখানে বসানো মিথ্যা ও বিরোধ তৈরি করে।
 model Variant {
   id        Int      @id @default(autoincrement())
   productId Int
@@ -92,6 +107,10 @@ model Variant {
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
   isPopular Boolean  @default(false)
+  /// ★ এই প্যাকেজের সাধারণ ডেলিভারি সময় (মিনিট)।
+  ///   null = প্রোডাক্ট/সাইটের সাধারণ SLA প্রযোজ্য।
+  ///   ⚠️ কখনো "Instant" লেখা হয় না — ম্যানুয়াল সিস্টেমে সেটি মিথ্যা।
+  deliveryMinutes Int?
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   orders  Order[]
@@ -193,11 +212,18 @@ model Deposit {
   adminNote  String?
   createdAt  DateTime      @default(now())
   reviewedAt DateTime?
+  /// ★ ওয়ালেট টপ-আপ, নাকি একটি নির্দিষ্ট অর্ডারের সরাসরি পেমেন্ট
+  intent        DepositIntent @default(WALLET_TOPUP)
+  /// ★ ORDER_PAYMENT হলে কোন অর্ডারের জন্য
+  linkedOrderId String?
+  /// ★ বাতিলের কাঠামোবদ্ধ কারণ — গ্রাহককে সুনির্দিষ্ট বার্তা দিতে
+  rejectReason  DepositRejectReason?
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@index([status, createdAt])
+  @@index([linkedOrderId])
 }
 
 enum DepositStatus {
@@ -225,21 +251,169 @@ model Order {
   internalNote String?    // ★ শুধু অ্যাডমিন — কাস্টমার দেখে না
   createdAt   DateTime    @default(now())
   completedAt DateTime?
+  // ★ SLA — অর্ডারের সময় হিসাব করা হয়, পরে সেটিংস বদলালেও এই
+  //   অর্ডারের প্রতিশ্রুতি বদলাবে না (snapshot, দামের মতোই)
+  slaDueAt    DateTime?
+  /// ★ UID যাচাই করে পাওয়া আসল গেম-নাম। অ্যাডমিন ডেলিভারির আগে
+  ///   এটি মিলিয়ে দেখে — ভুল অ্যাকাউন্টে টপ-আপ ঠেকানোর দ্বিতীয় স্তর।
+  verifiedPlayerName String?
+  /// ★ বাতিল/ব্যর্থতার কাঠামোবদ্ধ কারণ
+  failReason  OrderFailReason?
+  /// ★ গ্রাহক নিজে নিশ্চিত করেছে — জিনিস পৌঁছেছে
+  deliveryConfirmedAt DateTime?
+  /// ★ গ্রাহক জানিয়েছে পায়নি — অ্যাডমিনের হস্তক্ষেপ দরকার।
+  ///   এটাই সেই ব্যর্থতা ধরে যা অ্যাডমিন নিজে কখনো দেখতে পেত না।
+  deliveryDisputedAt  DateTime?
+  /// ★ লগইন ছাড়া অর্ডার ট্র্যাক করার গোপন টোকেন।
+  ///   ⚠️ অনুমানযোগ্য নয় — ক্রিপ্টো-random। অর্ডার নাম্বার দিয়ে
+  ///   অন্যের অর্ডার দেখার (enumeration) পথ বন্ধ রাখতে এটি জরুরি।
+  trackToken  String? @unique
+
+  /// ★★★ ফুলফিলমেন্ট claim (3.7) — একাধিক অ্যাডমিন একসাথে কাজ করলে
+  ///     একই অর্ডার দুজনে গেমে ডেলিভারি দেওয়া ঠেকায়।
+  ///
+  ///     ⚠️ এটি **টাকার সুরক্ষা নয়**। ডাবল-রিফান্ড / ডাবল-স্ট্যাটাস
+  ///     আগেই ঠেকায় `SELECT ... FOR UPDATE` row-lock — সেটিই আসল রক্ষা
+  ///     এবং সেটি অপরিবর্তিত আছে। claim ঠেকায় সেই ক্ষতিটা যা ডাটাবেস
+  ///     কখনো দেখতেই পায় না: দুজন অ্যাডমিন **গেমের ভেতরে** দুবার
+  ///     ডায়মন্ড পাঠিয়ে দিলে সিস্টেমে একটাই অর্ডার, কিন্তু বাস্তবে
+  ///     দুবার খরচ হয়ে গেছে।
+  ///
+  ///     AdminLog-এর মতোই id + name দুটোই রাখা — নাম snapshot, যাতে
+  ///     অ্যাডমিন ডিলিট হলেও "কে ধরেছিল" পড়া যায় (relation নয়)।
+  claimedById   String?
+  claimedByName String?
+  claimedAt     DateTime?
+
+  /// ★★★ এ পর্যন্ত মোট কত টাকা ফেরত গেছে (3.14)
+  ///
+  ///     ⚠️ এই একটি ফিল্ডই আংশিক রিফান্ডের পুরো সুরক্ষা।
+  ///     নিয়ম: `refundedAmount + নতুন অঙ্ক <= price` — সবসময়,
+  ///     লক করা transaction এর ভেতরে যাচাই।
+  ///
+  ///     ⚠️ পূর্ণ রিফান্ডের (FAIL) পথও এটি `price` বসিয়ে দেয়।
+  ///     ফলে একই নিয়ম দুটো কাজ করে: আংশিক রিফান্ড কখনো মোট
+  ///     দামের বেশি হতে পারে না, **আর** যে অর্ডার একবার পুরো
+  ///     ফেরত হয়েছে তাতে আর এক পয়সাও ফেরত দেওয়া যায় না।
+  ///     আলাদা কোনো "already refunded" পতাকার দরকার পড়ে না।
+  refundedAmount Decimal @default(0) @db.Decimal(12, 2)
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
   variant Variant @relation(fields: [variantId], references: [id], onDelete: Restrict)
   coupon  Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  events  OrderEvent[]
+  review  Review?
 
   @@index([userId])
   @@index([status, createdAt])
 }
 
+/// ★ অর্ডারের ঘটনাপঞ্জি — append-only, LedgerEntry এর মতোই।
+///   কাস্টমারকে "কোথায় আছে" দেখায়, আর সাপোর্টকে সঠিক সময়রেখা দেয়।
+///   কখনো UPDATE/DELETE করা হয় না।
+model OrderEvent {
+  id        String          @id @default(cuid())
+  orderId   String
+  status    OrderStatus
+  note      String?
+  actorType OrderActorType  @default(SYSTEM)
+  actorId   String?
+  createdAt DateTime        @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+}
+
+enum OrderActorType {
+  SYSTEM
+  ADMIN
+  CUSTOMER
+}
+
+/// ★ গ্রাহকের রিভিউ — শুধুমাত্র প্রকৃত, সম্পন্ন ও গ্রাহক-নিশ্চিত
+///   অর্ডারের বিপরীতে। তাই প্রতিটি রিভিউ যাচাইযোগ্য কেনাকাটার সাথে
+///   যুক্ত — বানানো রিভিউ ঢোকানোর পথ নেই।
+///   ⚠️ orderId unique — এক অর্ডারে একটিই রিভিউ।
+model Review {
+  id          String   @id @default(cuid())
+  orderId     String   @unique
+  userId      String
+  rating      Int      // ১–৫
+  body        String?
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isPublished, createdAt])
+  @@index([userId])
+}
+
+/// ★ বাস্তব তথ্য থেকে হিসাব করা আস্থা-পরিসংখ্যান।
+///   ⚠️ কখনো হাতে লেখা সংখ্যা নয় — সব মান প্রকৃত অর্ডার/ডেলিভারি
+///   থেকে গোনা হয় (COMPETITOR_ANALYSIS.md: যাচাইযোগ্য না হলে
+///   বরং কিছু না দেখানোই ভালো)।
+model TrustMetric {
+  key        String   @id
+  value      String
+  computedAt DateTime @default(now())
+}
+
+/// ★ UID → গেম-নাম লুকআপের ক্যাশ।
+///   একই UID বারবার দেখা হয় (গ্রাহক নিজের অ্যাকাউন্টেই টপ-আপ করে),
+///   আর উজানের সার্ভিস ধীর ও অনির্ভরযোগ্য — তাই আক্রমণাত্মক ক্যাশিং।
+model UidLookupCache {
+  id         String   @id @default(cuid())
+  provider   String
+  uid        String
+  playerName String
+  checkedAt  DateTime @default(now())
+
+  @@unique([provider, uid])
+  @@index([checkedAt])
+}
+
 enum OrderStatus {
+  /// ★ ডাইরেক্ট-পে: অর্ডার তৈরি হয়েছে কিন্তু পেমেন্ট এখনো যাচাই হয়নি।
+  ///   ⚠️ এই অবস্থার অর্ডার ফুলফিল করা যাবে না — টাকা আসেনি।
+  AWAITING_PAYMENT
   PENDING
   PROCESSING
   COMPLETED
   FAILED
   REFUNDED
+}
+
+/// ★ ডিপোজিট কীসের জন্য — ওয়ালেটে টাকা যোগ, নাকি নির্দিষ্ট অর্ডারের দাম
+enum DepositIntent {
+  WALLET_TOPUP
+  ORDER_PAYMENT
+}
+
+/// ★ পেমেন্ট বাতিলের নির্দিষ্ট কারণ।
+///   কেন enum, মুক্ত টেক্সট নয়: ভালো বার্তা হাতে লিখতে সময় লাগে,
+///   তাই তাড়াহুড়োয় অ্যাডমিন "বাতিল" লিখে ছেড়ে দেয় — আর গ্রাহক
+///   বুঝতেই পারে না কী করতে হবে। নির্দিষ্ট কারণ বাছাই করলে
+///   সিস্টেম নিজেই সুনির্দিষ্ট ও কাজের বার্তা বানিয়ে দেয়।
+enum DepositRejectReason {
+  TRX_NOT_FOUND      // স্টেটমেন্টে TrxID নেই
+  AMOUNT_MISMATCH    // টাকার অঙ্ক মেলেনি
+  DUPLICATE_TRX      // একই TrxID আগে ব্যবহৃত
+  UNCLEAR_PROOF      // স্ক্রিনশট অস্পষ্ট/অসম্পূর্ণ
+  WRONG_ACCOUNT      // ভুল নাম্বারে পাঠানো
+  OTHER              // অন্য কারণ — নোট বাধ্যতামূলক
+}
+
+/// ★ অর্ডার সম্পন্ন না হওয়ার নির্দিষ্ট কারণ (রিফান্ডের সাথে)
+enum OrderFailReason {
+  INVALID_UID        // UID ভুল/পাওয়া যায়নি
+  OUT_OF_STOCK       // স্টক শেষ
+  GAME_SERVER_ISSUE  // গেম সার্ভারের সমস্যা
+  PRICE_CHANGED      // দাম বদলে গেছে
+  CUSTOMER_REQUEST   // গ্রাহকের অনুরোধে
+  OTHER              // অন্য কারণ — নোট বাধ্যতামূলক
 }
 
 // ═════════ LEDGER ═════════

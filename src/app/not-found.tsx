@@ -2,9 +2,17 @@ import Link from 'next/link';
 
 export default function NotFound() {
   return (
-    <div className="grid min-h-screen place-items-center p-6">
+    <div className="grid min-h-[100dvh] place-items-center p-6">
       <div className="text-center">
-        <p className="bg-gradient-to-r from-rose-600 to-purple-600 bg-clip-text text-7xl font-black text-transparent">
+        <p
+          className="dsp text-7xl font-black"
+          style={{
+            background: 'linear-gradient(180deg,var(--gold),rgba(230,197,132,.35))',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+          }}
+        >
           404
         </p>
         <h1 className="mt-4 text-2xl font-bold text-slate-900">পাতাটি পাওয়া যায়নি</h1>

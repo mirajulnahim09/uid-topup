@@ -53,4 +53,12 @@ export const LIMITS = {
   deposit: { limit: 10, window: 600 },
   coupon: { limit: 15, window: 300 },
   upload: { limit: 25, window: 600 },
+  // ★ UID যাচাই তৃতীয় পক্ষের সার্ভিসে যায় — enumeration ও কোটা
+  //   নষ্ট হওয়া ঠেকাতে সীমা
+  uidVerify: { limit: 30, window: 300 },
+  // ★ অর্ডার ট্র্যাকিং — অননুমোদিত endpoint, তাই IP ভিত্তিক কড়া সীমা।
+  //   অর্ডার নাম্বার + ফোন brute-force করার সুযোগ দেওয়া যাবে না।
+  track: { limit: 10, window: 300 },
+  // ★ TrxID ডুপ্লিকেট পরীক্ষা — enumeration ঠেকাতে সীমা
+  trxCheck: { limit: 20, window: 300 },
 } as const;

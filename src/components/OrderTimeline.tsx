@@ -4,43 +4,100 @@ import { motion } from 'framer-motion';
 import { fmtDate } from '@/lib/date';
 
 /**
- * ★ অর্ডার কোথায় আছে — ধাপে ধাপে দেখায়।
- *   কাস্টমার বারবার জিজ্ঞেস করবে না "আমার অর্ডার কী হলো?"
+ * ★ অর্ডার কোথায় আছে — ধাপে ধাপে, প্রকৃত সময়সহ।
+ *
+ *   আগে ধাপগুলো শুধু বর্তমান status থেকে *অনুমান* করা হতো, তাই
+ *   "কখন কী হয়েছে" বলা যেত না। এখন OrderEvent থেকে আসল ঘটনাপঞ্জি
+ *   আসে — প্রতিটি ধাপের সময় ও নোটসহ (MANUAL_WORKFLOW.md A7)।
+ *
+ *   ঘটনাপঞ্জি না থাকলে (পুরনো অর্ডার) status থেকেই দেখানো হয় —
+ *   তাই পুরনো অর্ডারও ভাঙে না।
  */
-export default function OrderTimeline({
-  status, createdAt, completedAt,
-}: {
+export type TimelineEvent = {
   status: string;
-  createdAt: string;
-  completedAt: string | null;
-}) {
+  note: string | null;
+  at: string;
+};
+
+type Step = {
+  label: string;
+  sub: string;
+  state: 'done' | 'wait' | 'failed';
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: 'অর্ডার গ্রহণ',
+  PROCESSING: 'প্রসেস করা হচ্ছে',
+  COMPLETED: 'ডেলিভারি সম্পন্ন',
+  FAILED: 'সম্পন্ন করা যায়নি',
+  REFUNDED: 'বাতিল — টাকা ফেরত',
+};
+
+function buildSteps(
+  status: string,
+  createdAt: string,
+  completedAt: string | null,
+  events: TimelineEvent[]
+): Step[] {
   const failed = status === 'REFUNDED' || status === 'FAILED';
   const done = status === 'COMPLETED';
   const processing = status === 'PROCESSING';
 
-  const steps = [
-    {
-      label: 'অর্ডার গ্রহণ',
-      sub: fmtDate(createdAt),
-      state: 'done' as const,
-    },
+  // ── প্রকৃত ঘটনাপঞ্জি থাকলে সেটাই দেখাই ──
+  if (events.length > 0) {
+    const steps: Step[] = events.map((e) => ({
+      label: STATUS_LABEL[e.status] ?? e.status,
+      sub: `${fmtDate(e.at)}${e.note ? ` · ${e.note}` : ''}`,
+      state: (e.status === 'REFUNDED' || e.status === 'FAILED' ? 'failed' : 'done') as
+        | 'done'
+        | 'failed',
+    }));
+
+    // এখনো শেষ হয়নি → পরের ধাপ "অপেক্ষায়" হিসেবে দেখাই
+    if (!done && !failed) {
+      steps.push({
+        label: processing ? 'ডেলিভারি সম্পন্ন' : 'প্রসেস করা হচ্ছে',
+        sub: 'অপেক্ষায়',
+        state: 'wait',
+      });
+    }
+    return steps;
+  }
+
+  // ── fallback: পুরনো অর্ডার, ঘটনাপঞ্জি নেই ──
+  return [
+    { label: 'অর্ডার গ্রহণ', sub: fmtDate(createdAt), state: 'done' },
     {
       label: 'প্রসেস করা হচ্ছে',
       sub: done || processing || failed ? 'অ্যাডমিন দেখছে' : 'অপেক্ষায়',
-      state: (done || processing || failed ? 'done' : 'wait') as 'done' | 'wait',
+      state: done || processing || failed ? 'done' : 'wait',
     },
     failed
       ? {
           label: 'বাতিল — টাকা ফেরত',
           sub: completedAt ? fmtDate(completedAt) : '',
-          state: 'failed' as const,
+          state: 'failed',
         }
       : {
           label: 'ডেলিভারি সম্পন্ন',
           sub: done && completedAt ? fmtDate(completedAt) : 'অপেক্ষায়',
-          state: (done ? 'done' : 'wait') as 'done' | 'wait',
+          state: done ? 'done' : 'wait',
         },
   ];
+}
+
+export default function OrderTimeline({
+  status,
+  createdAt,
+  completedAt,
+  events = [],
+}: {
+  status: string;
+  createdAt: string;
+  completedAt: string | null;
+  events?: TimelineEvent[];
+}) {
+  const steps = buildSteps(status, createdAt, completedAt, events);
 
   return (
     <section className="card p-5">
@@ -55,7 +112,7 @@ export default function OrderTimeline({
               : 'bg-slate-200';
 
           return (
-            <li key={s.label} className="relative flex gap-4">
+            <li key={`${s.label}-${i}`} className="relative flex gap-4">
               {/* সংযোগ রেখা */}
               {!isLast && (
                 <span
@@ -98,7 +155,7 @@ export default function OrderTimeline({
                 )}
 
                 {/* চলমান ধাপে ধুকধুক */}
-                {s.state === 'wait' && i === 1 && (
+                {s.state === 'wait' && (
                   <motion.span
                     className="absolute inset-0 rounded-full border-2 border-amber-400"
                     animate={{ scale: [1, 1.4], opacity: [0.7, 0] }}
@@ -124,7 +181,9 @@ export default function OrderTimeline({
                 >
                   {s.label}
                 </p>
-                {s.sub && <p className="text-xs text-slate-500">{s.sub}</p>}
+                {s.sub && (
+                  <p className="text-xs leading-relaxed text-slate-500">{s.sub}</p>
+                )}
               </motion.div>
             </li>
           );

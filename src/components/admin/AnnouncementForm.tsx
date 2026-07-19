@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/components/Toast';
+import CannedPicker from '@/components/admin/CannedPicker';
 
 export default function AnnouncementForm() {
   const toast = useToast();
@@ -42,7 +43,11 @@ export default function AnnouncementForm() {
           <input aria-label="শিরোনাম" className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} placeholder="যেমন: ঈদ অফার!" />
         </div>
         <div>
-          <label className="label">বার্তা</label>
+          <div className="flex items-center justify-between gap-2">
+            <label className="label">বার্তা</label>
+            {/* ★ তৈরি বার্তা (3.15) — ঘোষণাতেও একই লাইব্রেরি */}
+            <CannedPicker onPick={(t) => setBody((b) => (b ? `${b} ${t}` : t))} />
+          </div>
           <textarea aria-label="বার্তা" className="input min-h-[70px]" value={body} onChange={(e) => setBody(e.target.value)} maxLength={500} placeholder="বিস্তারিত লিখুন..." />
         </div>
         <div>

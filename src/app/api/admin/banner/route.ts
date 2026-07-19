@@ -1,12 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, apiError, ApiError } from '@/lib/guard';
+import { adminLog } from '@/lib/adminLog';
+import { getIp } from '@/lib/rateLimit';
 import { cleanText, safeUrl } from '@/lib/sanitize';
 import { deleteImage } from '@/lib/upload';
 import { revalidatePath } from 'next/cache';
 
 export async function POST(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { image, title, subtitle, link } = await req.json();
 
     const img = safeUrl(String(image || ''));
@@ -26,6 +28,11 @@ export async function POST(req: Request) {
       },
     });
 
+    adminLog({
+      adminId: admin.id, adminName: admin.name, action: 'BANNER_CREATE',
+      targetId: String(b.id), detail: 'নতুন ব্যানার যোগ করা হয়েছে', ip: getIp(req),
+    }).catch(() => {});
+
     revalidatePath('/', 'layout');
     return Response.json({ success: true, id: b.id });
   } catch (e) {
@@ -35,7 +42,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id, isActive, title, subtitle, link, sortOrder } = await req.json();
     if (!id) throw new ApiError('id প্রয়োজন', 400);
 
@@ -57,6 +64,15 @@ export async function PATCH(req: Request) {
     }
 
     await prisma.banner.update({ where: { id: Number(id) }, data });
+
+    adminLog({
+      adminId: admin.id, adminName: admin.name, action: 'BANNER_UPDATE',
+      targetId: String(id),
+      detail: data.isActive !== undefined
+        ? (data.isActive ? 'ব্যানার চালু' : 'ব্যানার বন্ধ')
+        : `ব্যানার হালনাগাদ (${Object.keys(data).join(', ')})`,
+      ip: getIp(req),
+    }).catch(() => {});
     // ★ পাবলিক পেজের ক্যাশ সাথে সাথে মুছে দাও — দাম/ছবি তখনই দেখাবে
     revalidatePath('/', 'layout');
 
@@ -68,7 +84,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id } = await req.json();
     if (!id) throw new ApiError('id প্রয়োজন', 400);
 
@@ -77,6 +93,11 @@ export async function DELETE(req: Request) {
 
     await prisma.banner.delete({ where: { id: Number(id) } });
     deleteImage(b.image).catch(() => {});
+
+    adminLog({
+      adminId: admin.id, adminName: admin.name, action: 'BANNER_DELETE',
+      targetId: String(id), detail: b.title || 'ব্যানার মুছে ফেলা হয়েছে', ip: getIp(req),
+    }).catch(() => {});
 
     // ★ পাবলিক পেজের ক্যাশ সাথে সাথে মুছে দাও — দাম/ছবি তখনই দেখাবে
     revalidatePath('/', 'layout');

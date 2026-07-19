@@ -24,7 +24,9 @@ async function main() {
   // ═══ Settings ═══
   const settings: Record<string, string> = {
     site_name: 'UID TopUp',
-    site_notice: '১০ সেকেন্ডে ডেলিভারি — ২৪/৭ সার্ভিস চালু।',
+    // ★ সৎ নোটিশ — "১০ সেকেন্ডে ডেলিভারি / ২৪/৭" দাবি সরানো হয়েছে;
+    //   ম্যানুয়াল সিস্টেমে দুটোই মিথ্যা এবং বিরোধ তৈরি করে।
+    site_notice: 'প্রতিটি পেমেন্ট আমরা নিজে যাচাই করি — অর্ডারের অবস্থা যেকোনো সময় দেখতে পারবেন।',
     hero_title: 'ফ্রি ফায়ার ডায়মন্ড টপ আপ',
     hero_subtitle: 'কম দামে ভালো সার্ভিস',
     min_deposit: '20',
@@ -34,6 +36,16 @@ async function main() {
     support_email: 'support@uidtopup.local',
     support_phone: '01700000000',
     support_hours: 'সকাল ৯টা – রাত ১১টা',
+    // ★ ডেলিভারির প্রতিশ্রুতি — সৎ ও বাস্তবসম্মত রাখুন।
+    //   "Instant" দাবি করবেন না; ম্যানুয়াল সিস্টেমে সেটি মিথ্যা।
+    sla_typical_minutes: '15',
+    sla_max_minutes: '120',
+    // ★ অফিস সময় (২৪-ঘন্টা, ঢাকা) — এর বাইরে অর্ডার এলে ডেডলাইন
+    //   পরের দিন খোলার সময় থেকে গোনা হয়
+    support_open_hour: '9',
+    support_close_hour: '23',
+    // ★ ৩ দিনের মধ্যে সমস্যা জানাতে হবে
+    dispute_window_days: '3',
   };
   for (const [key, value] of Object.entries(settings)) {
     await prisma.setting.upsert({ where: { key }, update: {}, create: { key, value } });
@@ -225,6 +237,9 @@ async function main() {
       await prisma.variant.createMany({
         data: sp.pkgs.map(([label, price, costPrice], j) => ({
           productId: p.id, label, price, costPrice, sortOrder: j,
+          // ★ সাবস্ক্রিপশন হাতে অ্যাক্টিভেট করতে হয় — ডায়মন্ডের
+          //   চেয়ে বেশি সময় লাগে। সৎ সময়ই দেখানো হয় (2.14)।
+          deliveryMinutes: 60,
         })),
       });
     }

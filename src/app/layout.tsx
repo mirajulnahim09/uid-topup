@@ -37,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 5,   // ♿ zoom বন্ধ করা accessibility violation
+  // ♿ maximumScale সেট করা হয় না — pinch-zoom সীমিত করলে WCAG 1.4.4 ভাঙে
   themeColor: '#070512',
 };
 

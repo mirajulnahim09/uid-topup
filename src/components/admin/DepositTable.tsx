@@ -6,6 +6,8 @@ import Link from 'next/link';
 import Badge from '@/components/Badge';
 import { useToast, ConfirmDialog } from '@/components/Toast';
 import { fmtDate } from '@/lib/date';
+import { depositRejectOptions, DEPOSIT_REJECT_COPY } from '@/lib/rejectReasons';
+import CopyButton from '@/components/admin/CopyButton';
 
 type D = {
   id: string; depositNo: number; method: string; amount: number;
@@ -24,10 +26,17 @@ export default function DepositTable({ deposits, current }: { deposits: D[]; cur
   const [busy, setBusy] = useState<string | null>(null);
   const [dlg, setDlg] = useState<{ d: D; action: 'APPROVE' | 'REJECT' } | null>(null);
   const [note, setNote] = useState('');
+  const [reason, setReason] = useState<string>('TRX_NOT_FOUND');
   const [zoom, setZoom] = useState<string | null>(null);
+  const reasonOpts = depositRejectOptions();
+  const noteRequired = reasonOpts.find((o) => o.value === reason)?.requiresNote ?? false;
 
   function open(d: D, action: 'APPROVE' | 'REJECT') {
-    setNote(action === 'REJECT' ? 'ট্রানজেকশন যাচাই করা যায়নি' : '');
+    // ★ নোট আর প্রি-ফিল করা হয় না — কাঠামোবদ্ধ কারণ বাছলে সিস্টেম
+    //   নিজেই সুনির্দিষ্ট বার্তা বানায়। আগে প্রি-ফিল করা "ট্রানজেকশন
+    //   যাচাই করা যায়নি" ই বেশিরভাগ সময় গ্রাহকের কাছে যেত।
+    setNote('');
+    setReason('TRX_NOT_FOUND');
     setDlg({ d, action });
   }
 
@@ -41,7 +50,12 @@ export default function DepositTable({ deposits, current }: { deposits: D[]; cur
       const res = await fetch('/api/admin/deposit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ depositId: d.id, action, adminNote: note.trim() || undefined }),
+        body: JSON.stringify({
+          depositId: d.id,
+          action,
+          adminNote: note.trim() || undefined,
+          ...(action === 'REJECT' ? { rejectReason: reason } : {}),
+        }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error);
@@ -107,9 +121,13 @@ export default function DepositTable({ deposits, current }: { deposits: D[]; cur
                   ৳{d.amount.toFixed(2)}
                 </td>
                 <td>
-                  <code className="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-amber-700">
-                    <span className="break-all">{d.trxId}</span>
-                  </code>
+                  {/* ★ ইতিহাসেও কপি দরকার — পুরনো লেনদেন যাচাই করতে (3.4) */}
+                  <span className="inline-flex items-center gap-1.5">
+                    <code className="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-amber-700">
+                      <span className="break-all">{d.trxId}</span>
+                    </code>
+                    <CopyButton value={d.trxId} label="TrxID" />
+                  </span>
                 </td>
                 <td className="font-mono text-xs">{d.senderNo}</td>
                 <td>
@@ -185,12 +203,45 @@ export default function DepositTable({ deposits, current }: { deposits: D[]; cur
         onConfirm={run}
         onCancel={() => setDlg(null)}
       >
-        <label className="label">নোট {dlg?.action === 'REJECT' && '(কারণ)'}</label>
-        <input aria-label="নোট {dlg?.action === 'REJECT' && '(কারণ)'}"
+        {/* ★ বাতিলের কারণ — বাছাই করলেই গ্রাহক সুনির্দিষ্ট ও কাজের
+            বার্তা পায়, অ্যাডমিনকে হাতে কিছু লিখতে হয় না */}
+        {dlg?.action === 'REJECT' && (
+          <>
+            <label htmlFor="dep-reason" className="label">বাতিলের কারণ</label>
+            <select
+              id="dep-reason"
+              className="input mb-3"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            >
+              {reasonOpts.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <p className="mb-3 rounded-lg border border-[var(--hair)] p-2.5 text-[11px] leading-relaxed"
+              style={{ background: 'rgba(230,197,132,.06)', color: 'var(--mut)' }}>
+              গ্রাহক যা দেখবে:{' '}
+              <span style={{ color: 'var(--ink)' }}>
+                {DEPOSIT_REJECT_COPY[reason as keyof typeof DEPOSIT_REJECT_COPY]?.customerMessage
+                  || '(আপনার নোটই বার্তা হিসেবে যাবে)'}
+              </span>
+            </p>
+          </>
+        )}
+
+        <label htmlFor="dep-note" className="label">
+          নোট {dlg?.action === 'REJECT' && (noteRequired ? '(বাধ্যতামূলক)' : '(ঐচ্ছিক)')}
+        </label>
+        <input
+          id="dep-note"
           className="input"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder={dlg?.action === 'REJECT' ? 'বাতিলের কারণ' : 'ঐচ্ছিক নোট'}
+          placeholder={
+            dlg?.action === 'REJECT'
+              ? noteRequired ? 'কারণ লিখুন — গ্রাহক এটাই দেখবে' : 'অতিরিক্ত তথ্য (ঐচ্ছিক)'
+              : 'ঐচ্ছিক নোট'
+          }
         />
       </ConfirmDialog>
 

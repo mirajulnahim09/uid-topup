@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { fmtShort } from '@/lib/date';
+import { fetchMe, fetchNotifications, invalidateNotifications } from '@/lib/clientFetch';
 
 type N = {
   id: string; title: string; body: string;
@@ -36,13 +38,15 @@ export default function Navbar({
   const load = useCallback(async () => {
     if (status !== 'authenticated') return;
     try {
-      const [me, nt] = await Promise.all([fetch('/api/me'), fetch('/api/notifications')]);
-      if (me.ok) setBalance((await me.json()).balance);
-      if (nt.ok) {
-        const d = await nt.json();
-        setNotifs(d.items);
-        setUnread(d.unread);
-      }
+      // ★ শেয়ার্ড de-dup (4.5) — Navbar, MobileTabBar ও OrderForm
+      //   একসাথে মাউন্ট হলেও নেটওয়ার্কে একটিই অনুরোধ যায়
+      const [me, d] = await Promise.all([
+        fetchMe<{ balance: string }>(),
+        fetchNotifications<{ items: unknown[]; unread: number }>(),
+      ]);
+      setBalance(me.balance);
+      setNotifs(d.items as never);
+      setUnread(d.unread);
     } catch { /* silent */ }
   }, [status]);
 
@@ -76,6 +80,9 @@ export default function Navbar({
   async function markRead() {
     setUnread(0);
     setNotifs((n) => n.map((x: (typeof n)[number]) => ({ ...x, isRead: true })));
+    // ★ ক্যাশ বাতিল (4.5) — নাহলে পড়া-চিহ্নিত করার পরেও
+    //   ৫ সেকেন্ড পর্যন্ত পুরনো unread সংখ্যা ফিরে আসত
+    invalidateNotifications();
     try { await fetch('/api/notifications', { method: 'PATCH' }); } catch { /* */ }
   }
 
@@ -192,10 +199,7 @@ export default function Navbar({
                                 <p className="text-sm font-semibold text-slate-900">{n.title}</p>
                                 <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{n.body}</p>
                                 <p className="mt-1 text-[10px] text-slate-400">
-                                  {new Date(n.createdAt).toLocaleString('en-GB', {
-                                    day: '2-digit', month: 'short',
-                                    hour: '2-digit', minute: '2-digit', hour12: true,
-                                  })}
+                                  {fmtShort(n.createdAt)}
                                 </p>
                               </>
                             );
@@ -255,7 +259,7 @@ export default function Navbar({
             {authed && (
               <Link
                 href="/account/wallet/deposit"
-                className="rounded-lg border border-[rgba(16,185,129,0.4)] bg-[rgba(16,185,129,0.14)] px-2.5 py-1.5 text-xs font-bold text-emerald-300"
+                className="inline-flex min-h-[40px] items-center rounded-lg border border-[rgba(16,185,129,0.4)] bg-[rgba(16,185,129,0.14)] px-3 text-xs font-bold text-emerald-300"
               >
                 ৳{balance ?? '···'}
               </Link>
@@ -264,7 +268,7 @@ export default function Navbar({
               onClick={() => setMenu(!menu)}
               aria-label={menu ? 'মেনু বন্ধ করুন' : 'মেনু খুলুন'}
               aria-expanded={menu}
-              className="rounded-lg p-2 text-slate-600 transition hover:bg-slate-100"
+              className="grid h-10 w-10 place-items-center rounded-lg text-slate-600 transition hover:bg-slate-100"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 {menu ? <path d="M18 6L6 18M6 6l12 12" /> : <path d="M3 6h18M3 12h18M3 18h18" />}

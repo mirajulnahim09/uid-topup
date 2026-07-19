@@ -5,6 +5,8 @@ import { bdt } from '@/lib/money';
 import { fmtDate } from '@/lib/date';
 import Badge from '@/components/Badge';
 import CustomerActions from '@/components/admin/CustomerActions';
+import CustomerTimeline from '@/components/admin/CustomerTimeline';
+import { buildTimeline } from '@/lib/customerTimeline';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'কাস্টমার বিস্তারিত' };
@@ -25,6 +27,23 @@ export default async function CustomerDetail({ params }: { params: { id: string 
   });
 
   if (!user) notFound();
+
+  // ★ এই গ্রাহকের উপর নেওয়া অ্যাডমিন পদক্ষেপ (3.13) — ব্যান,
+  //   ব্যালেন্স সমন্বয় ইত্যাদি টাইমলাইনে মেশাতে
+  const adminActions = await prisma.adminLog.findMany({
+    where: { targetId: params.id },
+    orderBy: { createdAt: 'desc' },
+    take: 25,
+    select: { action: true, adminName: true, detail: true, createdAt: true },
+  });
+
+  const timeline = buildTimeline({
+    createdAt: user.createdAt,
+    deposits: user.deposits,
+    orders: user.orders,
+    ledger: user.ledger,
+    adminActions,
+  });
 
   const isAdmin = user.role === 'ADMIN';
   const spent = user.orders
@@ -89,6 +108,16 @@ export default async function CustomerDetail({ params }: { params: { id: string 
           <div><dt className="text-slate-400">মোট ডিপোজিট</dt><dd className="text-slate-900">{user._count.deposits} টি</dd></div>
         </dl>
       </div>
+
+      {/* ★★★ ৩৬০ টাইমলাইন (3.13) — সব ঘটনা এক ক্রমে।
+              নিচের বিস্তারিত তালিকাগুলো **রাখা হয়েছে**: টাইমলাইন
+              বলে "কখন কী হলো", তালিকা দেয় পুরো বিবরণ (§18)। */}
+      <section>
+        <h2 className="mb-3 text-lg font-bold text-slate-900">পূর্ণ কার্যকলাপ (সময়ক্রম)</h2>
+        <div className="card p-5">
+          <CustomerTimeline events={timeline} />
+        </div>
+      </section>
 
       {/* ── অর্ডার ইতিহাস ── */}
       <section>

@@ -6,6 +6,7 @@ import { bdt } from '@/lib/money';
 import { fmtDate } from '@/lib/date';
 import Badge from '@/components/Badge';
 import DepositForm from '@/components/DepositForm';
+import DataUnavailable from '@/components/DataUnavailable';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Add Money' };
@@ -14,22 +15,50 @@ export default async function DepositPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
-  const [channels, deposits, settings, user] = await Promise.all([
-    prisma.paymentChannel.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' },
-    }),
-    prisma.deposit.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-    }),
-    getSettings(),
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { balance: true },
-    }),
-  ]);
+  // ★ এই পেজেই QA তে DB বিভ্রাটে ক্র্যাশ হয়েছিল (BUG-07)।
+  //   এখানে ডিফল্ট মান দেখানো বিশেষভাবে বিপজ্জনক — ব্যালেন্স ৳0.00
+  //   দেখলে গ্রাহক ভাববে টাকা হারিয়েছে। তাই সৎ fallback স্ক্রিন।
+  let channels: Awaited<ReturnType<typeof prisma.paymentChannel.findMany>> = [];
+  let deposits: Awaited<ReturnType<typeof prisma.deposit.findMany>> = [];
+  let settings: Record<string, string> = {};
+  let user: { balance: unknown } | null = null;
+
+  try {
+    [channels, deposits, settings, user] = await Promise.all([
+      prisma.paymentChannel.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+      }),
+      prisma.deposit.findMany({
+        where: { userId: session.user.id },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+      getSettings(),
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { balance: true },
+      }),
+    ]);
+  } catch (e) {
+    console.error('[deposit] db unavailable:', e);
+    return (
+      <DataUnavailable
+        title="ওয়ালেট এখন দেখানো যাচ্ছে না"
+        retryHref="/account/wallet/deposit"
+      />
+    );
+  }
+
+  // ব্যালেন্স পড়া না গেলে অনুমান করে ০ দেখানো যাবে না
+  if (!user) {
+    return (
+      <DataUnavailable
+        title="ওয়ালেট এখন দেখানো যাচ্ছে না"
+        retryHref="/account/wallet/deposit"
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -95,8 +124,30 @@ export default async function DepositPage() {
                       <dd className="text-slate-400">{fmtDate(d.createdAt)}</dd>
                     </div>
                   </dl>
+                  {/* ★ বাতিল হলে কারণটাই প্রধান — গ্রাহক জানে টাকা পাঠিয়েছে,
+                      তাই "কেন" এর উত্তর স্পষ্ট ও কাজের হতে হবে (2.6) */}
                   {d.adminNote && (
-                    <p className="mt-2 rounded bg-slate-50 p-2 text-xs text-slate-400">{d.adminNote}</p>
+                    <div
+                      className={`mt-2 rounded-lg p-2.5 text-xs leading-relaxed ${
+                        d.status === 'REJECTED' ? '' : 'bg-slate-50 text-slate-400'
+                      }`}
+                      style={
+                        d.status === 'REJECTED'
+                          ? {
+                              background: 'rgba(242,168,196,.08)',
+                              border: '1px solid rgba(242,168,196,.28)',
+                              color: 'var(--ink)',
+                            }
+                          : undefined
+                      }
+                    >
+                      {d.status === 'REJECTED' && (
+                        <p className="mb-1 font-bold" style={{ color: 'var(--red)' }}>
+                          কেন বাতিল হলো
+                        </p>
+                      )}
+                      <p className="whitespace-pre-line">{d.adminNote}</p>
+                    </div>
                   )}
                 </div>
               ))}
@@ -126,7 +177,12 @@ export default async function DepositPage() {
                       <td className="font-mono text-xs text-slate-400">{d.trxId}</td>
                       <td><Badge status={d.status} /></td>
                       <td className="whitespace-nowrap text-xs text-slate-400">{fmtDate(d.createdAt)}</td>
-                      <td className="max-w-[150px] text-xs text-slate-400">{d.adminNote || '—'}</td>
+                      <td
+                        className="max-w-[220px] whitespace-pre-line text-xs leading-relaxed"
+                        style={{ color: d.status === 'REJECTED' ? 'var(--ink)' : undefined }}
+                      >
+                        {d.adminNote || '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

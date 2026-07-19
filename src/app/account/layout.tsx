@@ -1,5 +1,6 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import MobileTabBar from '@/components/MobileTabBar';
 import { getSetting } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,8 @@ export default async function AccountLayout({ children }: { children: React.Reac
         {children}
       </main>
       <Footer />
+      {/* ★ মোবাইল বটম ন্যাভ — শুধু ছোট স্ক্রিনে */}
+      <MobileTabBar />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import MobileTabBar from '@/components/MobileTabBar';
 import MaintenanceScreen from '@/components/MaintenanceScreen';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -47,6 +48,8 @@ export default async function PublicLayout({ children }: { children: React.React
       <Navbar siteName={siteName} logo={logo} categories={categories} />
       <main id="main" className="flex-1">{children}</main>
       <Footer />
+      {/* ★ মোবাইল বটম ন্যাভ — শুধু ছোট স্ক্রিনে দেখা যায় */}
+      <MobileTabBar />
     </div>
   );
 }

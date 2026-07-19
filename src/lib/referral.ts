@@ -1,3 +1,4 @@
+import { creditWallet } from './services/wallet';
 import type { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 import { getSetting } from './settings';
@@ -60,20 +61,14 @@ export async function payReferralBonus(
   // ★ Flag আগে সেট — double-payout impossible
   await tx.user.update({ where: { id: userId }, data: { referralBonusPaid: true } });
 
-  const updated = await tx.user.update({
-    where: { id: referrer.id },
-    data: { balance: { increment: bonus } },
-  });
-
-  await tx.ledgerEntry.create({
-    data: {
-      userId: referrer.id,
-      type: 'REFERRAL_BONUS',
-      amount: bonus,
-      balanceAfter: updated.balance,
-      refId: userId,
-      note: `রেফারেল বোনাস — ${user.name} এর প্রথম ডিপোজিট`,
-    },
+  // ★ ব্যালেন্স + খতিয়ান একসাথে (4.1)
+  await creditWallet({
+    tx,
+    userId: referrer.id,
+    amount: bonus,
+    type: 'REFERRAL_BONUS',
+    refId: userId,
+    note: `রেফারেল বোনাস — ${user.name} এর প্রথম ডিপোজিট`,
   });
 
   return { referrerId: referrer.id, bonus };

@@ -4,6 +4,8 @@ import { getSettings } from '@/lib/settings';
 import { bdt } from '@/lib/money';
 import QuickActions from '@/components/admin/QuickActions';
 import SetupChecklist from '@/components/admin/SetupChecklist';
+import OpsMetricsPanel from '@/components/admin/OpsMetrics';
+import { getOpsMetrics } from '@/lib/opsMetrics';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'ড্যাশবোর্ড' };
@@ -20,7 +22,7 @@ export default async function AdminDashboard() {
   const [
     pendingDeposits, pendingOrders, users, todayOrders, completedOrders,
     depositSum, revenue, walletSum, completedWithCost,
-    payments, socials, bannerCount, productImgCount, settings,
+    payments, socials, bannerCount, productImgCount, settings, ops,
   ] = await Promise.all([
     prisma.deposit.findMany({
       where: { status: 'PENDING' },
@@ -49,6 +51,8 @@ export default async function AdminDashboard() {
     prisma.banner.count({ where: { isActive: true } }),
     prisma.product.count({ where: { image: { not: null } } }),
     getSettings(),
+    // ★ অপারেশনাল মেট্রিক — একই Promise.all এ, আলাদা রাউন্ড-ট্রিপ নয় (3.10)
+    getOpsMetrics(),
   ]);
 
   const profit = completedWithCost.reduce(
@@ -115,6 +119,11 @@ export default async function AdminDashboard() {
 
       {/* ★ সেটআপ বাকি থাকলে সবার আগে দেখাবে */}
       <SetupChecklist items={checklist} />
+
+      {/* ★★★ অপারেশনাল অবস্থা (3.10) — টাকার হিসাবের **আগে**।
+              আয় গতকালের খবর; কোন গ্রাহক এই মুহূর্তে অপেক্ষা করছে
+              সেটাই আজকের কাজ। */}
+      <OpsMetricsPanel m={ops} />
 
       {/* ★ পেন্ডিং কাজ — সরাসরি এখান থেকেই approve/complete */}
       <QuickActions

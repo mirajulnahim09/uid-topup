@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, apiError, ApiError } from '@/lib/guard';
+import { adminLog } from '@/lib/adminLog';
+import { getIp } from '@/lib/rateLimit';
 import { cleanText, safeUrl } from '@/lib/sanitize';
 import { deleteImage } from '@/lib/upload';
 import { revalidatePath } from 'next/cache';
@@ -15,7 +17,7 @@ function slugify(s: string) {
 
 export async function POST(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { categoryId, name, image, description, uidLabel, uidHint } = await req.json();
 
     if (!categoryId) throw new ApiError('ক্যাটাগরি বেছে নিন', 400);
@@ -37,6 +39,11 @@ export async function POST(req: Request) {
       },
     });
 
+    adminLog({
+      adminId: admin.id, adminName: admin.name, action: 'PRODUCT_CREATE',
+      targetId: String(p.id), detail: `${nm} তৈরি করা হয়েছে`, ip: getIp(req),
+    }).catch(() => {});
+
     revalidatePath('/', 'layout');
     return Response.json({ success: true, id: p.id });
   } catch (e) {
@@ -46,7 +53,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id, isActive, name, image, description, uidLabel, uidHint } = await req.json();
     if (!id) throw new ApiError('id প্রয়োজন', 400);
 
@@ -80,6 +87,18 @@ export async function PATCH(req: Request) {
     if (uidHint !== undefined) data.uidHint = uidHint ? cleanText(String(uidHint), 160) : null;
 
     await prisma.product.update({ where: { id: Number(id) }, data });
+
+    adminLog({
+      adminId: admin.id, adminName: admin.name, action: 'PRODUCT_UPDATE',
+      targetId: String(id),
+      detail:
+        `${current.name} — ` +
+        (data.isActive !== undefined
+          ? data.isActive ? 'চালু করা হয়েছে' : 'বন্ধ করা হয়েছে'
+          : `${Object.keys(data).join(', ')} হালনাগাদ`),
+      ip: getIp(req),
+    }).catch(() => {});
+
     // ★ পাবলিক পেজের ক্যাশ সাথে সাথে মুছে দাও — দাম/ছবি তখনই দেখাবে
     revalidatePath('/', 'layout');
 
@@ -91,7 +110,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id } = await req.json();
     if (!id) throw new ApiError('id প্রয়োজন', 400);
 
@@ -109,6 +128,11 @@ export async function DELETE(req: Request) {
     const p = await prisma.product.findUnique({ where: { id: Number(id) } });
     await prisma.product.delete({ where: { id: Number(id) } });
     if (p?.image) deleteImage(p.image).catch(() => {});
+
+    adminLog({
+      adminId: admin.id, adminName: admin.name, action: 'PRODUCT_DELETE',
+      targetId: String(id), detail: `${p?.name ?? `#${id}`} মুছে ফেলা হয়েছে`, ip: getIp(req),
+    }).catch(() => {});
 
     // ★ পাবলিক পেজের ক্যাশ সাথে সাথে মুছে দাও — দাম/ছবি তখনই দেখাবে
     revalidatePath('/', 'layout');

@@ -3,6 +3,9 @@ import { requireAdmin, apiError } from '@/lib/guard';
 import { adminLog } from '@/lib/adminLog';
 import { getIp } from '@/lib/rateLimit';
 
+// ★ সেশন/হেডার পড়ে — বিল্ডের সময় static render করার চেষ্টা করা যাবে না
+export const dynamic = 'force-dynamic';
+
 /**
  * ★ পুরো ডাটাবেস ব্যাকআপ — JSON ফাইল হিসেবে ডাউনলোড।
  *   শুধু অ্যাডমিন। ⚠️ ফাইলে পাসওয়ার্ড হ্যাশও থাকে — নিরাপদে রাখুন।

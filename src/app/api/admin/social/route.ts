@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, apiError, ApiError } from '@/lib/guard';
+import { adminLog } from '@/lib/adminLog';
+import { getIp } from '@/lib/rateLimit';
 import { cleanText, safeUrl } from '@/lib/sanitize';
 
 const PLATFORMS = [
@@ -9,7 +11,7 @@ const PLATFORMS = [
 
 export async function POST(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { platform, url, label } = await req.json();
 
     const p = String(platform || '').toLowerCase();
@@ -28,6 +30,11 @@ export async function POST(req: Request) {
       },
     });
 
+    adminLog({
+      adminId: admin.id, adminName: admin.name, action: 'SOCIAL_CREATE',
+      targetId: String(s.id), detail: `${p} — ${u}`, ip: getIp(req),
+    }).catch(() => {});
+
     return Response.json({ success: true, id: s.id });
   } catch (e) {
     return apiError(e);
@@ -36,7 +43,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id, url, label, isActive } = await req.json();
     if (!id) throw new ApiError('id প্রয়োজন', 400);
 
@@ -50,6 +57,12 @@ export async function PATCH(req: Request) {
     if (isActive !== undefined) data.isActive = Boolean(isActive);
 
     await prisma.socialLink.update({ where: { id: Number(id) }, data });
+
+    adminLog({
+      adminId: admin.id, adminName: admin.name, action: 'SOCIAL_UPDATE',
+      targetId: String(id), detail: `সোশ্যাল লিংক হালনাগাদ (${Object.keys(data).join(', ')})`, ip: getIp(req),
+    }).catch(() => {});
+
     return Response.json({ success: true });
   } catch (e) {
     return apiError(e);
@@ -58,10 +71,16 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id } = await req.json();
     if (!id) throw new ApiError('id প্রয়োজন', 400);
     await prisma.socialLink.delete({ where: { id: Number(id) } });
+
+    adminLog({
+      adminId: admin.id, adminName: admin.name, action: 'SOCIAL_DELETE',
+      targetId: String(id), detail: 'সোশ্যাল লিংক মুছে ফেলা হয়েছে', ip: getIp(req),
+    }).catch(() => {});
+
     return Response.json({ success: true });
   } catch (e) {
     return apiError(e);

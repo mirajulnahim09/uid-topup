@@ -7,6 +7,9 @@ import { notify } from '@/lib/notify';
 import { cleanText } from '@/lib/sanitize';
 import { adminLog } from '@/lib/adminLog';
 import { getIp } from '@/lib/rateLimit';
+import { recordOrderEvent } from '@/lib/orderEvents';
+import { creditWallet, debitWallet } from '@/lib/services/wallet';
+import { DEPOSIT_REJECT_COPY, buildRejectionMessage } from '@/lib/rejectReasons';
 
 export async function POST(req: Request) {
   try {
@@ -15,7 +18,7 @@ export async function POST(req: Request) {
     const parsed = adminDepositActionSchema.safeParse(await req.json());
     if (!parsed.success) throw new ApiError(parsed.error.errors[0].message, 400);
 
-    const { depositId, action } = parsed.data;
+    const { depositId, action, rejectReason } = parsed.data;
     const adminNote = parsed.data.adminNote ? cleanText(parsed.data.adminNote, 300) : undefined;
 
     const out = await prisma.$transaction(
@@ -43,12 +46,71 @@ export async function POST(req: Request) {
 
         const amount = Number(deposit.amount);
 
+        // ★ ডাইরেক্ট-পে হলে যুক্ত অর্ডারটিও লক করি — একই সাথে
+        //   দুই দিক থেকে পরিবর্তন হলে যেন race না হয়
+        const linkedOrder =
+          deposit.intent === 'ORDER_PAYMENT' && deposit.linkedOrderId
+            ? (
+                await tx.$queryRaw<Array<{ id: string; status: string }>>`
+                  SELECT id, status FROM "Order" WHERE id = ${deposit.linkedOrderId} FOR UPDATE`
+              )[0] ?? null
+            : null;
+
         if (action === 'REJECT') {
-          const reason = adminNote || 'ট্রানজেকশন যাচাই করা যায়নি';
+          // ★ কাঠামোবদ্ধ কারণ থেকে সুনির্দিষ্ট ও কাজের বার্তা তৈরি —
+          //   গ্রাহক কখনো শুধু "বাতিল" দেখবে না
+          const reason = buildRejectionMessage(
+            rejectReason ? DEPOSIT_REJECT_COPY[rejectReason] : undefined,
+            adminNote,
+            'ট্রানজেকশন যাচাই করা যায়নি। পেমেন্টের স্ক্রিনশট নিয়ে সাপোর্টে যোগাযোগ করুন।'
+          );
           await tx.deposit.update({
             where: { id: depositId },
-            data: { status: 'REJECTED', adminNote: reason, reviewedAt: new Date() },
+            data: {
+              status: 'REJECTED',
+              adminNote: reason,
+              rejectReason: rejectReason ?? null,
+              reviewedAt: new Date(),
+            },
           });
+
+          // ★ ডাইরেক্ট-পে বাতিল — অর্ডারও বাতিল, স্টক ও কুপন ফেরত।
+          //   ⚠️ ব্যালেন্স ফেরত নয় — কারণ কোনো টাকা কখনো যোগই হয়নি।
+          if (linkedOrder && linkedOrder.status === 'AWAITING_PAYMENT') {
+            const order = await tx.order.findUnique({ where: { id: linkedOrder.id } });
+            if (order) {
+              const variant = await tx.variant.findUnique({ where: { id: order.variantId } });
+              if (variant && variant.stock >= 0) {
+                await tx.variant.update({
+                  where: { id: variant.id },
+                  data: { stock: { increment: 1 } },
+                });
+              }
+              if (order.couponId) {
+                await tx.coupon.update({
+                  where: { id: order.couponId },
+                  data: { usageCount: { decrement: 1 } },
+                });
+                await tx.couponUse.deleteMany({ where: { orderId: order.id } });
+              }
+              await tx.order.update({
+                where: { id: order.id },
+                data: {
+                  status: 'FAILED',
+                  adminNote: `পেমেন্ট যাচাই করা যায়নি — ${reason}`,
+                  completedAt: new Date(),
+                },
+              });
+              await recordOrderEvent(tx, {
+                orderId: order.id,
+                status: 'FAILED',
+                note: `পেমেন্ট যাচাই করা যায়নি — ${reason}`,
+                actorType: 'ADMIN',
+                actorId: admin.id,
+              });
+            }
+          }
+
           return {
             kind: 'REJECT' as const,
             user: deposit.user,
@@ -57,13 +119,19 @@ export async function POST(req: Request) {
             depositNo: deposit.depositNo,
             balance: 0,
             referral: null,
+            linkedOrderNo: null as number | null,
           };
         }
 
         // ── APPROVE ──
-        const updatedUser = await tx.user.update({
-          where: { id: deposit.userId },
-          data: { balance: { increment: deposit.amount } },
+        // ★ ব্যালেন্স + খতিয়ান একসাথে (4.1)
+        const creditedBalance = await creditWallet({
+          tx,
+          userId: deposit.userId,
+          amount: deposit.amount,
+          type: 'DEPOSIT',
+          refId: deposit.id,
+          note: `${deposit.method} — TrxID: ${deposit.trxId}`,
         });
 
         await tx.deposit.update({
@@ -71,16 +139,54 @@ export async function POST(req: Request) {
           data: { status: 'APPROVED', adminNote, reviewedAt: new Date() },
         });
 
-        await tx.ledgerEntry.create({
-          data: {
-            userId: deposit.userId,
-            type: 'DEPOSIT',
-            amount: deposit.amount,
-            balanceAfter: updatedUser.balance,
-            refId: deposit.id,
-            note: `${deposit.method} — TrxID: ${deposit.trxId}`,
-          },
-        });
+        // ★★★ ডাইরেক্ট-পে নিষ্পত্তি — টাকা ঢুকল, এখনই অর্ডারের দাম কাটা হয়।
+        //     একই transaction এ, একই প্রমাণিত ledger পথে। ফলে ব্যালেন্স
+        //     কখনো মাঝপথে আটকে থাকে না — হয় দুটোই হয়, নয় কিছুই হয় না।
+        let settledBalance = Number(creditedBalance);
+        let linkedOrderNo: number | null = null;
+
+        if (linkedOrder && linkedOrder.status === 'AWAITING_PAYMENT') {
+          const order = await tx.order.findUnique({ where: { id: linkedOrder.id } });
+          if (order) {
+            const price = Number(order.price);
+
+            // ★ শেষ রক্ষাকবচ — জমা টাকা অর্ডারের দামের চেয়ে কম হলে
+            //   ব্যালেন্স negative হয়ে যেত। DB constraint ও আটকাত,
+            //   কিন্তু এখানে পরিষ্কার বার্তা দিয়ে থামানো ভালো।
+            if (settledBalance < price) {
+              throw new ApiError(
+                `জমা টাকা অর্ডারের দামের চেয়ে কম — অর্ডার ৳${price.toFixed(2)}, ব্যালেন্স ৳${settledBalance.toFixed(2)}`,
+                400
+              );
+            }
+
+            settledBalance = Number(
+              await debitWallet({
+                tx,
+                userId: deposit.userId,
+                amount: order.price,
+                type: 'ORDER',
+                refId: order.id,
+                note: `${order.productName} — ${order.variantName} (ডাইরেক্ট পে)`,
+              })
+            );
+
+            await tx.order.update({
+              where: { id: order.id },
+              data: { status: 'PENDING' },
+            });
+
+            await recordOrderEvent(tx, {
+              orderId: order.id,
+              status: 'PENDING',
+              note: 'পেমেন্ট যাচাই সম্পন্ন — ডেলিভারির অপেক্ষায়',
+              actorType: 'ADMIN',
+              actorId: admin.id,
+            });
+
+            linkedOrderNo = order.orderNo;
+          }
+        }
 
         // ★ রেফারেল বোনাস — প্রথম যোগ্য ডিপোজিটে, একবারই
         const referral = await payReferralBonus(tx, deposit.userId, amount);
@@ -89,10 +195,11 @@ export async function POST(req: Request) {
           kind: 'APPROVE' as const,
           user: deposit.user,
           amount,
-          balance: Number(updatedUser.balance),
+          balance: settledBalance,
           depositNo: deposit.depositNo,
           reason: '',
           referral,
+          linkedOrderNo,
         };
       },
       { timeout: 15000 }
@@ -112,9 +219,13 @@ export async function POST(req: Request) {
     if (out.kind === 'APPROVE') {
       await notify(
         out.user.id,
-        `ডিপোজিট #${out.depositNo} অনুমোদিত ✅`,
-        `৳${out.amount.toFixed(2)} যোগ হয়েছে। বর্তমান ব্যালেন্স ৳${out.balance.toFixed(2)}।`,
-        '/account'
+        out.linkedOrderNo
+          ? `পেমেন্ট যাচাই সম্পন্ন — অর্ডার #${out.linkedOrderNo} ✅`
+          : `ডিপোজিট #${out.depositNo} অনুমোদিত ✅`,
+        out.linkedOrderNo
+          ? `৳${out.amount.toFixed(2)} পেমেন্ট নিশ্চিত হয়েছে। এখন ডেলিভারি শুরু হবে।`
+          : `৳${out.amount.toFixed(2)} যোগ হয়েছে। বর্তমান ব্যালেন্স ৳${out.balance.toFixed(2)}।`,
+        '/account/orders'
       );
       emailDepositApproved(
         out.user.email, out.user.name,

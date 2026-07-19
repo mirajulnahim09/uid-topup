@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, apiError, ApiError } from '@/lib/guard';
 
+// ★ সেশন/হেডার পড়ে — বিল্ডের সময় static render করার চেষ্টা করা যাবে না
+export const dynamic = 'force-dynamic';
+
 /** ★ CSV এর জন্য নিরাপদ সেল — কমা/কোট/newline ঠিক করে, formula-injection আটকায় */
 function cell(v: unknown): string {
   let s = v == null ? '' : String(v);

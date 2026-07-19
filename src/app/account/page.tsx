@@ -4,8 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getSettings } from '@/lib/settings';
 import { bdt } from '@/lib/money';
-import { fmtDate } from '@/lib/date';
+import { fmtDate, fmtDay } from '@/lib/date';
 import ReferralCard from '@/components/ReferralCard';
+import DataUnavailable from '@/components/DataUnavailable';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'প্রোফাইল' };
@@ -14,22 +15,36 @@ export default async function AccountPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
-  const [user, settings, refEarn] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: session.user.id },
+  // ★ DB সাময়িকভাবে অকেজো হলে ভুল সংখ্যা (৳0.00) দেখানো যাবে না —
+  //   তার বদলে সৎ "দেখানো যাচ্ছে না" স্ক্রিন। বিস্তারিত: DataUnavailable.tsx
+  let user: Awaited<ReturnType<typeof loadUser>> = null;
+  let settings: Record<string, string> = {};
+  let refEarn: Awaited<ReturnType<typeof loadRefEarn>> | null = null;
+
+  async function loadUser() {
+    return prisma.user.findUnique({
+      where: { id: session!.user.id },
       include: {
         ledger: { orderBy: { createdAt: 'desc' }, take: 20 },
         _count: { select: { orders: true, deposits: true, referrals: true } },
       },
-    }),
-    getSettings(),
-    prisma.ledgerEntry.aggregate({
-      where: { userId: session.user.id, type: 'REFERRAL_BONUS' },
+    });
+  }
+  async function loadRefEarn() {
+    return prisma.ledgerEntry.aggregate({
+      where: { userId: session!.user.id, type: 'REFERRAL_BONUS' },
       _sum: { amount: true },
-    }),
-  ]);
+    });
+  }
 
-  if (!user) return null;
+  try {
+    [user, settings, refEarn] = await Promise.all([loadUser(), getSettings(), loadRefEarn()]);
+  } catch (e) {
+    console.error('[account] db unavailable:', e);
+    return <DataUnavailable title="প্রোফাইল এখন দেখানো যাচ্ছে না" retryHref="/account" />;
+  }
+
+  if (!user || !refEarn) return null;
 
   return (
     <div className="space-y-6">
@@ -52,7 +67,7 @@ export default async function AccountPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">ডিপোজিট</p>
           <p className="mt-1 text-3xl font-bold text-slate-900">{user._count.deposits}</p>
           <p className="mt-4 text-xs text-slate-400">
-            সদস্য: {fmtDate(user.createdAt).split(',')[0]}
+            সদস্য: {fmtDay(user.createdAt)}
           </p>
         </div>
 

@@ -157,7 +157,7 @@ Status colors (success/warning/error) are expressed through the `.alert-*`/`.bad
 
 ## 13. Admin Workflow / Features
 
-- Single `ADMIN` role (binary with `USER` — no granular permission tiers currently; see `AUDIT_REPORT.md` L8). Every admin can: approve/reject deposits, complete/fail/refund orders, adjust any user's balance directly, ban/suspend/unban users, manage products/variants/pricing/stock, manage coupons, manage banners/site settings/payment numbers/social links, send announcements, view the full admin action log, and export/import a full DB backup (including password hashes — see H3).
+- Single `ADMIN` role (binary with `USER`). **This is a deliberate business decision, not a gap to be closed** — granular permission tiers (a `STAFF`/`SUPPORT` role) were evaluated as roadmap task 4.10 and explicitly declined; the whole panel is operated by the owner alone. A partial `STAFF` implementation was built and then fully removed (see `IMPLEMENTATION_REPORT.md` Batch D). Do not reintroduce a second privileged role without the owner's explicit sign-off. Every admin can: approve/reject deposits, complete/fail/refund orders, adjust any user's balance directly, ban/suspend/unban users, manage products/variants/pricing/stock, manage coupons, manage banners/site settings/payment numbers/social links, send announcements, view the full admin action log, and export/import a full DB backup (including password hashes — see H3).
 - Admin pages live under `src/app/admin/**`, gated per §10. The admin nav is `src/components/admin/AdminNav.tsx`.
 - `AdminLog` (Admin → Logs) is the accountability mechanism for "who did what, when, from which IP" — treat it as the audit trail of record for any money-related dispute.
 

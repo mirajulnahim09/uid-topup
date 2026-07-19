@@ -66,6 +66,8 @@ export default async function Footer() {
               <li><Link href="/faq" className="fnav">সাধারণ প্রশ্ন</Link></li>
               <li><Link href="/contact" className="fnav">যোগাযোগ</Link></li>
               <li><Link href="/account/orders" className="fnav">আমার অর্ডার</Link></li>
+              {/* ★ লগইন ছাড়াই অর্ডার ট্র্যাক — নতুন/অতিথি গ্রাহকের জন্য */}
+              <li><Link href="/track" className="fnav">অর্ডার ট্র্যাক করুন</Link></li>
             </ul>
           </div>
 

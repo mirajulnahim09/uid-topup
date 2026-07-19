@@ -30,6 +30,11 @@ body {
   overflow-x:hidden;
   -webkit-font-smoothing: antialiased;
 }
+/* ★ মোবাইল বটম ট্যাব বার যেন ফুটারের কনটেন্ট ঢেকে না ফেলে।
+   md এর নিচে বার দেখা যায় (৫৬px + safe-area) — ঠিক ততটা জায়গা ছাড়ি। */
+@media (max-width: 767px) {
+  body { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+}
 .dsp, .eng { font-family:'Space Grotesk', sans-serif; }
 
 /* film grain + vignette — গভীরতা */
@@ -228,3 +233,20 @@ input[type='number']::-webkit-inner-spin-button { -webkit-appearance:none; margi
 input[type='number'] { -moz-appearance:textfield; }
 details > summary { list-style:none; }
 details > summary::-webkit-details-marker { display:none; }
+
+/* ═══════════ রসিদ প্রিন্ট/সংরক্ষণ (2.11) ═══════════
+   গ্রাহক অর্ডারের রসিদ PDF হিসেবে সংরক্ষণ করতে পারে।
+   পর্দার সাজসজ্জা (ব্যাকগ্রাউন্ড, ন্যাভ, ফুটার) বাদ দিয়ে
+   শুধু প্রয়োজনীয় তথ্য কাগজে যায়। */
+@media print {
+  /* গাঢ় থিম কাগজে অপাঠ্য — সাদা-কালোয় ফেরানো হয় */
+  body { background:#fff !important; color:#000 !important; padding-bottom:0 !important; }
+  body::before, body::after { display:none !important; }
+  header, footer, nav, .skip-link { display:none !important; }
+  .card {
+    background:#fff !important; border:1px solid #ccc !important;
+    box-shadow:none !important; break-inside:avoid;
+  }
+  .lux-text, .dsp { color:#000 !important; -webkit-text-fill-color:#000 !important; background:none !important; }
+  a[href]::after { content:""; }  /* URL ছাপানো হয় না — অগোছালো লাগে */
+}

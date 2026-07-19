@@ -5,9 +5,15 @@ import { adminLog } from '@/lib/adminLog';
 import { getIp } from '@/lib/rateLimit';
 import { revalidatePath } from 'next/cache';
 
+/**
+ * ★★★ ভ্যারিয়েন্ট = দাম ও স্টক — সরাসরি টাকার ঘটনা (3.3)।
+ *   দাম বদলানো মানে ভবিষ্যতের প্রতিটি অর্ডারের অঙ্ক বদলানো।
+ *   এই রুটে adminLog **import করা ছিল কিন্তু কখনো ডাকা হয়নি** —
+ *   ফলে বাইরে থেকে দেখে মনে হতো লগ হচ্ছে, আসলে হচ্ছিল না।
+ */
 export async function POST(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { productId, label, price, costPrice, stock } = await req.json();
 
     if (!productId) throw new ApiError('productId প্রয়োজন', 400);
@@ -36,6 +42,13 @@ export async function POST(req: Request) {
         sortOrder: count,
       },
     });
+
+    adminLog({
+      adminId: admin.id, adminName: admin.name, action: 'VARIANT_CREATE',
+      targetId: String(v.id), amount: p,
+      detail: `${lbl} — দাম ৳${p}, স্টক ${st === -1 ? 'আনলিমিটেড' : st}`,
+      ip: getIp(req),
+    }).catch(() => {});
 
     revalidatePath('/', 'layout');
     return Response.json({ success: true, id: v.id });
@@ -90,7 +103,36 @@ export async function PATCH(req: Request) {
     if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);
     if (body.isPopular !== undefined) data.isPopular = Boolean(body.isPopular);
 
+    // ★ আগের দাম পড়ে রাখি — "কত থেকে কত" ছাড়া লগের মূল্য কম
+    const before = await prisma.variant.findUnique({
+      where: { id: Number(id) },
+      select: { label: true, price: true, stock: true },
+    });
+
     await prisma.variant.update({ where: { id: Number(id) }, data });
+
+    // ★ দাম বদলালে PRICE_CHANGE — টাকার ঘটনা হিসেবে আলাদা করে চিহ্নিত
+    const priceChanged =
+      data.price !== undefined && before && Number(data.price) !== Number(before.price);
+
+    const parts: string[] = [];
+    if (priceChanged) parts.push(`দাম ৳${Number(before!.price)} → ৳${Number(data.price)}`);
+    if (data.stock !== undefined && before && Number(data.stock) !== before.stock) {
+      parts.push(`স্টক ${before.stock} → ${data.stock}`);
+    }
+    if (data.isActive !== undefined) parts.push(data.isActive ? 'চালু' : 'বন্ধ');
+    if (parts.length === 0) parts.push(`হালনাগাদ (${Object.keys(data).join(', ')})`);
+
+    adminLog({
+      adminId: admin.id,
+      adminName: admin.name,
+      action: priceChanged ? 'PRICE_CHANGE' : 'VARIANT_UPDATE',
+      targetId: String(id),
+      amount: priceChanged ? Number(data.price) : undefined,
+      detail: `${before?.label ?? `#${id}`} — ${parts.join(', ')}`,
+      ip: getIp(req),
+    }).catch(() => {});
+
     // ★ পাবলিক পেজের ক্যাশ সাথে সাথে মুছে দাও — দাম/ছবি তখনই দেখাবে
     revalidatePath('/', 'layout');
 
@@ -102,7 +144,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id } = await req.json();
     if (!id) throw new ApiError('id প্রয়োজন', 400);
 
@@ -115,7 +157,20 @@ export async function DELETE(req: Request) {
       );
     }
 
+    const before = await prisma.variant.findUnique({
+      where: { id: Number(id) },
+      select: { label: true, price: true },
+    });
+
     await prisma.variant.delete({ where: { id: Number(id) } });
+
+    adminLog({
+      adminId: admin.id, adminName: admin.name, action: 'VARIANT_DELETE',
+      targetId: String(id),
+      detail: before ? `${before.label} (৳${Number(before.price)}) মুছে ফেলা হয়েছে` : `#${id} মুছে ফেলা হয়েছে`,
+      ip: getIp(req),
+    }).catch(() => {});
+
     // ★ পাবলিক পেজের ক্যাশ সাথে সাথে মুছে দাও — দাম/ছবি তখনই দেখাবে
     revalidatePath('/', 'layout');
 

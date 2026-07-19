@@ -33,6 +33,9 @@ export default function DepositForm({
   const [ch, setCh] = useState<Channel | null>(channels[0] ?? null);
   const [amount, setAmount] = useState('');
   const [trxId, setTrxId] = useState('');
+  // ★ TrxID আগে ব্যবহৃত কিনা — blur এ যাচাই (2.15)
+  const [trxDupe, setTrxDupe] = useState(false);
+  const [trxChecking, setTrxChecking] = useState(false);
   const [senderNo, setSenderNo] = useState('');
   const [shot, setShot] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -68,6 +71,32 @@ export default function DepositForm({
 
     setErrs(e);
     return Object.keys(e).length === 0;
+  }
+
+  /**
+   * ★ TrxID আগে ব্যবহৃত কিনা দেখি — ফর্ম ছাড়ার সাথে সাথেই।
+   *   ব্যর্থ হলে নীরব: এটি সুবিধা মাত্র, সত্যিকারের বাধা সার্ভারেই
+   *   (unique constraint) — তাই এখানে ব্যর্থতা বিক্রি আটকাবে না।
+   */
+  async function checkTrxDuplicate(raw: string) {
+    const t = raw.trim().toUpperCase();
+    if (t.length < 6 || !/^[A-Z0-9]+$/.test(t)) {
+      setTrxDupe(false);
+      return;
+    }
+    setTrxChecking(true);
+    try {
+      const res = await fetch('/api/deposit/check-trx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trxId: t }),
+      });
+      if (res.ok) setTrxDupe(Boolean((await res.json()).used));
+    } catch {
+      /* নীরব — সার্ভারই চূড়ান্ত রক্ষাকবচ */
+    } finally {
+      setTrxChecking(false);
+    }
   }
 
   async function submit(e: React.FormEvent) {
@@ -166,7 +195,7 @@ export default function DepositForm({
               <p className="my-2 select-all font-mono text-xl font-extrabold tracking-wider text-white sm:text-2xl">
                 {ch.accountNo}
               </p>
-              <button onClick={copyNo} type="button" className="rounded-lg bg-white/20 px-3 py-1.5 text-xs font-bold text-white backdrop-blur transition hover:bg-white/30">
+              <button onClick={copyNo} type="button" className="inline-flex min-h-[40px] items-center rounded-lg bg-white/20 px-3 text-xs font-bold text-white backdrop-blur transition hover:bg-white/30">
                 {copied ? '✓ কপি হয়েছে' : '📋 নাম্বার কপি করুন'}
               </button>
             </div>
@@ -219,12 +248,30 @@ export default function DepositForm({
           <input
             id="trx" className="input font-mono uppercase"
             value={trxId}
-            onChange={(e) => setTrxId(e.target.value.toUpperCase())}
+            onChange={(e) => {
+              setTrxId(e.target.value.toUpperCase());
+              if (trxDupe) setTrxDupe(false); // টাইপ করলেই সতর্কতা মুছে যায়
+            }}
+            onBlur={(e) => checkTrxDuplicate(e.target.value)}
             placeholder="যেমন: 9A7B2C4D1E"
             autoComplete="off"
-            aria-invalid={Boolean(errs.trxId)}
+            aria-invalid={Boolean(errs.trxId) || trxDupe}
+            aria-describedby="trx-msg"
           />
-          {errs.trxId && <p role="alert" className="mt-1 text-xs text-red-600">{errs.trxId}</p>}
+          <div id="trx-msg">
+            {errs.trxId && <p role="alert" className="mt-1 text-xs text-red-600">{errs.trxId}</p>}
+            {/* ★ ফর্ম ছাড়ার সাথে সাথেই ডুপ্লিকেট ধরা (2.15) — সাবমিটের
+                পর বা ২০ মিনিট অপেক্ষার পর নয় */}
+            {trxChecking && (
+              <p className="mt-1 text-xs" style={{ color: 'var(--mut)' }}>যাচাই করা হচ্ছে…</p>
+            )}
+            {trxDupe && !errs.trxId && (
+              <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--red)' }}>
+                ⚠️ এই TrxID আগে ব্যবহার করা হয়েছে। নতুন পেমেন্টের TrxID দিন —
+                একই পেমেন্ট দুইবার জমা দেওয়া যায় না।
+              </p>
+            )}
+          </div>
         </div>
 
         <div>

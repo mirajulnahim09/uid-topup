@@ -7,12 +7,38 @@ import Diamond from '@/components/fx/Diamond';
  * ★ Maison hero — crafted diamond (orbit rings + halo), split-text reveal,
  *   luxury CTA, brand marquee strip।
  */
+/**
+ * ★ শুধু যাচাইযোগ্য দাবি।
+ *
+ *   সরানো হয়েছে: "Instant Delivery" (ম্যানুয়াল সিস্টেমে মিথ্যা),
+ *   "24/7 Live Support" (আসল সময় ৯টা–১১টা), "Trusted by 52,000+"
+ *   ও "Best Price Guaranteed" (দুটোই অযাচাইযোগ্য)।
+ *
+ *   COMPETITOR_ANALYSIS.md §7: অযাচাইযোগ্য দাবি এই বাজারে
+ *   উল্টো অবিশ্বাস তৈরি করে।
+ */
 const MARQUEE = [
-  'Instant Delivery', 'bKash · Nagad', '24/7 Live Support',
-  'Best Price Guaranteed', 'Secure Payment', 'Trusted by 52,000+',
+  'bKash · Nagad · Rocket',
+  'ম্যানুয়াল যাচাই — প্রতিটি পেমেন্ট মানুষ দেখে',
+  'ডেলিভারি না হলে সম্পূর্ণ টাকা ফেরত',
+  'প্রতিটি লেনদেন ট্র্যাকযোগ্য',
 ];
 
-export default function HomeHero({ title, subtitle }: { title: string; subtitle: string }) {
+export type TrustStat = { value: string; label: string };
+
+export default function HomeHero({
+  title,
+  subtitle,
+  stats = [],
+  tagline = 'ম্যানুয়াল যাচাই · নিরাপদ পেমেন্ট',
+}: {
+  title: string;
+  subtitle: string;
+  /** বাস্তব তথ্য থেকে হিসাব করা পরিসংখ্যান — খালি হলে কিছু দেখানো হয় না */
+  stats?: TrustStat[];
+  /** প্রকৃত SLA থেকে তৈরি ট্যাগলাইন */
+  tagline?: string;
+}) {
   const w1 = title.split(' ');
   const w2 = subtitle.split(' ');
 
@@ -27,7 +53,9 @@ export default function HomeHero({ title, subtitle }: { title: string; subtitle:
         >
           <motion.span className="h-1.5 w-1.5 rounded-full" style={{ background: '#5fe0a6', boxShadow: '0 0 12px #5fe0a6' }}
             animate={{ opacity: [1, 0.35, 1] }} transition={{ duration: 2, repeat: Infinity }} />
-          10s Delivery · 24/7 Live
+          {/* ★ "10s Delivery · 24/7 Live" সরানো হলো — ম্যানুয়াল
+              সিস্টেমে দুটোই মিথ্যা। বদলে প্রকৃত SLA দেখানো হয়। */}
+          {tagline}
         </motion.div>
 
         {/* diamond */}
@@ -98,24 +126,23 @@ export default function HomeHero({ title, subtitle }: { title: string; subtitle:
         </div>
       </div>
 
-      {/* trust counters */}
-      <div className="mx-auto flex max-w-4xl flex-wrap items-start justify-center gap-x-12 gap-y-6 px-4 pt-10">
-        {[
-          { n: '৫২,০০০+', l: 'Orders' },
-          { n: '১০', l: 'Sec Delivery' },
-          { n: '৯৯%', l: 'Satisfaction' },
-          { n: '২৪/৭', l: 'Support' },
-        ].map((s, i) => (
-          <motion.div key={s.l} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.7 }} className="text-center">
-            <div className="dsp text-2xl font-medium sm:text-3xl"
-              style={{ background: 'linear-gradient(180deg,#fff,#aab0d2)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', letterSpacing: '-.02em' }}>
-              {s.n}
-            </div>
-            <div className="mt-1.5 text-[10px] uppercase" style={{ letterSpacing: '.16em', color: 'var(--mut)' }}>{s.l}</div>
-          </motion.div>
-        ))}
-      </div>
+      {/* ★ আস্থার পরিসংখ্যান — শুধুমাত্র বাস্তব, হিসাব করা তথ্য।
+          যথেষ্ট ডেটা না থাকলে কিছুই দেখানো হয় না — বানানো সংখ্যার
+          চেয়ে নীরবতা ভালো (src/lib/trustMetrics.ts) */}
+      {stats.length > 0 && (
+        <div className="mx-auto flex max-w-4xl flex-wrap items-start justify-center gap-x-12 gap-y-6 px-4 pt-10">
+          {stats.map((s, i) => (
+            <motion.div key={s.label} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.7 }} className="text-center">
+              <div className="dsp text-2xl font-medium sm:text-3xl"
+                style={{ background: 'linear-gradient(180deg,#fff,#aab0d2)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', letterSpacing: '-.02em' }}>
+                {s.value}
+              </div>
+              <div className="mt-1.5 text-[10px] uppercase" style={{ letterSpacing: '.16em', color: 'var(--mut)' }}>{s.label}</div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

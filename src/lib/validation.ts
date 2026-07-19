@@ -23,8 +23,8 @@ export const passwordSchema = z
     'পাসওয়ার্ডে অন্তত একটি সংখ্যা থাকতে হবে');
 
 export const registerSchema = z.object({
-  name: z.string().trim().min(2, 'নাম কমপক্ষে ২ অক্ষর').max(60),
-  email: z.string().trim().toLowerCase().email('সঠিক ইমেইল দিন').max(120),
+  name: z.string().trim().min(2, 'নাম কমপক্ষে ২ অক্ষর').max(60, 'নাম অনেক বড়'),
+  email: z.string().trim().toLowerCase().email('সঠিক ইমেইল দিন').max(120, 'ইমেইল অনেক বড়'),
   phone: z.string().trim().regex(/^01[3-9]\d{8}$/, 'সঠিক মোবাইল নাম্বার দিন (01712345678)'),
   password: passwordSchema,
   referralCode: z.string().trim().toUpperCase().max(16).optional().or(z.literal('')),
@@ -41,10 +41,10 @@ export const resetSchema = z.object({
 
 export const depositSchema = z.object({
   method: z.enum(['BKASH', 'NAGAD', 'ROCKET', 'UPAY']),
-  amount: z.coerce.number().positive('সঠিক পরিমাণ দিন').max(1_000_000),
+  amount: z.coerce.number().positive('সঠিক পরিমাণ দিন').max(1_000_000, 'পরিমাণ অনেক বড়'),
   trxId: z
     .string().trim().toUpperCase()
-    .min(6, 'সঠিক ট্রানজেকশন আইডি দিন').max(30)
+    .min(6, 'সঠিক ট্রানজেকশন আইডি দিন').max(30, 'ট্রানজেকশন আইডি অনেক বড়')
     .regex(/^[A-Z0-9]+$/, 'TrxID তে শুধু অক্ষর ও সংখ্যা থাকবে'),
   senderNo: z.string().trim().regex(/^01[3-9]\d{8}$/, 'যে নাম্বার থেকে পাঠিয়েছেন সেটি দিন'),
   screenshot: z.string().url().max(500).optional().or(z.literal('')),
@@ -61,23 +61,130 @@ export const orderSchema = z.object({
   couponCode: z.string().trim().toUpperCase().max(24).optional().or(z.literal('')),
 });
 
+/** ★ ডাইরেক্ট পে — অর্ডারের তথ্য + পেমেন্টের দাবি একসাথে */
+export const directOrderSchema = orderSchema.extend({
+  method: z.enum(['BKASH', 'NAGAD', 'ROCKET', 'UPAY']),
+  amount: z.coerce.number().positive('সঠিক পরিমাণ দিন').max(1_000_000, 'পরিমাণ অনেক বড়'),
+  trxId: z
+    .string().trim().toUpperCase()
+    .min(6, 'সঠিক ট্রানজেকশন আইডি দিন').max(30, 'ট্রানজেকশন আইডি অনেক বড়')
+    .regex(/^[A-Z0-9]+$/, 'TrxID তে শুধু অক্ষর ও সংখ্যা থাকবে'),
+  senderNo: z.string().trim().regex(/^01[3-9]\d{8}$/, 'যে নাম্বার থেকে পাঠিয়েছেন সেটি দিন'),
+  screenshot: z.string().url().max(500).optional().or(z.literal('')),
+});
+
+/**
+ * ★ লগইন ছাড়া অর্ডার ট্র্যাকিং।
+ *   হয় গোপন টোকেন, নয়তো অর্ডার নাম্বার + ফোন/ইমেইল —
+ *   শুধু অর্ডার নাম্বার কখনোই যথেষ্ট নয় (enumeration ঠেকাতে)।
+ */
+export const trackLookupSchema = z
+  .object({
+    token: z.string().trim().min(10).max(120).optional(),
+    orderNo: z.coerce.number().int().positive().optional(),
+    contact: z.string().trim().max(120).optional(),
+  })
+  .refine((d) => Boolean(d.token) || (Boolean(d.orderNo) && Boolean(d.contact?.trim())), {
+    message: 'অর্ডার নাম্বার ও ফোন/ইমেইল দুটোই দিন',
+  });
+
+/** ★ ডেলিভারি পৌঁছেছে কিনা — গ্রাহকের নিশ্চিতকরণ */
+export const deliveryConfirmSchema = z.object({
+  orderId: z.string().min(1).max(40),
+  arrived: z.boolean(),
+});
+
+/** ★ রিভিউ — শুধু নিশ্চিত হওয়া অর্ডারের বিপরীতে */
+export const reviewSchema = z.object({
+  orderId: z.string().min(1).max(40),
+  rating: z.coerce.number().int().min(1, 'রেটিং দিন').max(5, 'রেটিং ১–৫ এর মধ্যে'),
+  body: z.string().trim().max(500, 'মন্তব্য অনেক বড়').optional().or(z.literal('')),
+});
+
+export const uidVerifySchema = z.object({
+  productId: z.coerce.number().int().positive(),
+  uid: z
+    .string().trim()
+    .min(3, 'সঠিক UID দিন').max(80, 'UID অনেক বড়')
+    .regex(/^[a-zA-Z0-9._@+\-]+$/, 'UID তে অবৈধ অক্ষর আছে'),
+});
+
 export const couponCheckSchema = z.object({
-  code: z.string().trim().toUpperCase().min(2).max(24),
+  code: z.string().trim().toUpperCase().min(2, 'কুপন কোড দিন').max(24, 'কুপন কোড অনেক বড়'),
   variantId: z.coerce.number().int().positive(),
 });
 
-export const adminDepositActionSchema = z.object({
-  depositId: z.string().min(1).max(40),
-  action: z.enum(['APPROVE', 'REJECT']),
-  adminNote: z.string().max(300).optional(),
+const DEPOSIT_REJECT_REASONS = [
+  'TRX_NOT_FOUND', 'AMOUNT_MISMATCH', 'DUPLICATE_TRX',
+  'UNCLEAR_PROOF', 'WRONG_ACCOUNT', 'OTHER',
+] as const;
+
+const ORDER_FAIL_REASONS = [
+  'INVALID_UID', 'OUT_OF_STOCK', 'GAME_SERVER_ISSUE',
+  'PRICE_CHANGED', 'CUSTOMER_REQUEST', 'OTHER',
+] as const;
+
+export const adminDepositActionSchema = z
+  .object({
+    depositId: z.string().min(1).max(40),
+    action: z.enum(['APPROVE', 'REJECT']),
+    adminNote: z.string().max(300).optional(),
+    rejectReason: z.enum(DEPOSIT_REJECT_REASONS).optional(),
+  })
+  // ★ "অন্য কারণ" বাছলে নোট বাধ্যতামূলক — নাহলে গ্রাহক কিছুই বুঝবে না
+  .refine((d) => d.action !== 'REJECT' || d.rejectReason !== 'OTHER' || !!d.adminNote?.trim(), {
+    message: 'অন্য কারণ বাছলে নোট লিখতে হবে',
+    path: ['adminNote'],
+  });
+
+export const adminOrderActionSchema = z
+  .object({
+    orderId: z.string().min(1).max(40),
+    action: z.enum(['PROCESSING', 'COMPLETE', 'FAIL']),
+    adminNote: z.string().max(300).optional(),
+    internalNote: z.string().max(500).optional(),
+    playerName: z.string().max(80).optional(),
+    failReason: z.enum(ORDER_FAIL_REASONS).optional(),
+    /** ★ অন্য অ্যাডমিনের সক্রিয় claim উপেক্ষা করে এগোনোর ইচ্ছাকৃত সম্মতি (3.7) */
+    takeover: z.boolean().optional(),
+  })
+  .refine((d) => d.action !== 'FAIL' || d.failReason !== 'OTHER' || !!d.adminNote?.trim(), {
+    message: 'অন্য কারণ বাছলে নোট লিখতে হবে',
+    path: ['adminNote'],
+  });
+
+/** ★ অর্ডার claim / release (3.7) — টাকা নড়ে না, শুধু সমন্বয় */
+export const adminOrderClaimSchema = z.object({
+  orderId: z.string().min(1).max(40),
+  action: z.enum(['CLAIM', 'RELEASE']),
+  /** অন্যের সক্রিয় claim থাকলে ইচ্ছাকৃত টেক-ওভার */
+  takeover: z.boolean().optional(),
 });
 
-export const adminOrderActionSchema = z.object({
+/**
+ * ★ বাল্ক অ্যাকশন (3.8)
+ *
+ *   ⚠️ enum-এ FAIL নেই এবং কখনো যোগ করা যাবে না — সেটি রিফান্ড
+ *   চালায়। টাকা নড়ে এমন কিছু বাল্কে যায় না; এই enum-ই সেই
+ *   সীমারেখার প্রথম পাহারা।
+ */
+export const adminOrderBulkSchema = z.object({
+  orderIds: z.array(z.string().min(1).max(40)).min(1, 'অন্তত একটি অর্ডার বাছুন').max(20),
+  action: z.enum(['CLAIM', 'PROCESSING', 'COMPLETE']),
+});
+
+/**
+ * ★ আংশিক রিফান্ড (3.14)
+ *
+ *   ⚠️ কারণ **বাধ্যতামূলক** — টাকা ফেরতের প্রতিটি ঘটনার একটা
+ *   ব্যাখ্যা থাকতেই হবে, নইলে পরে বিরোধে কেউ বলতে পারবে না কেন
+ *   দেওয়া হয়েছিল। উপরের সীমা সার্ভারে অর্ডারের দাম থেকে যাচাই হয়;
+ *   এখানে শুধু "ধনাত্মক ও যুক্তিসঙ্গত" পাহারা।
+ */
+export const adminPartialRefundSchema = z.object({
   orderId: z.string().min(1).max(40),
-  action: z.enum(['PROCESSING', 'COMPLETE', 'FAIL']),
-  adminNote: z.string().max(300).optional(),
-  internalNote: z.string().max(500).optional(),
-  playerName: z.string().max(80).optional(),
+  amount: z.number().positive('অঙ্ক শূন্যের বেশি হতে হবে').max(1_000_000),
+  reason: z.string().trim().min(3, 'কারণ লিখুন — কেন ফেরত দেওয়া হচ্ছে').max(300),
 });
 
 export const adminAdjustSchema = z.object({

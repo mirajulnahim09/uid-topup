@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import AdminNav from '@/components/admin/AdminNav';
+import AdminSearch from '@/components/admin/AdminSearch';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +42,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       <AdminNav pendingDeposits={pendingDeposits} pendingOrders={pendingOrders} />
 
-      <main id="main" className="mx-auto max-w-7xl page-x py-8 sm:py-7">{children}</main>
+      {/* ★ সর্বজনীন সার্চ — প্রতিটি অ্যাডমিন পেজে (3.2)।
+          গ্রাহকের মেসেজ থেকে যা-ই পেস্ট হোক, উত্তর এখানেই মেলে। */}
+      <div className="mx-auto max-w-7xl page-x pt-5">
+        <AdminSearch />
+      </div>
+
+      <main id="main" className="mx-auto max-w-7xl page-x py-6 sm:py-5">{children}</main>
     </div>
   );
 }

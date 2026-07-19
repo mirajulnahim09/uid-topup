@@ -1,5 +1,7 @@
 'use client';
 
+import { fetchMe, invalidateMe } from '@/lib/clientFetch';
+
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -7,10 +9,36 @@ import Link from 'next/link';
 import { useToast, ConfirmDialog } from './Toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CountUp, SuccessBurst } from './motion';
+import { formatDuration } from '@/lib/sla';
+
+/**
+ * ★ প্রতি-ইউনিট দাম (2.16) — "৳0.69 / ডায়মন্ড"
+ *
+ *   কেন: বড় প্যাকেজ সত্যিই সাশ্রয়ী কি না, গ্রাহক মাথায় হিসাব করে
+ *   বুঝতে পারে না। প্রতি-ইউনিট দাম দেখালে বড় প্যাকেজ **নিজেই**
+ *   নিজেকে ন্যায্যতা দেয় — কোনো বিপণনের দাবি ছাড়াই
+ *   (MANUAL_WORKFLOW.md A3)।
+ *
+ *   ⚠️ শুধু তখনই দেখানো হয় যখন লেবেল থেকে প্রকৃত সংখ্যা বের করা
+ *   যায় (যেমন "240 Diamond")। "Weekly lite" এর মতো লেবেলে কোনো
+ *   একক নেই — সেখানে কিছু দেখানো হয় না, বানানো হয় না।
+ */
+function unitHint(v: { label: string; price: number }): string | null {
+  const m = v.label.match(/^(\d[\d,]*)\s*(Diamond|ডায়মন্ড|Like|UC)/i);
+  if (!m) return null;
+  const qty = Number(m[1].replace(/,/g, ''));
+  if (!Number.isFinite(qty) || qty <= 0 || v.price <= 0) return null;
+  const per = v.price / qty;
+  // খুব ছোট প্যাকেজে প্রতি-ইউনিট দাম অর্থবহ নয়
+  if (qty < 25) return null;
+  return `৳${per.toFixed(2)} / ${m[2]}`;
+}
 
 type V = {
   id: number; label: string; price: number;
   oldPrice: number | null; stock: number; isPopular: boolean;
+  /** ★ এই প্যাকেজের সাধারণ ডেলিভারি সময় (মিনিট) — null হলে সাইটের SLA */
+  deliveryMinutes?: number | null;
 };
 type Applied = { code: string; label: string; discount: number; finalPrice: number };
 
@@ -26,13 +54,24 @@ function StepBadge({ n }: { n: number }) {
   );
 }
 
+export type PayChannel = {
+  id: number;
+  method: string;
+  accountNo: string;
+  accountType: string;
+  instruction: string;
+};
+
 export default function OrderForm({
-  productName, uidLabel, uidHint, variants,
+  productId, productName, uidLabel, uidHint, variants, channels = [],
 }: {
+  productId: number;
   productName: string;
   uidLabel: string;
   uidHint: string | null;
   variants: V[];
+  /** ম্যানুয়াল পেমেন্টের নাম্বার — ডাইরেক্ট পে এর জন্য */
+  channels?: PayChannel[];
 }) {
   const { status } = useSession();
   const router = useRouter();
@@ -44,7 +83,17 @@ export default function OrderForm({
   const [sel, setSel] = useState<V | null>(null);
   const [uid, setUid] = useState('');
   const [uidErr, setUidErr] = useState('');
+  // ★ double-entry নিশ্চিতকরণ — ভুল UID ঠেকানোর প্রধান সুরক্ষা
+  const [uidConfirm, setUidConfirm] = useState('');
+  const [pasteBlocked, setPasteBlocked] = useState(false);
+  // ★ আগে ব্যবহৃত UID — এক ট্যাপে বসে (2.12)
+  const [recentUids, setRecentUids] = useState<Array<{ uid: string; name: string | null }>>([]);
   const [playerName, setPlayerName] = useState('');
+  // ★ পেমেন্টের পথ — ওয়ালেট (ফেরত আসা গ্রাহক) বা ডাইরেক্ট পে (নতুন গ্রাহক)
+  const [payMode, setPayMode] = useState<'wallet' | 'direct'>('wallet');
+  const [dpMethod, setDpMethod] = useState<string>(channels[0]?.method ?? 'BKASH');
+  const [dpTrxId, setDpTrxId] = useState('');
+  const [dpSender, setDpSender] = useState('');
   const [coupon, setCoupon] = useState('');
   const [applied, setApplied] = useState<Applied | null>(null);
   const [checking, setChecking] = useState(false);
@@ -57,8 +106,9 @@ export default function OrderForm({
   const loadBalance = useCallback(async () => {
     if (status !== 'authenticated') return;
     try {
-      const res = await fetch('/api/me');
-      if (res.ok) setBalance(Number((await res.json()).balance));
+      // ★ শেয়ার্ড de-dup (4.5)
+      const d = await fetchMe<{ balance: string }>();
+      setBalance(Number(d.balance));
     } catch {
       /* silent — ব্যালেন্স না এলেও অর্ডার বোতাম কাজ করবে, সার্ভার যাচাই করবে */
     }
@@ -68,9 +118,55 @@ export default function OrderForm({
     loadBalance();
   }, [loadBalance]);
 
+  /**
+   * ★ "আবার অর্ডার" থেকে আসা প্রি-ফিল (2.13)।
+   *
+   *   ⚠️ useSearchParams() ইচ্ছাকৃতভাবে ব্যবহার করা হয়নি — এই পেজ
+   *   generateStaticParams + revalidate দিয়ে প্রি-রেন্ডার হয়, আর
+   *   useSearchParams পুরো রুটকে ডায়নামিক করে দিত (অথবা Suspense
+   *   লাগত)। window.location একবার পড়লে SSG অক্ষত থাকে।
+   */
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const vRaw = q.get('v');
+    const uidRaw = q.get('uid');
+
+    if (vRaw) {
+      const vId = Number(vRaw);
+      const match = variants.find((x) => x.id === vId);
+      // স্টক শেষ হলে প্রি-সিলেক্ট করি না — ভুল আশা তৈরি হতো
+      if (match && match.stock !== 0) setSel(match);
+    }
+    if (uidRaw && /^[a-zA-Z0-9._@+\-]{3,80}$/.test(uidRaw)) {
+      // ★ আগের অর্ডারে সফলভাবে ব্যবহৃত UID — দুই ঘরেই বসে,
+      //   ঠিক recent-chip এর মতোই যুক্তিতে
+      setUid(uidRaw);
+      setUidConfirm(uidRaw);
+    }
+    // শুধু একবার — mount এ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ★ আগে ব্যবহৃত UID আনি — শুধু লগইন করা থাকলে
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    let alive = true;
+    fetch(`/api/uid/recent?productId=${productId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d?.recent) setRecentUids(d.recent);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [status, productId]);
+
   const total = applied ? applied.finalPrice : sel?.price ?? 0;
   const bal = balance ?? 0;
   const short = Math.max(0, total - bal); // আরও কত টাকা লাগবে
+  // ★ ডাইরেক্ট পে তে যত টাকা পাঠাতে হবে — অর্ডারের দামের ঠিক সমান
+  const payable = Number(total.toFixed(2));
 
   function pick(v: V) {
     if (v.stock === 0) return;
@@ -130,7 +226,10 @@ export default function OrderForm({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/order', {
+      // ★ ডাইরেক্ট পে হলে আলাদা endpoint — ওখানে অর্ডার AWAITING_PAYMENT
+      //   অবস্থায় তৈরি হয়, টাকা নড়ে শুধু অ্যাডমিন যাচাইয়ের পর
+      const isDirect = payMode === 'direct';
+      const res = await fetch(isDirect ? '/api/order/direct' : '/api/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -138,22 +237,41 @@ export default function OrderForm({
           playerUid: uid.trim(),
           playerName: playerName.trim() || undefined,
           couponCode: applied?.code || undefined,
+          ...(isDirect
+            ? {
+                method: dpMethod,
+                amount: payable,
+                trxId: dpTrxId.trim().toUpperCase(),
+                senderNo: dpSender.trim(),
+              }
+            : {}),
         }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || 'অর্ডার করা যায়নি');
 
+      // ★★★ ক্যাশ বাতিল (4.5) — টাকা কাটা হয়েছে, তাই পুরনো ব্যালেন্স
+      //     এক মুহূর্তও দেখানো চলবে না। এটি না থাকলে Navbar/OrderForm
+      //     ৫ সেকেন্ড পর্যন্ত কাটার আগের টাকা দেখাত, আর গ্রাহক ভুল
+      //     অঙ্ক দেখে পরের সিদ্ধান্ত নিত।
+      invalidateMe();
+
       // ★ সেলিব্রেশন — তারপর অর্ডার পেজে
       setBurst(true);
       toast.success(d.message);
       setUid('');
+      setUidConfirm('');
+      setPasteBlocked(false);
       setPlayerName('');
       setSel(null);
       setCoupon('');
       setApplied(null);
 
+      // ★ রসিদ পেজে পাঠাই — তালিকায় নয় (2.11)।
+      //   টাকা পাঠানোর পর গ্রাহকের দরকার একটি স্থায়ী, লিংকযোগ্য
+      //   প্রমাণ — মিলিয়ে যাওয়া toast নয় (MANUAL_WORKFLOW.md A6)।
       setTimeout(() => {
-        router.push('/account/orders');
+        router.push(d.orderId ? `/account/orders/${d.orderId}?placed=1` : '/account/orders');
         startTransition(() => router.refresh());
       }, 850);
     } catch (e) {
@@ -163,7 +281,20 @@ export default function OrderForm({
     }
   }
 
-  const ready = Boolean(sel && uid.trim() && !uidErr);
+  // ★ দুইটি UID মিলছে কিনা — ট্রিম করে তুলনা (স্পেস ছাড়া)
+  const uidTrim = uid.trim();
+  const uidConfirmTrim = uidConfirm.trim();
+  const uidMatched = Boolean(uidTrim && uidTrim === uidConfirmTrim);
+  const uidMismatch = Boolean(uidConfirmTrim && uidTrim !== uidConfirmTrim);
+
+  // ★ ডাইরেক্ট পে হলে পেমেন্টের তথ্যও লাগবে
+  const dpTrxValid = /^[A-Z0-9]{6,30}$/.test(dpTrxId.trim().toUpperCase());
+  const dpSenderValid = /^01[3-9]\d{8}$/.test(dpSender.trim());
+  const directReady = payMode !== 'direct' || (dpTrxValid && dpSenderValid);
+
+  // ★ নিশ্চিতকরণ না মিললে অর্ডার করা যাবে না — এটাই আসল সুরক্ষা,
+  //   শুধু সতর্কবার্তা দেখিয়ে ছেড়ে দিলে ভুল ঠেকানো যেত না
+  const ready = Boolean(sel && uidTrim && !uidErr && uidMatched && directReady);
 
   return (
     <div className="grid gap-5 lg:grid-cols-3">
@@ -255,8 +386,31 @@ export default function OrderForm({
                         </AnimatePresence>
                       </span>
 
-                      <span className="truncate text-sm font-semibold text-slate-800">
-                        {v.label}
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-slate-800">
+                          {v.label}
+                        </span>
+                        {/* ★ প্যাকেজভিত্তিক সৎ ডেলিভারি সময় (2.14)।
+                            "Instant" নয় — বাস্তব সময়, প্যাকেজ অনুযায়ী। */}
+                        {v.deliveryMinutes != null && (
+                          <span
+                            className="mt-0.5 block text-[10px] font-medium"
+                            style={{ color: 'var(--mut)' }}
+                          >
+                            ⏱ ~{formatDuration(v.deliveryMinutes)}
+                          </span>
+                        )}
+                        {/* ★ প্রতি ইউনিটের দাম (2.16) — বড় প্যাকেজের
+                            সাশ্রয় নিজে থেকেই বোঝা যায়। এটি হিসাব করা
+                            সত্য, বিপণনের দাবি নয়। */}
+                        {unitHint(v) && (
+                          <span
+                            className="mt-0.5 block text-[10px]"
+                            style={{ color: 'var(--mut)' }}
+                          >
+                            {unitHint(v)}
+                          </span>
+                        )}
                       </span>
                       <span className="shrink-0 text-sm" aria-hidden="true">💎</span>
                     </span>
@@ -293,6 +447,48 @@ export default function OrderForm({
           </div>
 
           <div className="space-y-3 p-5">
+            {/* ★ আগে ব্যবহৃত UID — এক ট্যাপে বসে (2.12)।
+                বেশিরভাগ গ্রাহক নিজের একই অ্যাকাউন্টেই বারবার টপ-আপ করে,
+                তাই প্রতিবার দুইবার টাইপ করানো অপ্রয়োজনীয় ঘর্ষণ ও
+                নতুন টাইপোর সুযোগ। */}
+            {recentUids.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-semibold text-slate-500">
+                  আগে ব্যবহার করেছেন
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {recentUids.map((r) => (
+                    <button
+                      key={r.uid}
+                      type="button"
+                      onClick={() => {
+                        // ★ দুই ঘরেই বসাই — এটি যাচাইকৃত পুরনো UID,
+                        //   টাইপো হওয়ার সুযোগ নেই, তাই দ্বিতীয়বার
+                        //   লিখতে বলা অর্থহীন ঘর্ষণ হতো
+                        setUid(r.uid);
+                        setUidConfirm(r.uid);
+                        setUidErr('');
+                      }}
+                      className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
+                      style={{
+                        borderColor: uid === r.uid ? 'rgba(230,197,132,.6)' : 'var(--hair)',
+                        background: uid === r.uid ? 'rgba(230,197,132,.10)' : 'var(--glass)',
+                        color: 'var(--ink)',
+                      }}
+                      aria-pressed={uid === r.uid}
+                    >
+                      <span className="font-mono">{r.uid}</span>
+                      {r.name && (
+                        <span className="ml-1.5 font-normal" style={{ color: 'var(--mut)' }}>
+                          {r.name}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div>
               <label htmlFor="uid" className="mb-1.5 block text-sm font-semibold text-slate-700">
                 {uidLabel}
@@ -314,6 +510,49 @@ export default function OrderForm({
               {uidErr && (
                 <p id="uid-err" role="alert" className="mt-1 text-xs text-red-600">{uidErr}</p>
               )}
+            </div>
+
+            {/* ★★★ UID নিশ্চিতকরণ — ভুল অ্যাকাউন্টে টপ-আপ ঠেকানোর মূল সুরক্ষা।
+                লাইভ যাচাই (provider) না থাকায় double-entry ব্যবহার করা হয়:
+                একই টাইপো দুইবার হয় না, তাই ভুল ধরা পড়ে। */}
+            <div>
+              <label htmlFor="uid2" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                {uidLabel} আবার লিখুন
+              </label>
+              <input
+                id="uid2"
+                className="input"
+                placeholder={`নিশ্চিত করতে আবার লিখুন`}
+                value={uidConfirm}
+                onChange={(e) => setUidConfirm(e.target.value)}
+                onPaste={(e) => {
+                  // ★ পেস্ট আটকানো হয় — কপি-পেস্ট করলে double-entry এর
+                  //   পুরো উদ্দেশ্যই নষ্ট, একই ভুল দুইবার বসে যায়
+                  e.preventDefault();
+                  setPasteBlocked(true);
+                }}
+                aria-invalid={uidMismatch}
+                aria-describedby="uid2-msg"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <p id="uid2-msg" className="mt-1 text-xs" role={uidMismatch ? 'alert' : undefined}>
+                {uidMismatch ? (
+                  <span className="text-red-600">
+                    ✕ দুইটি {uidLabel} মিলছে না — ভালো করে দেখে নিন
+                  </span>
+                ) : uidMatched ? (
+                  <span className="text-emerald-600">✓ {uidLabel} মিলে গেছে</span>
+                ) : pasteBlocked ? (
+                  <span className="text-amber-600">
+                    পেস্ট করা যাবে না — নিরাপত্তার জন্য হাতে লিখুন
+                  </span>
+                ) : (
+                  <span className="text-slate-500">
+                    ভুল ঠেকাতে {uidLabel} দুইবার লিখতে হবে
+                  </span>
+                )}
+              </p>
             </div>
 
             <div>
@@ -348,15 +587,32 @@ export default function OrderForm({
           </div>
 
           <div className="space-y-4 p-5">
-            {/* ★ দুইটা পেমেন্ট কার্ড — uidtopup এর মতো */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Pay With Wallet — সবসময় সিলেক্টেড (একমাত্র উপায়) */}
-              <div className="relative overflow-hidden rounded-xl border-2 border-rose-500 bg-white p-3 text-center shadow-sm">
-                <span className="absolute right-1.5 top-1.5 text-rose-600" aria-hidden="true">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                </span>
+            {/* ★ দুইটা পেমেন্ট পথ — ওয়ালেট (ফেরত আসা গ্রাহক) বা
+                ডাইরেক্ট পে (নতুন গ্রাহক, আগে টাকা জমা রাখতে হয় না) */}
+            <div
+              className="grid grid-cols-2 gap-3"
+              role="radiogroup"
+              aria-label="পেমেন্টের মাধ্যম"
+            >
+              {/* Pay With Wallet */}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={payMode === 'wallet'}
+                onClick={() => setPayMode('wallet')}
+                className={`relative overflow-hidden rounded-xl border-2 bg-white p-3 text-center transition ${
+                  payMode === 'wallet'
+                    ? 'border-rose-500 shadow-sm'
+                    : 'border-slate-200 hover:border-rose-300'
+                }`}
+              >
+                {payMode === 'wallet' && (
+                  <span className="absolute right-1.5 top-1.5 text-rose-600" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </span>
+                )}
 
                 <div className="mx-auto mb-1.5 flex h-9 items-center justify-center gap-1">
                   <span className="rounded bg-rose-600 px-1.5 py-1 text-[9px] font-black leading-none text-white">
@@ -369,13 +625,29 @@ export default function OrderForm({
                 <p className="mt-0.5 text-[10px] font-semibold text-emerald-600">
                   ৳{bal.toFixed(2)}
                 </p>
-              </div>
+              </button>
 
-              {/* Add Money — ম্যানুয়াল ডিপোজিট পেজে নিয়ে যায় */}
-              <Link
-                href="/account/wallet/deposit"
-                className="group rounded-xl border-2 border-slate-200 bg-white p-3 text-center transition hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-md"
+              {/* ★ ডাইরেক্ট পে — ওয়ালেটে আগে টাকা না রেখেই কেনা যায়।
+                  নতুন গ্রাহকের জন্য এটাই ডিফল্ট পছন্দ হওয়া উচিত। */}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={payMode === 'direct'}
+                onClick={() => setPayMode('direct')}
+                disabled={channels.length === 0}
+                className={`relative rounded-xl border-2 bg-white p-3 text-center transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  payMode === 'direct'
+                    ? 'border-rose-500 shadow-sm'
+                    : 'border-slate-200 hover:border-rose-300'
+                }`}
               >
+                {payMode === 'direct' && (
+                  <span className="absolute right-1.5 top-1.5 text-rose-600" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </span>
+                )}
                 <div className="mx-auto mb-1.5 flex h-9 flex-wrap items-center justify-center gap-1">
                   <span className="rounded bg-[#E2136E] px-1.5 py-0.5 text-[8px] font-black leading-none text-white">
                     bKash
@@ -383,15 +655,98 @@ export default function OrderForm({
                   <span className="rounded bg-[#EE1C25] px-1.5 py-0.5 text-[8px] font-black leading-none text-white">
                     নগদ
                   </span>
-                  <span className="rounded bg-[#8C3494] px-1.5 py-0.5 text-[8px] font-black leading-none text-white">
-                    Rocket
-                  </span>
                 </div>
 
-                <p className="text-[11px] font-bold text-slate-800">Add Money</p>
-                <p className="mt-0.5 text-[10px] text-slate-500">ম্যানুয়াল যাচাই</p>
-              </Link>
+                <p className="text-[11px] font-bold text-slate-800">সরাসরি পেমেন্ট</p>
+                <p className="mt-0.5 text-[10px] text-slate-500">
+                  {channels.length === 0 ? 'এখন বন্ধ' : 'ওয়ালেট লাগবে না'}
+                </p>
+              </button>
             </div>
+
+            {/* ★ ডাইরেক্ট পে এর তথ্য — শুধু নির্বাচিত হলে */}
+            {payMode === 'direct' && sel && (
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-bold text-slate-700">
+                  ১. নিচের নাম্বারে ঠিক{' '}
+                  <span className="text-rose-600">৳{payable.toFixed(2)}</span> Send Money করুন
+                </p>
+
+                <div
+                  className="flex flex-wrap gap-2"
+                  role="radiogroup"
+                  aria-label="পেমেন্ট মাধ্যম"
+                >
+                  {channels.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={dpMethod === c.method}
+                      onClick={() => setDpMethod(c.method)}
+                      className={`rounded-lg border-2 px-3 py-1.5 text-xs font-bold transition ${
+                        dpMethod === c.method
+                          ? 'border-rose-500 bg-white text-rose-600'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-rose-300'
+                      }`}
+                    >
+                      {c.method}
+                    </button>
+                  ))}
+                </div>
+
+                {channels
+                  .filter((c) => c.method === dpMethod)
+                  .map((c) => (
+                    <div key={c.id} className="rounded-lg border border-slate-200 bg-white p-3">
+                      <p className="text-[11px] font-semibold text-slate-500">
+                        {c.method} — {c.accountType}
+                      </p>
+                      <p className="font-mono text-lg font-bold text-slate-900">{c.accountNo}</p>
+                      {c.instruction && (
+                        <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+                          {c.instruction}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+
+                <p className="text-xs font-bold text-slate-700">২. পেমেন্টের তথ্য দিন</p>
+
+                <div>
+                  <label htmlFor="dp-trx" className="mb-1 block text-xs font-semibold text-slate-600">
+                    ট্রানজেকশন আইডি (TrxID)
+                  </label>
+                  <input
+                    id="dp-trx"
+                    className="input"
+                    placeholder="যেমন: 9A7B2C4D1E"
+                    value={dpTrxId}
+                    onChange={(e) => setDpTrxId(e.target.value.toUpperCase())}
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="dp-sender" className="mb-1 block text-xs font-semibold text-slate-600">
+                    যে নাম্বার থেকে পাঠিয়েছেন
+                  </label>
+                  <input
+                    id="dp-sender"
+                    className="input"
+                    placeholder="01XXXXXXXXX"
+                    value={dpSender}
+                    onChange={(e) => setDpSender(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+
+                <p className="rounded-lg bg-amber-50 p-2.5 text-[11px] leading-relaxed text-amber-800">
+                  ⚠️ <strong>Send Money</strong> করুন, <strong>Cash Out</strong> নয়। অ্যাডমিন TrxID
+                  মিলিয়ে দেখার পরেই ডেলিভারি শুরু হবে।
+                </p>
+              </div>
+            )}
 
             {/* কুপন */}
             {applied ? (
@@ -513,6 +868,43 @@ export default function OrderForm({
             ) : balance === null ? (
               /* ── ব্যালেন্স আসছে ── */
               <div className="skeleton h-12 w-full" />
+            ) : payMode === 'direct' ? (
+              /* ── ডাইরেক্ট পে — ব্যালেন্স লাগে না ── */
+              !uidTrim ? (
+                <button disabled className="btn-primary w-full py-3.5 text-base font-bold">
+                  ↑ {uidLabel} লিখুন
+                </button>
+              ) : !uidMatched ? (
+                <button disabled className="btn-primary w-full py-3.5 text-base font-bold">
+                  {uidMismatch
+                    ? `↑ দুইটি ${uidLabel} মিলছে না`
+                    : `↑ ${uidLabel} আবার লিখে নিশ্চিত করুন`}
+                </button>
+              ) : !dpTrxValid ? (
+                <button disabled className="btn-primary w-full py-3.5 text-base font-bold">
+                  ↑ ট্রানজেকশন আইডি দিন
+                </button>
+              ) : !dpSenderValid ? (
+                <button disabled className="btn-primary w-full py-3.5 text-base font-bold">
+                  ↑ প্রেরকের নাম্বার দিন
+                </button>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+                    <span aria-hidden="true">✓</span>
+                    <p className="text-xs font-semibold text-emerald-700">
+                      পেমেন্ট যাচাইয়ের পর ডেলিভারি শুরু হবে
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setConfirm(true)}
+                    disabled={loading}
+                    className="btn-primary shimmer-btn w-full py-3.5 text-base font-bold"
+                  >
+                    {loading ? 'পাঠানো হচ্ছে…' : `৳${payable.toFixed(2)} — অর্ডার করুন`}
+                  </button>
+                </>
+              )
             ) : short > 0 ? (
               /* ── ★ ব্যালেন্স কম — সরাসরি Add Money বোতাম ── */
               <>
@@ -541,6 +933,13 @@ export default function OrderForm({
               /* ── UID দেয়নি ── */
               <button disabled className="btn-primary w-full py-3.5 text-base font-bold">
                 ↑ {uidLabel} লিখুন
+              </button>
+            ) : !uidMatched ? (
+              /* ── UID নিশ্চিত করেনি বা মিলছে না ── */
+              <button disabled className="btn-primary w-full py-3.5 text-base font-bold">
+                {uidMismatch
+                  ? `↑ দুইটি ${uidLabel} মিলছে না`
+                  : `↑ ${uidLabel} আবার লিখে নিশ্চিত করুন`}
               </button>
             ) : (
               /* ── সব ঠিক আছে ── */

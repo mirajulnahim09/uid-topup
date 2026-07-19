@@ -10,6 +10,21 @@ import Badge from '@/components/Badge';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'আমার অর্ডার' };
 
+/**
+ * ★ "আবার অর্ডার" লিংক — একই প্যাকেজ ও একই UID প্রি-ফিল করে (2.13)।
+ *   প্রোডাক্ট বা ভ্যারিয়েন্ট নিষ্ক্রিয় হয়ে থাকলে null — ভাঙা লিংক
+ *   দেখানোর চেয়ে সৎভাবে "আর নেই" বলা ভালো।
+ */
+function reorderHref(o: {
+  playerUid: string;
+  variant: { id: number; isActive: boolean; product: { id: number; slug: string; isActive: boolean } } | null;
+}): string | null {
+  const v = o.variant;
+  if (!v || !v.isActive || !v.product.isActive) return null;
+  const q = new URLSearchParams({ v: String(v.id), uid: o.playerUid });
+  return `/product/${v.product.id}/${v.product.slug}?${q.toString()}`;
+}
+
 export default async function OrdersPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
@@ -18,6 +33,16 @@ export default async function OrdersPage() {
     where: { userId: session.user.id },
     orderBy: { createdAt: 'desc' },
     take: 50,
+    // ★ এক-ট্যাপে আবার অর্ডারের লিংক বানাতে প্রোডাক্টের তথ্য দরকার (2.13)
+    include: {
+      variant: {
+        select: {
+          id: true,
+          isActive: true,
+          product: { select: { id: true, slug: true, isActive: true } },
+        },
+      },
+    },
   });
 
   return (
@@ -36,7 +61,9 @@ export default async function OrdersPage() {
           {/* ── মোবাইল: কার্ড ── */}
           <div className="space-y-3 md:hidden">
             {orders.map((o: (typeof orders)[number]) => (
-              <Link key={o.id} href={`/account/orders/${o.id}`} className="card block p-4 transition hover:-translate-y-0.5 hover:shadow-md">
+              // ★ কার্ডটি আর Link নয় — ভেতরে "আবার অর্ডার" লিংক বসাতে
+              //   হলে nested <a> হয়ে যেত, যা অবৈধ HTML (2.13)
+              <div key={o.id} className="card block p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="font-mono text-sm font-bold text-rose-600">#{o.orderNo}</span>
                   <Badge status={o.status} />
@@ -66,8 +93,26 @@ export default async function OrdersPage() {
                 {o.adminNote && (
                   <p className="mt-2 rounded bg-slate-50 p-2 text-xs text-slate-400">{o.adminNote}</p>
                 )}
-                <p className="mt-2 text-right text-xs font-bold text-rose-600">বিস্তারিত →</p>
-              </Link>
+
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  {/* ★ এক ট্যাপে আবার অর্ডার — একই প্যাকেজ, একই UID (2.13) */}
+                  {reorderHref(o) ? (
+                    <Link href={reorderHref(o)!} className="btn-ghost px-3 py-2 text-xs">
+                      ↻ আবার অর্ডার
+                    </Link>
+                  ) : (
+                    <span className="text-[11px]" style={{ color: 'var(--mut)' }}>
+                      এই প্যাকেজটি আর নেই
+                    </span>
+                  )}
+                  <Link
+                    href={`/account/orders/${o.id}`}
+                    className="text-xs font-bold text-rose-600"
+                  >
+                    বিস্তারিত →
+                  </Link>
+                </div>
+              </div>
             ))}
           </div>
 
@@ -104,7 +149,17 @@ export default async function OrdersPage() {
                     <td><Badge status={o.status} /></td>
                     <td className="whitespace-nowrap text-xs text-slate-400">{fmtDate(o.createdAt)}</td>
                     <td className="max-w-[160px] text-xs text-slate-400">{o.adminNote || '—'}</td>
-                    <td className="text-right">
+                    <td className="whitespace-nowrap text-right">
+                      {/* ★ এক ক্লিকে আবার অর্ডার (2.13) */}
+                      {reorderHref(o) && (
+                        <Link
+                          href={reorderHref(o)!}
+                          className="mr-3 text-xs font-bold hover:underline"
+                          style={{ color: 'var(--gold)' }}
+                        >
+                          ↻ আবার
+                        </Link>
+                      )}
                       <Link
                         href={`/account/orders/${o.id}`}
                         className="text-xs font-bold text-rose-600 hover:underline"

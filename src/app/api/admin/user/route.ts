@@ -4,6 +4,7 @@ import { requireAdmin, apiError, ApiError } from '@/lib/guard';
 import { cleanText } from '@/lib/sanitize';
 import { notify } from '@/lib/notify';
 import { adminLog } from '@/lib/adminLog';
+import { creditWallet, debitWallet } from '@/lib/services/wallet';
 import { getIp } from '@/lib/rateLimit';
 
 /** ব্যালেন্স সমন্বয় — ledger এ রেকর্ড থাকবে */
@@ -35,23 +36,19 @@ export async function POST(req: Request) {
         );
       }
 
-      const updated = await tx.user.update({
-        where: { id: userId },
-        data: { balance: { increment: amount } },
-      });
+      // ★ সমন্বয় দুদিকেই হতে পারে — তাই চিহ্ন দেখে দিক বাছা (4.1)
+      const balance =
+        amount >= 0
+          ? await creditWallet({
+              tx, userId, amount, type: 'ADMIN_ADJUST',
+              refId: admin.id, note: `অ্যাডমিন সমন্বয়: ${note}`,
+            })
+          : await debitWallet({
+              tx, userId, amount: Math.abs(amount), type: 'ADMIN_ADJUST',
+              refId: admin.id, note: `অ্যাডমিন সমন্বয়: ${note}`,
+            });
 
-      await tx.ledgerEntry.create({
-        data: {
-          userId,
-          type: 'ADMIN_ADJUST',
-          amount,
-          balanceAfter: updated.balance,
-          refId: admin.id,
-          note: `অ্যাডমিন সমন্বয়: ${note}`,
-        },
-      });
-
-      return { balance: Number(updated.balance) };
+      return { balance: Number(balance) };
     });
 
     // ★ অডিট লগ — ম্যানুয়াল ব্যালেন্স সমন্বয় সবচেয়ে সংবেদনশীল

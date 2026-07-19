@@ -61,8 +61,8 @@ export default function ProductGrid({ categories }: { categories: C[] }) {
         filtered.map((c: C) => (
           <section key={c.id} id={`cat-${c.id}`} className="mb-16 scroll-mt-24">
             {/* section head */}
-            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }} transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
               className="mb-9">
               <div className="text-[10px] font-semibold uppercase" style={{ letterSpacing: '.32em', color: 'var(--gold)' }}>
                 The Collection
@@ -73,7 +73,7 @@ export default function ProductGrid({ categories }: { categories: C[] }) {
 
             <motion.div
               variants={{ hidden: {}, show: { transition: { staggerChildren: 0.045 } } }}
-              initial="hidden" whileInView="show" viewport={{ once: true, margin: '-60px' }}
+              initial="hidden" animate="show"
               className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
             >
               <AnimatePresence mode="popLayout">

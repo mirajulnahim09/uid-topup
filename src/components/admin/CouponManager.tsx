@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast, ConfirmDialog } from '@/components/Toast';
+import { fmtDay } from '@/lib/date';
 
 type C = {
   id: number; code: string; type: string; value: number;
@@ -259,9 +260,7 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
                   <td className="whitespace-nowrap text-xs">
                     {c.expiresAt ? (
                       <span className={expired ? 'text-red-600' : 'text-slate-400'}>
-                        {new Date(c.expiresAt).toLocaleDateString('en-GB', {
-                          day: '2-digit', month: 'short', year: 'numeric',
-                        })}
+                        {fmtDay(c.expiresAt)}
                         {expired && ' (শেষ)'}
                       </span>
                     ) : (

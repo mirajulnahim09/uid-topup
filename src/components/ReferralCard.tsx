@@ -44,7 +44,7 @@ export default function ReferralCard({
   }
 
   return (
-    <section className="card overflow-hidden border-purple-200 bg-gradient-to-br from-purple-50 to-rose-50">
+    <section className="card overflow-hidden">
       <div className="p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
@@ -57,22 +57,35 @@ export default function ReferralCard({
             </p>
           </div>
           {count > 0 && (
-            <div className="shrink-0 rounded-lg border border-purple-200 bg-purple-100 px-3 py-1.5 text-center">
-              <p className="text-lg font-bold leading-none text-purple-700">{count}</p>
-              <p className="mt-0.5 text-[10px] text-purple-500">রেফার</p>
+            <div
+              className="shrink-0 rounded-lg px-3 py-1.5 text-center"
+              style={{
+                background: 'rgba(230,197,132,.12)',
+                border: '1px solid rgba(230,197,132,.35)',
+              }}
+            >
+              <p className="text-lg font-bold leading-none" style={{ color: 'var(--gold)' }}>{count}</p>
+              <p className="mt-0.5 text-[10px]" style={{ color: 'var(--mut)' }}>রেফার</p>
             </div>
           )}
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <div className="flex flex-1 items-center gap-2 rounded-lg border-2 border-dashed border-purple-300 bg-white px-4 py-3">
-            <code className="flex-1 select-all font-mono text-lg font-bold tracking-widest text-purple-700">
+          <div
+            className="flex flex-1 items-center gap-2 rounded-lg border-2 border-dashed px-4 py-3"
+            style={{ borderColor: 'rgba(230,197,132,.35)', background: 'rgba(255,255,255,.04)' }}
+          >
+            <code
+              className="flex-1 select-all font-mono text-lg font-bold tracking-widest"
+              style={{ color: 'var(--gold)' }}
+            >
               {code}
             </code>
             <button
               onClick={() => copy(code, 'code')}
               aria-label="রেফারেল কোড কপি করুন"
-              className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-purple-600 transition hover:bg-purple-100"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-xs font-semibold transition hover:bg-white/10"
+              style={{ color: 'var(--gold)' }}
             >
               {copied === 'code' ? '✓' : '📋'}
             </button>

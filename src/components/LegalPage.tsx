@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { fmtDay } from '@/lib/date';
 
 type Section = { h: string; p: string[]; warn?: boolean; ok?: boolean };
 
@@ -69,7 +70,7 @@ export default function LegalPage({
       </div>
 
       <p className="mt-10 text-center text-[11px] uppercase tracking-[.16em] text-slate-400">
-        সর্বশেষ হালনাগাদ: {new Date().toLocaleDateString('bn-BD')}
+        সর্বশেষ হালনাগাদ: {fmtDay(new Date())}
       </p>
     </div>
   );
