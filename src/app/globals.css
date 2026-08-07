@@ -1,0 +1,1835 @@
+/* ★ একটিমাত্র @import (CLAUDE.md §6)।
+   Anek Bangla যোগ করার কারণ: এই সাইটের শিরোনাম বাংলায়, আর
+   Hind Siliguri এর সর্বোচ্চ ওজন ৭০০ — বড় ডিসপ্লে শিরোনামের জন্য
+   যথেষ্ট ভরাট নয়। Anek Bangla ৮০০ পর্যন্ত যায়, আর সেটিই
+   "টাইপোগ্রাফি দুর্বল" সমস্যার আসল সমাধান (একটি ল্যাটিন ফন্ট
+   বদলানো নয় — বাংলা লেখা তাতে fallback করে যেত)। */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Hind+Siliguri:wght@300;400;500;600;700&family=Anek+Bangla:wght@600;700;800&family=Unbounded:wght@600;700;900&family=Chakra+Petch:wght@600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════ STOREFRONT — LIGHT THEME ═══════════
+   ⚠️ থিম রূপান্তর (dark VOLT → light storefront):
+   পুরো অ্যাপ `--v-*` ও লিগ্যাসি টোকেনের উপর দাঁড়িয়ে, তাই
+   এখানে **মানগুলো** light করলে একটিও JSX লাইন না ছুঁয়ে পুরো
+   সাইট light হয়ে যায় — ঠিক যেভাবে মূল লেখক legacy→VOLT
+   করেছিলেন। রঙের ভূমিকা অপরিবর্তিত (volt=অ্যাকশন, ice=তথ্য,
+   ink=পাঠ্য), কেবল আলো উল্টানো। পুরনো dark ফাইল:
+   globals.css.darkbak — ফেরত চাইলে ওটি কপি করলেই হবে। */
+:root {
+  color-scheme: dark;
+
+  /* ★★★ গতি-টোকেন (Phase 6)
+     আগে সাইটজুড়ে **সাতটি** ভিন্ন সময়কাল ছিল (.2/.22/.3/.35/.4/.45/.5)
+     আর signature easing curve কেবল কিছু জায়গায় প্রয়োগ হতো — বাকিরা
+     ব্রাউজারের ডিফল্ট `ease` পেত। ফলে একই ধরনের দুটি উপাদান দুরকম
+     গতিতে সাড়া দিত, যা অবচেতনে "অগোছালো" লাগে।
+
+     ⚠️ নতুন সংখ্যা বানানো হয়নি — কোডে ইতিমধ্যে সবচেয়ে বেশি ব্যবহৃত
+     মানগুলোই স্কেল হিসেবে নেওয়া হয়েছে (.2 · .35 · .5), তাই অনুভূতি
+     অপরিবর্তিত থাকে, কেবল সামঞ্জস্য আসে। সর্বোচ্চ পরিবর্তন ±100ms।
+
+     ⚠️ `prefers-reduced-motion` এর নিয়ম (উপরে) এগুলোকেও শূন্য করে
+     দেয় — টোকেন যোগ করায় সেই সুরক্ষা দুর্বল হয়নি। */
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --dur-fast:.2s;   /* micro: রঙ, hover — তাৎক্ষণিক লাগা উচিত */
+  --dur-base:.35s;  /* সাধারণ: বর্ডার, ছায়া, পটভূমি */
+  --dur-slow:.5s;   /* বড় পৃষ্ঠতল: কার্ড উঠে আসা */
+
+  /* ═══════════════════════════════════════════════════════════
+     ★ লিগ্যাসি টোকেন — এখন VOLT এর উপনাম (alias)
+
+     প্রোডাক্ট, অ্যাকাউন্ট ও অ্যাডমিনের ৩৪টি ফাইল সরাসরি
+     `var(--gold)` / `var(--mut)` ইত্যাদি লেখে। প্রতিটি ফাইলে হাত
+     দিয়ে খুঁজে-বদলানো মানে ৩৪টি ফাইলে মার্কআপ ভাঙার ৩৪টি সুযোগ।
+
+     ★ বদলে **মানগুলো** VOLT এ সরানো হয়েছে। নাম এক, ভূমিকা এক,
+       কেবল রঙ নতুন — ফলে পুরো অ্যাপ এক ধাপে VOLT ভাষায় আসে,
+       একটিও JSX লাইন না ছুঁয়ে। `tailwind.config.ts` এই একই
+       ভেরিয়েবলগুলোতেই ম্যাপ করা, তাই `text-gold` জাতীয় ক্লাসও
+       আপনাআপনি অনুসরণ করে।
+
+     ⚠️ নতুন কোডে `--v-*` ব্যবহার করুন। এই নামগুলো কেবল পুরনো
+     কল-সাইট বাঁচিয়ে রাখার জন্য টিকে আছে।
+
+     ⚠️ প্রতিটি মান #05060a এর উপর মেপে বসানো, "কাছাকাছি দেখতে"
+     বলে নয় — violet ৭.৪:১, rose/red ৯.১:১, mut ৯.২:১। পুরনো
+     `--violet` (#9a8cf7) সরাসরি `--v-plasma` এ পাঠানো হয়নি,
+     কারণ plasma লেখার জন্য অবৈধ (৩.৫:১)।
+     ═══════════════════════════════════════════════════════════ */
+  /* ── লিগ্যাসি টোকেন — এখন light মান, একই ভূমিকা ──
+     সব কনট্রাস্ট এখন সাদা (#ffffff) পৃষ্ঠতলের উপর মাপা */
+  /* ── DARK GAMING THEME (v3) — সব কনট্রাস্ট #0a0b11 এর উপর মাপা ──
+     আলো উল্টানো হলো: গাঢ় পটভূমিতে এখন উজ্জ্বল সংকেত-রঙ *লেখাযোগ্য*।
+     ভূমিকা অপরিবর্তিত (violet=ব্র্যান্ড, ice=তথ্য, gold/lime=অ্যাকশন)। */
+  --bg:#0a0b11; --bg2:#13151d;
+  --glass:rgba(255,255,255,.035); --hair:rgba(255,255,255,.08);
+  --violet:#a78bfa;      /* ব্র্যান্ড বেগুনি — টেক্সট-নিরাপদ, ৭.১:১ */
+  --ice:#7dd3fc;         /* তথ্য নীল — ১১:১ */
+  --gold:#bef264;        /* অ্যাকশন লাইম — ১৪.৮:১ */
+  --rose:#fb7185;        /* সতর্কতা — ৭.১:১ */
+  --ink:#eef1f6;         /* প্রধান পাঠ্য — ১৬.৪:১ */
+  --mut:#9aa6b8;         /* সহায়ক পাঠ্য — ৭.৬:১ */
+  --line:rgba(255,255,255,.10);
+  --red:#fb7185;         /* ৭.১:১ */
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+::selection { background: rgba(139,92,246,.35); color:#fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}
+
+body {
+  color: var(--ink);
+  background: var(--bg);
+  font-family: 'Hind Siliguri', system-ui, sans-serif;
+  min-height:100vh; min-height:100dvh;
+  overflow-x:hidden;
+  -webkit-font-smoothing: antialiased;
+  /* ★ বাংলা টাইপোগ্রাফি: পর্যাপ্ত লাইন-উচ্চতা (যুক্তাক্ষর/মাত্রার জন্য),
+     স্বাভাবিক অক্ষর/শব্দ-ব্যবধান, ও kerning/ligature চালু — এতে বাংলা
+     সংখ্যা ও যুক্তাক্ষর আর জড়িয়ে যায় না। প্রোপোর্শনাল সংখ্যা ডিফল্ট;
+     tabular কেবল টেবিলে (নিচে)। */
+  line-height: 1.7;
+  letter-spacing: 0;
+  word-spacing: normal;
+  font-variant-numeric: proportional-nums;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
+}
+/* ★ মোবাইল বটম ট্যাব বার যেন ফুটারের কনটেন্ট ঢেকে না ফেলে।
+   md এর নিচে বার দেখা যায় (৫৬px + safe-area) — ঠিক ততটা জায়গা ছাড়ি। */
+@media (max-width: 767px) {
+  body { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+}
+.dsp, .eng { font-family:'Unbounded','Anek Bangla','Hind Siliguri',system-ui,sans-serif; letter-spacing:-.02em; }
+
+/* ★ DARK থিমের পরিবেশ-আলো: উপরে একটি প্লাজমা-আভা ও ডানে আইস-আভা,
+   নিচে হালকা ভিনিয়েট — সমতল কালোকে "গভীরতা" দেয়। pointer-events:none,
+   opacity নিচু, তাই কনটেন্টকে ধুয়ে দেয় না। */
+body::after{content:"";position:fixed;inset:0;z-index:45;pointer-events:none;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -12%, rgba(139,92,246,.16), transparent 60%),
+    radial-gradient(ellipse 60% 45% at 100% 0, rgba(125,227,255,.06), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 0% 8%, rgba(200,255,61,.04), transparent 55%)}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 130% 90% at 50% 108%, rgba(0,0,0,.45), transparent 55%)}
+
+/* ♿ ফোকাস রিং লাইম: গাঢ় পটভূমিতে মাপা কনট্রাস্ট ১৭.১:১ —
+   সাইটের যেকোনো পৃষ্ঠতলের উপর এটি সবচেয়ে স্পষ্ট রিং। */
+:focus-visible { outline:2px solid var(--violet); outline-offset:2px; border-radius:2px; }
+:focus:not(:focus-visible) { outline:none; }
+
+.skip-link { @apply absolute left-4 z-[200] inline-flex items-center rounded-lg px-4 text-sm font-semibold; min-height:44px; background:var(--v-volt); color:#0a1400; top:-100px; transition:top var(--dur-fast) var(--ease); }
+.skip-link:focus { top:1rem; }
+
+/* ★ ফুটার নেভিগেশন লিংক
+   ⚠️ এটি আগে সংজ্ঞায়িত ছিল `Footer.tsx` এর ভেতরে একটি inline
+   `<style>` ট্যাগে, এবং সেখানে ছিল **কেবল hover নিয়ম** — কোনো
+   base রঙ, মাপ বা উচ্চতা নয়। ফলে লিংকগুলো রঙ পেত উত্তরাধিকারে
+   আর উচ্চতা দাঁড়াত ২৩px (§17 চায় ≥40px)।
+
+   দুই জায়গায় দুটি সংজ্ঞা থাকা আরও খারাপ, তাই inline `<style>`
+   সরিয়ে পুরো নিয়ম এখানে আনা হয়েছে — hover এর padding-slide
+   মাইক্রো-ইন্টারঅ্যাকশনটি অক্ষত রেখে, তবে হার্ডকোড করা
+   `#e6c584` এর বদলে টোকেনে।
+
+   ★ Phase A: রঙ ARC টোকেনে সরানো হয়েছে (mut → a-mut, gold →
+   a-core)। padding-slide মাইক্রো-ইন্টার‌্যাকশন ও ৪০px উচ্চতা
+   অপরিবর্তিত। */
+.fnav {
+  display:inline-flex; align-items:center; min-height:40px;
+  color:var(--v-mut); font-size:.8125rem; line-height:1.2;
+  transition:color var(--dur-fast) var(--ease), padding var(--dur-fast) var(--ease);
+}
+.fnav:hover { color:var(--v-volt); padding-left:5px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ★★★ শেয়ার্ড কম্পোনেন্ট স্তর — এখন VOLT এ
+   ═══════════════════════════════════════════════════════════════════════
+
+   ⚠️ এই ব্লকটিই পুরো অ্যাপের চেহারা ঠিক করে। `.btn`, `.card`, `.input`,
+   `.badge`, `table.tbl`, `.alert-*` — প্রোডাক্ট পেজ, অ্যাকাউন্ট ও
+   অ্যাডমিনের প্রায় প্রতিটি পৃষ্ঠতল এই ক্লাসগুলোর উপরেই দাঁড়িয়ে।
+
+   তাই একটি পাতা ধরে ধরে না বদলে **এখানে একবার** বদলানো হয়েছে —
+   এতে একই সাথে ~৪০টি পৃষ্ঠা VOLT ভাষায় চলে আসে, আর দুটো ভাষা
+   পাশাপাশি টিকে থাকার ঝুঁকিও শেষ হয়।
+
+   ★ ক্লাসের **নাম ও চুক্তি অপরিবর্তিত** — কোনো JSX বদলাতে হয়নি।
+     বদলেছে কেবল সেগুলোর রূপ। এটিই সবচেয়ে কম ঝুঁকির পথ:
+     মার্কআপে হাত না দিলে কোনো আচরণ ভাঙতে পারে না।
+   ═══════════════════════════════════════════════════════════════════════ */
+@layer components {
+  /* ─── পৃষ্ঠতল ───
+     ⚠️ `.card` এ কাটা কোণ (`clip-path`) দেওয়া হয়নি ইচ্ছাকৃতভাবে:
+     কার্ডের ভেতরে প্রায়ই ড্রপডাউন, টুলটিপ ও `overflow` নির্ভর
+     উপাদান বসে, আর ছদ্ম-উপাদানের কৌশলটি সেখানে জটিলতা বাড়াত।
+     স্বাক্ষর জ্যামিতি বহন করে `.v-panel` (হোমপেজ) ও `.btn`। */
+  .card {
+    border-radius: 14px;
+    border: 1px solid var(--v-edge);
+    background: linear-gradient(180deg, var(--v-steel), var(--v-pit) 72%);
+    box-shadow: var(--v-shadow-2);
+  }
+
+  /* ─── বোতাম ───
+     কাটা কোণ দুটি ছদ্ম-উপাদানে আঁকা হয় (`--panel-edge` / `--panel-fill`),
+     উপাদান নিজে অক্ষত থাকে — নাহলে `clip-path` ফোকাস রিংও কেটে দিত। */
+  .btn {
+    @apply relative inline-flex items-center justify-center gap-2 px-6 text-sm font-bold
+           disabled:pointer-events-none disabled:opacity-50;
+    isolation: isolate;
+    background: transparent;
+    min-height: 46px;
+    letter-spacing: .04em;
+    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+    --nc: 10px;
+    --panel-edge: var(--v-edge2);
+    --panel-fill: var(--v-steel);
+    transition: transform var(--dur-base) var(--ease), filter var(--dur-base) var(--ease);
+  }
+  .btn::before, .btn::after {
+    content: ''; position: absolute; pointer-events: none;
+    clip-path: polygon(var(--nc) 0, 100% 0, 100% calc(100% - var(--nc)), calc(100% - var(--nc)) 100%, 0 100%, 0 var(--nc));
+    transition: background var(--dur-base) var(--ease);
+  }
+  .btn::before { inset: 0;   z-index: -2; background: var(--panel-edge); }
+  .btn::after  { inset: 1px; z-index: -1; background: var(--panel-fill); }
+  .btn:active { transform: translateY(0) scale(.985); }
+
+  /* ★ একটিই "গরম" বোতাম প্রতি পর্দায় — এটি সংযমের নিয়ম, স্টাইল নয় */
+  .btn-primary { @apply btn; color:#ffffff; --panel-edge:transparent; --panel-fill:linear-gradient(135deg,#a78bfa,#8b5cf6 52%,#7c3aed); }
+  .btn-primary:hover { transform:translateY(-3px); filter:drop-shadow(0 14px 32px rgba(139,92,246,.5)); }
+
+  .btn-ghost { @apply btn; color:var(--v-ink); --panel-edge:var(--v-edge2); --panel-fill:var(--v-steel); }
+  .btn-ghost:hover { transform:translateY(-3px); --panel-edge:linear-gradient(120deg,var(--violet),var(--v-ice)); }
+
+  .btn-dark { @apply btn; color:var(--v-ink); --panel-edge:var(--v-edge); --panel-fill:var(--v-fill); }
+  .btn-dark:hover { transform:translateY(-3px); --panel-edge:var(--v-edge2); }
+
+  /* ⚠️ ধ্বংসাত্মক কাজের রঙ ember-লাল, লাইম নয় — লাইম মানে "এগিয়ে যান"।
+     একই রঙে "কিনুন" আর "মুছুন" দেখানো বিপজ্জনক। */
+  .btn-danger  { @apply btn; color:#1a0500; --panel-edge:transparent; --panel-fill:linear-gradient(135deg,#ff8f78,#ff5a3c 55%,#e03a1c); }
+  .btn-danger:hover { transform:translateY(-3px); filter:drop-shadow(0 14px 30px rgba(255,90,60,.3)); }
+
+  .btn-success { @apply btn; color:#02141c; --panel-edge:transparent; --panel-fill:linear-gradient(135deg,#c2f1ff,#7de3ff 60%,#3cc4ee); }
+  .btn-success:hover { transform:translateY(-3px); filter:drop-shadow(0 14px 30px rgba(125,227,255,.28)); }
+
+  /* ─── ফর্ম ───
+     ⚠️ মোবাইলে `font-size:16px` — এর নিচে হলে iOS ফোকাসে পুরো পাতা
+     জুম করে দেয়, যা ফর্ম ভরার সময় ভয়ানক বিরক্তিকর। */
+  .input {
+    @apply w-full px-4 py-3 text-sm;
+    border-radius: 2px;
+    color: var(--v-ink);
+    background: var(--v-field);
+    border: 1px solid var(--v-edge2);
+    min-height: 48px; font-size: 16px;
+    transition: border-color var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+  }
+  .input::placeholder { color: var(--v-dim); }
+  .input:focus {
+    outline: none;
+    border-color: rgba(139,92,246,.7);
+    box-shadow: 0 0 0 3px rgba(139,92,246,.22);
+    background: var(--v-field-focus);
+  }
+  @screen sm { .input { font-size: 14px; } }
+  .input:disabled { @apply cursor-not-allowed opacity-60; }
+  .input[aria-invalid='true'] { border-color: rgba(255,90,60,.65); box-shadow: 0 0 0 3px rgba(255,90,60,.12); }
+
+  .label {
+    @apply mb-2 block text-[11px] font-bold uppercase;
+    letter-spacing: .08em;
+    color: var(--v-ice);
+    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 text-[10px] font-bold uppercase;
+    border-radius: 2px; letter-spacing: .09em;
+    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+  }
+
+  /* ─── টেবিল ───
+     ⚠️ `table.tbl` সবসময় `.table-wrap` এর ভেতরে থাকে যাতে সরু পর্দায়
+     টেবিলটি নিজে গড়ায়, পুরো পাতা নয় (CLAUDE.md §17)। */
+  .table-wrap { @apply card overflow-x-auto; -webkit-overflow-scrolling: touch; }
+  /* ★★★ কলাম-সারিবদ্ধতার মূল ভিত্তি — `border-collapse: collapse`।
+     আগে এটি সেট করা ছিল না, তাই ব্রাউজার ডিফল্ট `separate` চলত: প্রতিটি
+     সেলের নিজস্ব বর্ডার + `border-spacing` (২px ফাঁক)। thead-এর
+     `border-bottom` ও tbody-এর `border-top` তখন আলাদা করে আঁকা হতো, আর
+     সেলগুলোর মাঝের ফাঁক কলাম-সীমা সূক্ষ্মভাবে সরিয়ে দিত — বিশেষত যখন কিছু
+     সেলে `whitespace-nowrap` থাকে, কিছুতে নেই। ফলে হেডার ও ডেটার উল্লম্ব
+     রেখা মিলত না ("বেঁকে যাওয়া")। `collapse` বর্ডার মিলিয়ে দেয়, ফাঁক
+     দূর করে — কলাম হেডার থেকে নিচ পর্যন্ত একই প্রস্থে থাকে। */
+  table.tbl { @apply w-full text-sm; min-width: 640px; border-collapse: collapse; }
+  table.tbl thead th {
+    @apply whitespace-nowrap px-4 py-3.5 text-left text-[10px] font-bold uppercase;
+    letter-spacing: .12em;
+    background: var(--v-steel);
+    color: var(--v-ice);
+    border-bottom: 1px solid var(--v-edge2);
+    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+  }
+  table.tbl tbody td { @apply px-4 py-3.5 align-middle; border-top: 1px solid var(--v-edge); }
+  table.tbl tbody tr { transition: background var(--dur-base) var(--ease); }
+  table.tbl tbody tr:hover { background: rgba(139,92,246,.09); }
+
+  /* ═══════════ ★★★ কলাম-সারিবদ্ধতার একক কর্তৃপক্ষ ═══════════
+     একই ক্লাস `th` ও `td` **দুটোতেই** বসে, তাই হেডার ও ডেটার
+     alignment কাঠামোগতভাবে আলাদা হতে পারে না:
+        .num  → সংখ্যা/টাকা              → ডানে (header+data)
+        .ctr  → স্ট্যাটাস/ব্যাজ/অ্যাকশন   → কেন্দ্রে (header+data)
+        (ডিফল্ট)                          → বামে
+        .tbl-clip → লম্বা লেখা ellipsis, অন্য কলাম ঠেলে দেয় না
+
+     ⚠️⚠️ **সেলে কখনো Tailwind `text-right`/`text-center`/`text-left`
+     ব্যবহার করা যাবে না।** কারণটি সূক্ষ্ম এবং এটিই বহুদিনের
+     "হেডার আর ডেটা এক লাইনে নেই" সমস্যার **আসল উৎস** ছিল:
+
+        `.tbl thead th`  → নির্দিষ্টতা (0,1,2)   ← `@apply text-left`
+        `.text-right`    → নির্দিষ্টতা (0,1,0)
+
+     ইউটিলিটি লেয়ার পরে আসলেও **নির্দিষ্টতা আগে বিচার হয়**, তাই
+     `<th className="text-right">` লেখা হলেও হেডার **বামেই** থাকত,
+     অথচ `<td className="text-right">` ঠিকই ডানে যেত — ফলে প্রতিটি
+     টাকা/সংখ্যার কলামে হেডার আর ডেটা দুই প্রান্তে। কোড পড়ে ধরা
+     যেত না; Playwright-এ computed style মেপে ধরা পড়েছে
+     (৪২টি align-mismatch, ৬টি ভিউপোর্টে)।
+
+     `.num`/`.ctr` কাজ করে কারণ `table.tbl th.num` = (0,2,1) > (0,1,2)।
+     `scripts/table-audit.ts` প্রতিটি বিল্ডে এটি পাহারা দেয় — সেলে
+     alignment-ইউটিলিটি ফিরে এলে, বা কোনো কলামে হেডার ও ডেটার
+     computed alignment আলাদা হলে, অডিট ব্যর্থ হয়। ═══════════ */
+  table.tbl th.num, table.tbl td.num { text-align: right; }
+  table.tbl th.ctr, table.tbl td.ctr { text-align: center; }
+
+  /* ⚠️ এখানে `table.tbl th.text-right { … }` জাতীয় "শেষ রক্ষা" নিয়ম
+     **বসানো যাবে না** — চেষ্টা করা হয়েছিল, বিল্ড ভেঙে গেছে:
+     উপরে `.tbl thead th` এ `@apply text-left` আছে, আর একই
+     স্টাইলশিটে `.text-left` নামের ক্লাস সংজ্ঞায়িত করলে Tailwind
+     "circular dependency" বলে থেমে যায়। প্রয়োগ তাই CSS-এ নয়,
+     `scripts/table-audit.ts` এর source guard-এ। */
+  /* ★ অ্যাকশন-সেল (unique `.tbl-actions`) স্বয়ংক্রিয়ভাবে কেন্দ্রে — তাই
+     প্রতিটি action-td-তে হাত দিতে হয় না, আর header (ctr) ও data মেলে।
+     স্ট্যাটাস কলাম explicit `.ctr` ব্যবহার করে (badge-ভিত্তিক :has ভুলবশত
+     রেফারেল/নাম সেলও কেন্দ্রে করত)। */
+  table.tbl td:has(> .tbl-actions) { text-align: center; }
+  .tbl-actions { display: inline-flex; align-items: center; gap: .375rem; justify-content: center; }
+  .tbl-clip { display: inline-block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+
+  /* ─── বার্তা ───
+     প্রতিটি রঙ ভূমিকা মেনে: ত্রুটি = heat, সফল = volt, সতর্কতা = amber।
+
+     ⚠️ আগে লেখার রঙ ছিল স্থির ফ্যাকাশে শেড (`#fecdd3`, `#e5ffa8`,
+     `#fde68a`) — কেবল **dark** থিমের জন্য বাছা। light থিমে সাদা
+     পটভূমির উপর সেগুলো কার্যত অদৃশ্য ছিল: মাপা কন্ট্রাস্ট
+     `.alert-error` **১.১৬:১**, `.alert-warn` **১.০৯:১** (AA চাই ৪.৫:১)।
+     লগইন পাতা ত্রুটি দেখাতে `.alert-error` ব্যবহার করে, অর্থাৎ
+     light থিমে ব্যবহারকারী ত্রুটির কারণ **পড়তেই পারতেন না**।
+
+     এখন টোস্টের মতো একই নিয়ম: লেখা সবসময় `--v-ink` (দুই থিমেই
+     AA পার), ভূমিকা বোঝায় বাঁ-ধারের বার + হালকা টিন্ট। */
+  .alert-error, .alert-success, .alert-warn {
+    @apply px-4 py-3 text-sm;
+    border-radius: 8px;
+    color: var(--v-ink);
+    border: 1px solid var(--v-edge2);
+    border-left: 3px solid var(--alert-accent);
+    background:
+      linear-gradient(0deg, var(--alert-tint), var(--alert-tint)),
+      var(--v-pit);
+  }
+  /* ★ C3 — accent সরাসরি সেমান্টিক টোকেন থেকে (থিম নিজে বদলায়) */
+  .alert-error   { --alert-accent:var(--sem-danger);  --alert-tint:rgba(251,113,133,.11); }
+  .alert-success { --alert-accent:var(--sem-success); --alert-tint:rgba(163,230,53,.10); }
+  .alert-warn    { --alert-accent:var(--sem-warning); --alert-tint:rgba(251,191,36,.11); }
+
+  /* ─── লোডিং ───
+     ⚠️ `animate-pulse` নয়: একটি বয়ে চলা আলোর ঝলক অনেক বেশি
+     "লোড হচ্ছে" বোঝায়, আর স্পন্দনের চেয়ে কম ক্লান্তিকর।
+     reduced-motion এ বৈশ্বিক নিয়ম এটিকেও থামিয়ে দেয়। */
+  /* ⚠️ shimmer টি আগে `background-position` অ্যানিমেট করত — compositor-এ
+     চলে না, তাই প্রতিটি skeleton ব্লক প্রতি ফ্রেমে রি-পেইন্ট চাইত
+     (একটি লোডিং পাতায় ২০+ ব্লক থাকতে পারে)। এখন একটি চওড়া
+     ছদ্ম-উপাদান `translateX` করে — একই চেহারা, সম্পূর্ণ GPU-তে। */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    border-radius: 2px;
+    background: rgba(255,255,255,.05);
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 300%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.11) 50%, transparent);
+    animation: skeleton-slide 1.5s ease-in-out infinite;
+  }
+
+  /* ─── প্যাকেজ নির্বাচন (OrderForm) ───
+     গ্রাহক এখানেই দাম বাছেন, তাই নির্বাচিত অবস্থা **স্পষ্ট** হতে হবে:
+     লাইম কিনারা + লাইম আভা, কেবল সামান্য রঙ-বদল নয়। */
+  .pkg-card {
+    @apply relative flex cursor-pointer items-center justify-between gap-2 px-4 py-3.5 text-left;
+    border-radius: 2px;
+    border: 1px solid var(--v-edge2);
+    background: var(--v-fill);
+    color: var(--v-ink);
+    transition: transform var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+  }
+  .pkg-card:hover { border-color: rgba(167,139,250,.55); transform: translateY(-2px); background: var(--v-fill2); }
+  .pkg-card[aria-checked='true'] {
+    border-color: var(--violet);
+    background: rgba(139,92,246,.16);
+    box-shadow: 0 0 0 1px var(--violet), 0 14px 34px -18px rgba(139,92,246,.65);
+  }
+
+  /* ─── প্রোডাক্ট কার্ড (সম্পর্কিত পণ্য ইত্যাদি) ─── */
+  .prod-card {
+    @apply block overflow-hidden;
+    border-radius: 3px;
+    border: 1px solid var(--v-edge);
+    background: var(--v-pit);
+    box-shadow: var(--v-shadow-2);
+    transition: transform var(--dur-slow) var(--ease), border-color var(--dur-slow) var(--ease), box-shadow var(--dur-slow) var(--ease);
+  }
+  .prod-card:hover { transform: translateY(-7px); border-color: rgba(167,139,250,.5); box-shadow: 0 22px 54px -18px rgba(139,92,246,.42); }
+
+  /* ─── নেভিগেশন (লিগ্যাসি কল-সাইট) ─── */
+  .nav-link {
+    @apply inline-flex items-center px-3 text-sm font-bold uppercase;
+    border-radius: 2px; min-height: 40px; letter-spacing: .04em;
+    color: var(--v-mut);
+    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+    transition: color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+  }
+  .nav-link:hover { color: var(--violet); background: rgba(109,40,217,.08); }
+
+  /* ─── অ্যাডমিন ট্যাব ───
+     সক্রিয় অবস্থায় লাইম নিম্নরেখা — সাইটের "এখানে আছেন" ভাষা। */
+  .admin-tab {
+    @apply flex shrink-0 items-center gap-2 whitespace-nowrap px-4 text-sm font-bold;
+    min-height: 48px;
+    border-bottom: 3px solid transparent;
+    color: var(--v-mut);
+    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+    transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+  }
+  .admin-tab:hover { color: var(--v-ink); background: rgba(255,255,255,.05); }
+  .admin-tab[data-active='true'] {
+    color: var(--violet);
+    border-bottom-color: var(--violet);
+    background: linear-gradient(180deg, rgba(139,92,246,.16), transparent);
+  }
+}
+
+@keyframes skeleton-slide { from{transform:translateX(-66.667%)} to{transform:translateX(0)} }
+
+
+/* ═══════════ THEME BRIDGE — লিগ্যাসি Tailwind রঙ → VOLT ═══════════
+
+   এই ব্লকটি একটি **shim**, অনুসরণযোগ্য প্যাটার্ন নয় (CLAUDE.md §3)।
+   পুরনো মার্কআপে ছড়িয়ে থাকা হালকা-থিমের ক্লাস (`text-slate-900`,
+   `bg-white`, `border-slate-200`) গাঢ় পটভূমিতে অপাঠ্য হতো; এখানে
+   সেগুলো জোর করে পাঠযোগ্য রঙে আনা হয়।
+
+   ★ প্রতিটি ম্যাপিং **ভূমিকা** মেনে করা হয়েছে, কেবল "কাছাকাছি রঙ"
+     দেখে নয়:
+       লাল/গোলাপি পরিবার → heat  (ত্রুটি ও ধ্বংসাত্মক)
+       সবুজ/এমারাল্ড     → volt  (সফল ও লাইভ)
+       নীল/সায়ান        → ice   (তথ্য)
+       বেগুনি           → plasma-টিন্ট, কিন্তু **লেখা কখনো plasma নয়**
+                            (৩.৫:১) — তাই লেখার জন্য ice ব্যবহার হয়
+
+   ⚠️ নতুন কোডে এই ক্লাসগুলো ব্যবহার করবেন না; `--v-*` টোকেন বা
+   কম্পোনেন্ট ক্লাস ব্যবহার করুন। bridge কেবল পুরনো কল-সাইট বাঁচায়। */
+.text-slate-950,.text-slate-900,.text-slate-800,.text-slate-700,.text-gray-900,.text-gray-800,.text-gray-700,.text-black,.text-zinc-900,.text-zinc-800 { color:var(--v-ink) !important; }
+.text-slate-600,.text-slate-500,.text-gray-600,.text-gray-500,.text-zinc-600,.text-zinc-500 { color:var(--v-mut) !important; }
+/* ⚠️ ৩০০/৪০০ শেড আগে `--mut` এ যেত (৭.৯:১)। এখন `--v-mut` (৯.২:১) —
+   কারণ এই ক্লাসগুলো প্রায়ই সহায়ক লেখায় বসে, সাজসজ্জায় নয়। */
+.text-slate-400,.text-slate-300,.text-gray-400,.text-gray-300 { color:var(--v-mut) !important; }
+/* ★★★ C3 — ভূমিকা-রঙ আলাদা করা হলো।
+   আগে success ও warning **দুটোই** `--v-volt`-এ যেত (একই লাইম), আর
+   danger ছিল হার্ডকোড `#e11d48` — light/dark দুই থিমে একই মান।
+   এখন চারটিই আলাদা `--sem-*` টোকেনে, প্রতিটির দুই থিমে আলাদা শেড। */
+.text-rose-600,.text-rose-700,.text-rose-800,.text-red-600,.text-red-700,.text-red-800,.text-pink-600 { color:var(--sem-danger) !important; }
+.text-purple-600,.text-purple-700,.text-purple-800,.text-violet-700,.text-indigo-700 { color:var(--violet) !important; }
+.text-emerald-600,.text-emerald-700,.text-emerald-800,.text-green-600,.text-green-700 { color:var(--sem-success) !important; }
+.text-amber-600,.text-amber-700,.text-amber-800,.text-amber-900,.text-yellow-700,.text-orange-800 { color:var(--sem-warning) !important; }
+.text-blue-700,.text-blue-800,.text-sky-700,.text-sky-800 { color:var(--sem-info) !important; }
+.text-blue-900,.text-sky-900,.text-indigo-900 { color:var(--sem-info) !important; }
+.bg-white,.bg-slate-50,.bg-gray-50 { background:var(--v-pit) !important; }
+.bg-slate-100,.bg-gray-100,.bg-slate-200,.bg-gray-200,.bg-zinc-100 { background-color:var(--v-steel) !important; }
+.border-slate-200,.border-slate-300,.border-slate-100,.border-gray-200,.border-gray-100,.border-gray-300,.border-zinc-200 { border-color:var(--v-edge) !important; }
+.divide-slate-100 > :not([hidden]) ~ :not([hidden]),.divide-slate-200 > :not([hidden]) ~ :not([hidden]),.divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color:var(--v-edge) !important; }
+.shadow-sm,.shadow,.shadow-md,.shadow-lg,.shadow-xl { box-shadow:var(--v-shadow-2) !important; }
+.bg-rose-50,.bg-red-50,.bg-pink-50,.bg-red-100,.bg-rose-100 { background-color:rgba(251,113,133,.13) !important; }
+.bg-emerald-50,.bg-green-50,.bg-teal-50,.bg-emerald-100,.bg-green-100 { background-color:rgba(163,230,53,.12) !important; }
+.bg-amber-50,.bg-yellow-50,.bg-orange-50,.bg-amber-100,.bg-yellow-100,.bg-orange-100 { background-color:rgba(251,191,36,.12) !important; }
+.bg-blue-50,.bg-sky-50,.bg-indigo-50,.bg-blue-100,.bg-sky-100,.bg-indigo-100 { background-color:rgba(125,211,252,.12) !important; }
+.bg-purple-50,.bg-violet-50,.bg-purple-100 { background-color:rgba(139,92,246,.15) !important; }
+.bg-purple-600,.bg-purple-500,.bg-violet-600 { background-color:#7c3aed !important; }
+.border-purple-200,.border-purple-300,.border-purple-400,.border-purple-500,.border-purple-600,
+.border-indigo-200,.border-violet-200,.border-amber-200,.border-emerald-200,.border-rose-200,
+.border-red-200,.border-blue-200,.border-sky-200 { border-color:var(--v-edge) !important; }
+::placeholder { color:var(--v-dim) !important; opacity:1; }
+
+
+/* ═══════════ TYPOGRAPHY & ALIGNMENT — সব পেজে অভিন্ন ═══════════ */
+/* শিরোনাম সব জায়গায় display font (বাংলা স্বয়ংক্রিয়ভাবে Hind Siliguri তে fallback) */
+/* ⚠️ ক্রম গুরুত্বপূর্ণ: Unbounded আগে (ল্যাটিন), Anek Bangla পরে।
+   ব্রাউজার প্রতি-গ্লিফ fallback করে, তাই একই শিরোনামে ল্যাটিন
+   সংখ্যা আর বাংলা শব্দ — দুটোই সঠিক ফন্ট পায়। Hind Siliguri
+   শেষ ধাপ, কারণ তার সর্বোচ্চ ওজন ৭০০। */
+h1, h2, h3, h4 {
+  font-family: 'Unbounded', 'Anek Bangla', 'Hind Siliguri', system-ui, sans-serif;
+  /* ★ বাংলা-নিরাপদ: -.03em বাংলা যুক্তাক্ষর/সংখ্যা জড়িয়ে দিত; -.02em
+     ল্যাটিনে যথেষ্ট টাইট, বাংলায় নিরাপদ। */
+  letter-spacing: -.02em;
+  text-wrap: balance;
+}
+h1 { font-weight: 800; }
+h2, h3 { font-weight: 700; }
+h1 { line-height: 1.15; }
+h2, h3 { line-height: 1.25; }
+p, li { text-wrap: pretty; }
+
+/* পরিমিত measure — লম্বা লাইন পড়তে কষ্ট হয় না */
+.prose-measure p, .prose-measure li { max-width: 68ch; }
+
+/* সব পেজের অভিন্ন gutter ও উল্লম্ব ছন্দ */
+.page-x { padding-left: 1rem; padding-right: 1rem; }
+@media (min-width: 640px) { .page-x { padding-left: 1.5rem; padding-right: 1.5rem; } }
+.page-y { padding-top: 2.5rem; padding-bottom: 3.5rem; }
+@media (min-width: 640px) { .page-y { padding-top: 3.5rem; padding-bottom: 4.5rem; } }
+
+/* সেকশন হেড — eyebrow + শিরোনাম + hairline (এক স্টাইল) */
+.eyebrow { font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:var(--gold); }
+.rule-gold { height:1px; width:6rem; margin-top:.75rem; background:linear-gradient(90deg,rgba(230,197,132,.7),transparent); }
+
+/* টেবিল সংখ্যা — একই প্রস্থে বসে, কলাম সোজা থাকে */
+.tbl td, .tbl th { font-variant-numeric: tabular-nums; }
+/* ★ tabular সংখ্যা শুধু কলাম-সারিবদ্ধতা যেখানে দরকার (টেবিল) — আর
+   opt-in `.tnum`। display/heading-এ proportional, যাতে বাংলা অঙ্ক না জড়ায়। */
+.tnum { font-variant-numeric: tabular-nums; }
+
+
+/* ═══ OVERFLOW GUARD — লম্বা লেখা (email/TrxID/UID) কখনো লেআউট ভাঙবে না ═══ */
+.font-mono { overflow-wrap:anywhere; }
+td, dd, .card p, .card span { overflow-wrap:break-word; }
+img, video, svg, canvas { max-width:100%; }
+
+/* ═══════════ MOTION ═══════════ */
+@keyframes toast-in { from{opacity:0;transform:translateY(14px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+.animate-toast { animation:toast-in .35s cubic-bezier(.2,.8,.2,1); }
+@keyframes pop-in { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
+.animate-pop { animation:pop-in .25s cubic-bezier(.2,.8,.2,1); }
+@keyframes fade-up { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+.animate-fade-up { animation:fade-up .6s cubic-bezier(.2,.8,.2,1) both; }
+
+.stagger > * { animation:fade-up .6s cubic-bezier(.2,.8,.2,1) both; }
+.stagger > *:nth-child(1){animation-delay:.03s}.stagger > *:nth-child(2){animation-delay:.08s}
+.stagger > *:nth-child(3){animation-delay:.13s}.stagger > *:nth-child(4){animation-delay:.18s}
+.stagger > *:nth-child(5){animation-delay:.23s}.stagger > *:nth-child(6){animation-delay:.28s}
+.stagger > *:nth-child(7){animation-delay:.33s}.stagger > *:nth-child(8){animation-delay:.38s}
+
+/* luxury gradient headline */
+.grad-text {
+  background:linear-gradient(100deg,#ffffff,#d6f6ff 32%,#7de3ff 62%,#c8ff3d);
+  background-size:200% auto; -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:shim-text 6s linear infinite;
+}
+@keyframes shim-text { to{background-position:200% center} }
+.lux-text { background:linear-gradient(180deg,#fff,#d3dce8 52%,#a7b0c0); -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+/* diamond dispersion + float + orbit */
+.gem-disp { animation:gem-disp 5s linear infinite; mix-blend-mode:screen; }
+@keyframes gem-disp { 0%,100%{opacity:.18} 50%{opacity:.9} }
+@keyframes floaty { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-14px) rotate(1deg)} }
+.floaty { animation:floaty 7s ease-in-out infinite; }
+@keyframes spin-slow { to{transform:rotate(360deg)} }
+.spin-slow { animation:spin-slow 22s linear infinite; }
+.spin-rev { animation:spin-slow 34s linear infinite reverse; }
+@keyframes halo { 0%,100%{opacity:.6;transform:scale(.95)} 50%{opacity:1;transform:scale(1.08)} }
+.halo-pulse { animation:halo 4.5s ease-in-out infinite; }
+@keyframes glow-pulse { 0%,100%{box-shadow:0 12px 34px rgba(167,219,255,.22)} 50%{box-shadow:0 18px 52px rgba(230,197,132,.4)} }
+.glow-pulse { animation:glow-pulse 3.2s ease-in-out infinite; }
+@keyframes shimmer { from{background-position:200% 0} to{background-position:-200% 0} }
+.shimmer-btn { background:linear-gradient(110deg,#f8f5ff 40%,#e6c584 50%,#f8f5ff 60%); background-size:200% 100%; animation:shimmer 3s linear infinite; color:#08070f; }
+@keyframes marq { to{transform:translateX(-50%)} }
+.marquee-track { display:inline-flex; white-space:nowrap; animation:marq 26s linear infinite; }
+
+/* scrollbar */
+::-webkit-scrollbar { width:8px; height:8px; }
+::-webkit-scrollbar-track { background:var(--v-void); }
+::-webkit-scrollbar-thumb { border-radius:2px; background:rgba(var(--accent-glow),.32); }
+::-webkit-scrollbar-thumb:hover { background:rgba(var(--accent-glow),.55); }
+* { scrollbar-width:thin; scrollbar-color:rgba(var(--accent-glow),.32) var(--v-void); }
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+input[type='number'] { -moz-appearance:textfield; }
+details > summary { list-style:none; }
+details > summary::-webkit-details-marker { display:none; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ★★★ VOLT — পাবলিক সাইটের ডিজাইন ভাষা (Premium Redesign)
+   ═══════════════════════════════════════════════════════════════════════
+
+   ─── কেন এই ভাষা ───
+   আগের দুটি চেষ্টা দুই কারণে ব্যর্থ হয়েছিল:
+   • "Maison" (সোনালি বিলাস) — একটি বুটিকের ভাষা, গেমারের নয়।
+   • "ARC" (সায়ান/কমলা) — নিরাপদ, কিন্তু নিরাপদ মানেই বিস্মৃত।
+     সায়ান-বেগুনি গ্রেডিয়েন্ট আজ প্রতিটি টেমপ্লেটে আছে।
+
+   ─── VOLT এর তিনটি নিয়ম ───
+
+   ১. **একটি মাত্র সংকেত-রঙ।** `--v-volt` (অ্যাসিড লাইম) কেবল
+      শক্তি ও কাজ বোঝায় — প্রধান বোতাম, সক্রিয় অবস্থা, লাইভ
+      সূচক। পাতায় দ্বিতীয় লাইম উপাদান বসানো মানে প্রথমটির
+      অর্থ নষ্ট করা। এই সংযমই দামি লাগার আসল কারণ।
+
+   ২. **প্লাজমা কখনো লেখা নয়।** `--v-plasma` এর মাপা কনট্রাস্ট
+      ৩.৫:১ — গভীরতা, আভা ও পৃষ্ঠতলের জন্য চমৎকার, পাঠ্যের
+      জন্য অবৈধ। টোকেনের নামের পাশে সীমাটা লেখা আছে যাতে
+      ভুল করে ব্যবহার না হয়।
+
+   ৩. **জ্যামিতিই ব্র্যান্ড।** কাটা কোণ (`--nc`) সর্বত্র — প্যানেল,
+      বোতাম, চিপ, লোগো। গোল কোণ সবাই ব্যবহার করে; কাটা কোণ
+      একটি স্বাক্ষর।
+
+   ⚠️ পুরনো টোকেন (--gold/--ice/--violet) ও কম্পোনেন্ট ক্লাস
+   (.btn/.card/.input/.admin-tab) অক্ষত — অ্যাকাউন্ট, প্রোডাক্ট ও
+   অ্যাডমিন পৃষ্ঠা এখনো সেগুলোর উপর দাঁড়িয়ে। VOLT ধাপে ধাপে
+   সেগুলোতেও যাবে।
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── ভিত্তি (DARK) ──
+     void=পৃষ্ঠভূমি, pit=প্যানেল, steel=উঁচু পৃষ্ঠতল।
+     এলিভেশন এখন *আলো* দিয়ে বোঝানো হয় — যত উঁচু, তত হালকা।
+     তিনটি ধাপই নীল-বেগুনি আভাযুক্ত নিউট্রাল (সস্তা ধূসর নয়)। */
+  --v-void:#0a0b11;    /* অ্যাপ পৃষ্ঠভূমি — গভীর */
+  --v-pit:#13151d;     /* প্যানেল/কার্ড */
+  --v-steel:#1b1e28;   /* উঁচু পৃষ্ঠতল (মেনু, thead) */
+
+  /* ── সংকেত ──
+     ⚠️ গাঢ় থিমে উজ্জ্বল সংকেত-রঙ এখন লেখাযোগ্য — তাই text ও surf
+     টোকেন কাছাকাছি। প্রতিটি #0a0b11 এর উপর মাপা। plasma ব্যতিক্রম:
+     আভা/গ্রেডিয়েন্টের জন্য, লেখার জন্য নয়। */
+  /* ── ★ অ্যাকসেন্ট টোকেন (একটিই সংকেত-রঙ, swappable) ──
+     পুরো "লাইম" সংকেতটা এখন এই টোকেনগুলোর উপর দাঁড়িয়ে; `data-accent`
+     বদলালে (purple/blue/red/orange) বোতাম, FAB, সক্রিয়-অবস্থা, লাইভ-ডট,
+     স্ক্রলবার — সব একসাথে নতুন রঙ পায়। ডিফল্ট: Gaming Lime। */
+  --accent:#c8ff3d;          /* ব্র্যান্ড পৃষ্ঠতল (উজ্জ্বল লাইম) */
+  --accent-2:#e4ff8c;        /* গ্রেডিয়েন্ট হালকা স্টপ */
+  --accent-strong:#a4e614;   /* গ্রেডিয়েন্ট গাঢ় স্টপ */
+  --accent-ink:#0a1400;      /* অ্যাকসেন্ট পৃষ্ঠতলের উপর টেক্সট/আইকন */
+  --accent-text:#bef264;     /* অ্যাকসেন্ট = পাতার উপর টেক্সট (dark, ১৪.৮:১) */
+  --accent-glow:200,255,61;  /* rgba আভার জন্য r,g,b */
+
+  --v-volt:var(--accent-text);   /* ★ accent-চালিত */
+  --v-volt-surf:var(--accent);   /* ★ accent-চালিত */
+  --v-ice:#7dd3fc;          /* ১১:১ — তথ্য টেক্সট/লিংক (আইস) */
+  --v-ice-surf:#7de3ff;     /* উজ্জ্বল আইস — আভা/পৃষ্ঠতল */
+  --v-plasma:#8b5cf6;       /* আভা/গ্রেডিয়েন্ট — লেখা নয় (৩.৫:১) */
+  --v-heat:#fb7185;         /* ৭.১:১ — সতর্কতা/ধ্বংসাত্মক */
+
+  /* ═══════ সেমান্টিক রঙ (C3) — DARK ═══════
+     ⚠️ এগুলো **accent-চালিত নয়**, ইচ্ছাকৃতভাবে।
+
+     আগে `.text-emerald-*` ও `.text-amber-*` — দুটোই `--v-volt`-এ
+     যেত, আর `--v-volt` = `var(--accent-text)`। ফলে দুটি সমস্যা:
+       ১. সফল ও সতর্কতা **হুবহু একই রঙে** রেন্ডার হতো — অর্থাৎ
+          "সংরক্ষিত হয়েছে" আর "সাবধান" দেখতে এক
+       ২. ব্যবহারকারী accent প্রিসেট (purple/blue/red/orange) বদলালে
+          "সফল"-এর রঙও বদলে যেত — লাল accent-এ সফল বার্তা লাল!
+     ভূমিকার রঙ পছন্দের রঙের উপর নির্ভর করা উচিত নয়। */
+  --sem-success:#a3e635;
+  --sem-warning:#fbbf24;
+  --sem-danger:#fb7185;
+  --sem-info:#7dd3fc;
+
+  /* ── পাঠ্য (DARK) ── */
+  --v-ink:#eef1f6;     /* ১৬.৪:১ — প্রধান */
+  --v-mut:#9aa6b8;     /*  ৭.৬:১ — সহায়ক */
+  --v-dim:#828d9f;     /*  ৪.৭:১ — ক্ষীণ, প্লেসহোল্ডার/সাজসজ্জা */
+
+  /* ── কিনারা (আলোকিত হেয়ারলাইন — গাঢ় পৃষ্ঠতলে দৃশ্যমান) ── */
+  --v-edge:rgba(255,255,255,.09);
+  --v-edge2:rgba(255,255,255,.16);
+
+  /* ── পৃষ্ঠতল-ভরাট টোকেন ──
+     গাঢ় থিমে হালকা সাদা-ওভারলে = উঁচু পৃষ্ঠতল। থিমের সাথে উল্টে যায়। */
+  --v-fill:rgba(255,255,255,.035);
+  --v-fill2:rgba(255,255,255,.07);
+
+  /* ── এলিভেশন ছায়া (গাঢ় থিম) ──
+     সাদা ছায়া অদৃশ্য — তাই গভীর কালো ছায়া + ভেতরে ১px আলোক-রেখা
+     (উপর থেকে আলো পড়ার বিভ্রম)। */
+  --v-shadow-1:0 1px 2px rgba(0,0,0,.4), 0 1px 0 rgba(255,255,255,.04) inset;
+  --v-shadow-2:0 2px 4px rgba(0,0,0,.4), 0 12px 28px -12px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.05) inset;
+  --v-shadow-3:0 8px 16px rgba(0,0,0,.45), 0 24px 60px -20px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.06) inset;
+
+  /* ── সেমান্টিক পৃষ্ঠতল টোকেন (থিম-নির্ভর) ──
+     আগে কম্পোনেন্টে হার্ডকোড ছিল; এখন টোকেন — light থিমে উল্টে যায়। */
+  --v-field:#0e1017;          /* ইনপুট ভরাট (recessed) */
+  --v-field-focus:#141722;    /* ইনপুট ফোকাস ভরাট */
+  --surface-nav:rgba(12,14,20,.72);      /* উপরের ন্যাভবার glass */
+  --surface-bar:rgba(12,14,20,.92);      /* মোবাইল ট্যাব বার */
+  --surface-adminnav:rgba(10,10,18,.6);  /* অ্যাডমিন নেভ glass */
+  --surface-drawer:var(--v-pit);         /* মোবাইল ড্রয়ার/প্যানেল */
+  --hairline:rgba(255,255,255,.05);      /* তালিকার ভেতরের বিভাজক */
+  --tint-violet:rgba(139,92,246,.16);    /* বেগুনি টিন্ট (আইকন টাইল) */
+  --tint-ice:rgba(125,211,252,.12);      /* আইস টিন্ট */
+  --tint-volt:rgba(163,230,53,.15);      /* লাইম টিন্ট */
+
+  /* ── স্বাক্ষর জ্যামিতি ── */
+  --nc:14px;
+
+  /* ── থিম ট্রানজিশন সময় (JS বদলানোর সময় ব্যবহৃত) ── */
+  --theme-fade:.32s;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ★★★ LIGHT থিম — ThemeProvider `<html data-theme="light">` স্ট্যাম্প করলে সক্রিয়
+   ───────────────────────────────────────────────────────────────────────
+   ⚠️ শুধু **মান** override করা হয় — একটিও কম্পোনেন্ট/ক্লাস ছোঁয়া হয়নি।
+   সব পৃষ্ঠতল টোকেনভিত্তিক হওয়ায় এই একটি ব্লকেই পুরো অ্যাপ light হয়ে যায়।
+   প্রতিটি light মান #ffffff পৃষ্ঠতলের উপর WCAG-AA মেপে বসানো।
+   ═══════════════════════════════════════════════════════════════════════ */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* legacy aliases */
+  --bg:#f4f6fb; --bg2:#ffffff;
+  --glass:rgba(15,23,41,.03); --hair:rgba(15,23,41,.09);
+  --violet:#6d28d9; --ice:#0284c7; --gold:#5a8a00; --rose:#e11d48;
+  --ink:#0f1729; --mut:#5a6a82; --line:rgba(15,23,41,.10); --red:#e11d48;
+
+  /* VOLT base */
+  --v-void:#f4f6fb; --v-pit:#ffffff; --v-steel:#fbfcfe;
+  --accent-text:#5a8a00;              /* light: টেক্সট-নিরাপদ লাইম */
+  --v-volt:var(--accent-text); --v-volt-surf:var(--accent);
+  --v-ice:#0284c7; --v-ice-surf:#7de3ff;
+  --v-plasma:#7b2cff; --v-heat:#e11d48;
+
+  /* ═══════ সেমান্টিক রঙ (C3) — LIGHT ═══════
+     সাদা পটভূমিতে গাঢ় শেড, যাতে লেখা হিসেবেও WCAG AA (৪.৫:১) পার
+     করে — dark-এর উজ্জ্বল শেডগুলো সাদার উপর ৩:১-ও পেত না। */
+  --sem-success:#15803d;
+  --sem-warning:#b45309;
+  --sem-danger:#be123c;
+  --sem-info:#0369a1;
+  --v-ink:#0f1729; --v-mut:#5a6a82; --v-dim:#8a97a8;
+  --v-edge:rgba(15,23,41,.10); --v-edge2:rgba(15,23,41,.20);
+  --v-fill:rgba(15,23,41,.03); --v-fill2:rgba(15,23,41,.05);
+
+  /* light এলিভেশন — নরম ধূসর ছায়া (কালো ছায়া light-এ ময়লা লাগে) */
+  --v-shadow-1:0 1px 2px rgba(16,23,41,.05);
+  --v-shadow-2:0 1px 2px rgba(16,23,41,.04), 0 10px 30px -16px rgba(16,23,41,.16);
+  --v-shadow-3:0 4px 8px rgba(16,23,41,.06), 0 24px 60px -20px rgba(16,23,41,.22);
+
+  /* সেমান্টিক পৃষ্ঠতল */
+  --v-field:#ffffff; --v-field-focus:#ffffff;
+  --surface-nav:rgba(255,255,255,.9);
+  --surface-bar:rgba(255,255,255,.96);
+  --surface-adminnav:rgba(255,255,255,.85);
+  --surface-drawer:#ffffff;
+  --hairline:rgba(15,23,41,.06);
+  --tint-violet:rgba(109,40,217,.10);
+  --tint-ice:rgba(2,132,199,.10);
+  --tint-volt:rgba(90,138,0,.12);
+}
+
+/* ── light থিমে পরিবেশ-আলো নরম করা ──
+   গাঢ় থিমের নিচের কালো ভিনিয়েট light-এ ময়লা লাগে; শুধু উপরের
+   হালকা প্লাজমা-আভা রাখি। */
+:root[data-theme='light'] body::after {
+  background:
+    radial-gradient(ellipse 90% 50% at 50% -12%, rgba(109,40,217,.06), transparent 60%),
+    radial-gradient(ellipse 60% 45% at 100% 0, rgba(2,132,199,.04), transparent 55%);
+}
+:root[data-theme='light'] body::before { background: none; }
+
+/* ── light থিমে text-clip গ্রেডিয়েন্ট গাঢ় করা (সাদা লেখা অদৃশ্য হতো) ── */
+:root[data-theme='light'] .v-text-volt { background:linear-gradient(100deg,#4d7c0f,#3f6212 45%,#65a30d 80%); -webkit-background-clip:text; background-clip:text; }
+:root[data-theme='light'] .v-text-ice  { background:linear-gradient(100deg,#6d28d9,#7c3aed 40%,#0284c7 80%); -webkit-background-clip:text; background-clip:text; }
+:root[data-theme='light'] .lux-text    { background:linear-gradient(180deg,#0f1729,#334155 60%,#5a6a82); -webkit-background-clip:text; background-clip:text; }
+:root[data-theme='light'] .v-outline   { -webkit-text-stroke:1px rgba(15,23,41,.10); }
+:root[data-theme='light'] ::selection   { background: rgba(109,40,217,.18); color:#3b0a6e; }
+
+/* ── light থিমে পরিবেশ-স্তর নরম করা ──
+   গাঢ় mesh blob সাদা পটভূমিতে ময়লা ছোপ ফেলত; খুব ম্লান করলে সেটি
+   একটি সূক্ষ্ম রঙিন aurora-র মতো থাকে। উজ্জ্বল কণা/স্পটলাইটও নরম। */
+:root[data-theme='light'] .site-bg-mesh { opacity: .14; filter: blur(120px) saturate(.65); }
+:root[data-theme='light'] .site-bg { opacity: .8; }
+
+/* ═══════════ ACCENT PRESETS — `data-accent` দিয়ে সক্রিয় ═══════════
+   ডিফল্ট (lime) = :root। নিচেরগুলো শুধু অ্যাকসেন্ট টোকেন override করে,
+   তাই একটিই attribute বদলালে পুরো ব্র্যান্ড-অ্যাকশন রঙ পাল্টে যায়।
+   প্রতিটির dark মান (উজ্জ্বল) ও light-এ টেক্সট-নিরাপদ override দেওয়া। */
+:root[data-accent='purple'] { --accent:#8b5cf6; --accent-2:#a78bfa; --accent-strong:#7c3aed; --accent-ink:#ffffff; --accent-text:#a78bfa; --accent-glow:139,92,246; }
+:root[data-theme='light'][data-accent='purple'] { --accent-text:#6d28d9; }
+:root[data-accent='blue'] { --accent:#3b82f6; --accent-2:#60a5fa; --accent-strong:#2563eb; --accent-ink:#ffffff; --accent-text:#60a5fa; --accent-glow:59,130,246; }
+:root[data-theme='light'][data-accent='blue'] { --accent-text:#1d4ed8; }
+:root[data-accent='red'] { --accent:#f43f5e; --accent-2:#fb7185; --accent-strong:#e11d48; --accent-ink:#ffffff; --accent-text:#fb7185; --accent-glow:244,63,94; }
+:root[data-theme='light'][data-accent='red'] { --accent-text:#be123c; }
+:root[data-accent='orange'] { --accent:#fb923c; --accent-2:#fdba74; --accent-strong:#f97316; --accent-ink:#1a0500; --accent-text:#fb923c; --accent-glow:249,115,22; }
+:root[data-theme='light'][data-accent='orange'] { --accent-text:#c2410c; }
+
+/* ── থিম-ট্রানজিশন: টগল চাপলে রঙগুলো মসৃণভাবে বদলায় ──
+   শুধু বদলানোর মুহূর্তে `.theme-anim` ক্লাস `<html>` এ বসে, তারপর সরে যায়
+   — সবসময় ট্রানজিশন রাখলে প্রতি hover/interaction ধীর লাগত।
+   reduced-motion হলে বৈশ্বিক নিয়ম এটিকেও শূন্য করে। */
+:root.theme-anim,
+:root.theme-anim * ,
+:root.theme-anim *::before,
+:root.theme-anim *::after {
+  transition: background-color var(--theme-fade) ease,
+              border-color var(--theme-fade) ease,
+              color var(--theme-fade) ease,
+              box-shadow var(--theme-fade) ease,
+              fill var(--theme-fade) ease !important;
+}
+
+/* ─────────── টাইপোগ্রাফি ───────────
+
+   এই সাইটের শিরোনাম **বাংলায়**। তাই একটি ল্যাটিন ডিসপ্লে ফন্ট
+   বেছে নিয়ে "টাইপোগ্রাফি ঠিক হলো" ভাবাটা আত্মপ্রবঞ্চনা — বাংলা
+   লেখা তখন নীরবে body ফন্টে fallback করে, আর শিরোনাম দুর্বল
+   থেকে যায়। ঠিক এই কারণেই আগের পাসে টাইপোগ্রাফি দুর্বল ছিল।
+
+   • Anek Bangla  — বাংলা ডিসপ্লে, ৮০০ ওজন পর্যন্ত। Hind Siliguri
+     এর সর্বোচ্চ ৭০০ এর চেয়ে অনেক বেশি ভরাট ও আধুনিক।
+     ⚠️ ক্রম গুরুত্বপূর্ণ: Unbounded আগে (ল্যাটিন অঙ্ক/শব্দের জন্য),
+     Anek Bangla পরে — ব্রাউজার প্রতি-গ্লিফ fallback করে, তাই
+     একই শিরোনামে "৩০" আর "সেকেন্ড" দুটোই সঠিক ফন্ট পায়।
+   • Unbounded    — ল্যাটিন ডিসপ্লে। চওড়া, জ্যামিতিক, বিরল।
+   • Chakra Petch — HUD/যান্ত্রিক লেখা।
+   • Hind Siliguri— বাংলা বডি (অপরিবর্তিত)। */
+.v-dsp {
+  font-family:'Unbounded','Anek Bangla','Hind Siliguri',system-ui,sans-serif;
+  /* ★ বাংলা-নিরাপদ tracking; proportional সংখ্যা (tabular নয়) — নাহলে
+     বাংলা অঙ্ক সমান-প্রস্থে বসে জড়িয়ে যেত। */
+  letter-spacing:-.02em;
+  font-variant-numeric:proportional-nums;
+}
+.v-hud {
+  font-family:'Chakra Petch','Hind Siliguri',system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ─────────── স্বাক্ষর জ্যামিতি: কাটা কোণ ───────────
+   ⚠️ `clip-path` সরাসরি উপাদানে দিলে `:focus-visible` এর outline-ও
+   কেটে যায় — কীবোর্ড ব্যবহারকারী তখন ফোকাস দেখতে পান না। তাই
+   আকৃতিটি দুটি ছদ্ম-উপাদানে আঁকা হয় (কিনারা + ভরাট), উপাদান
+   নিজে অক্ষত থাকে। `isolation:isolate` ঋণাত্মক z-index কে এই
+   উপাদানের ভেতরেই আটকে রাখে। */
+.v-panel, .v-btn {
+  position:relative;
+  isolation:isolate;
+  background:transparent;
+}
+.v-panel::before, .v-panel::after,
+.v-btn::before, .v-btn::after {
+  content:'';
+  position:absolute;
+  pointer-events:none;
+  clip-path:polygon(var(--nc) 0, 100% 0, 100% calc(100% - var(--nc)), calc(100% - var(--nc)) 100%, 0 100%, 0 var(--nc));
+  transition:background var(--dur-base) var(--ease);
+}
+.v-panel::before, .v-btn::before { inset:0;   z-index:-2; background:var(--panel-edge); }
+.v-panel::after,  .v-btn::after  { inset:1px; z-index:-1; background:var(--panel-fill); }
+
+.v-panel {
+  --panel-edge:var(--v-edge);
+  --panel-fill:var(--v-pit);
+  box-shadow:var(--v-shadow-2);
+}
+.v-panel--solid { --panel-fill:linear-gradient(158deg, var(--v-steel), var(--v-pit) 70%); }
+.v-panel--deep  { --panel-fill:linear-gradient(158deg, var(--v-pit), var(--v-void) 94%); }
+
+/* হোভারে **কিনারা** জীবন্ত হয়, ভরাট নয় — বড় পৃষ্ঠতলের রঙ
+   বদলানোর চেয়ে একটি রেখা জ্বলে ওঠা অনেক বেশি দামি লাগে। */
+.v-panel--hov { transition:transform var(--dur-slow) var(--ease); }
+.v-panel--hov:hover { transform:translateY(-7px); }
+.v-panel--hov:hover::before {
+  background:linear-gradient(140deg, var(--v-volt-surf), var(--v-ice-surf) 45%, var(--v-plasma));
+}
+.v-panel--hov:hover { box-shadow:0 12px 40px -12px rgba(109,40,217,.22); }
+
+/* ─────────── বোতাম ───────────
+   একটিই লাইম বোতাম প্রতি পর্দায়। এটি স্টাইল নয়, সংযমের নিয়ম। */
+.v-btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:.6rem;
+  min-height:52px; padding:0 1.7rem;
+  font-family:'Chakra Petch','Hind Siliguri',system-ui,sans-serif;
+  font-weight:700; font-size:.9rem; letter-spacing:.045em; line-height:1;
+  --nc:12px;
+  transition:transform var(--dur-base) var(--ease), filter var(--dur-base) var(--ease);
+}
+.v-btn:active { transform:translateY(0) scale(.985); }
+.v-btn:disabled { opacity:.5; pointer-events:none; }
+
+.v-btn--volt {
+  color:var(--accent-ink);              /* অ্যাকসেন্টের উপর টেক্সট */
+  --panel-edge:transparent;
+  --panel-fill:linear-gradient(135deg,var(--accent-2),var(--accent) 48%,var(--accent-strong));
+}
+.v-btn--volt:hover { transform:translateY(-3px); filter:drop-shadow(0 16px 34px rgba(var(--accent-glow),.34)); }
+
+.v-btn--ghost { color:var(--v-ink); --panel-edge:var(--v-edge2); --panel-fill:var(--v-steel); }
+.v-btn--ghost:hover { transform:translateY(-3px); --panel-edge:linear-gradient(120deg,var(--violet),var(--v-ice)); }
+
+.v-btn--ice { color:#02141c; --panel-edge:transparent; --panel-fill:linear-gradient(135deg,#c2f1ff,#7de3ff 60%,#3cc4ee); }
+.v-btn--ice:hover { transform:translateY(-3px); filter:drop-shadow(0 16px 34px rgba(125,227,255,.3)); }
+
+/* ─────────── HUD লেবেল ───────────
+   ⚠️ অক্ষর-ব্যবধান নিয়ে একটি বাস্তব পাঠ: প্রথম বিল্ডে ডিফল্ট
+   `letter-spacing:.3em` ছিল — ল্যাটিনে দারুণ, **বাংলায় বিপর্যয়**।
+   বাংলা যুক্তাক্ষর ক্লাস্টার হিসেবে বসে, বড় ব্যবধানে "গ্যারান্টি"
+   পর্দায় "গ্যা রা ন্টি" হয়ে ভেঙে যায়। এই সাইটের প্রায় সব লেবেল
+   বাংলা, তাই ডিফল্টই বাংলা-নিরাপদ; চওড়া ব্যবধান opt-in। */
+.hud {
+  font-family:'Chakra Petch','Hind Siliguri',system-ui,sans-serif;
+  font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--v-ice);
+}
+.hud-wide { letter-spacing:.3em; font-size:10px; }   /* কেবল ল্যাটিন */
+.hud-volt { color:var(--v-volt); }
+.hud-mut  { color:var(--v-mut); }
+
+/* ─────────── চিপ ─────────── */
+.v-chip {
+  display:inline-flex; align-items:center; gap:.5rem;
+  min-height:36px; padding:0 .85rem;
+  border:1px solid var(--v-edge); border-radius:2px;
+  background:var(--v-fill);
+  font-family:'Chakra Petch','Hind Siliguri',system-ui,sans-serif;
+  font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--v-mut);
+  transition:border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.v-chip:hover { border-color:rgba(109,40,217,.4); color:var(--violet); background:rgba(109,40,217,.05); }
+
+/* ─────────── নেভিগেশন ─────────── */
+.v-nav {
+  position:relative;
+  display:inline-flex; align-items:center;
+  min-height:42px; padding:0 .6875rem;
+  font-family:'Chakra Petch','Hind Siliguri',system-ui,sans-serif;
+  font-size:.8125rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  color:var(--v-mut);
+  /* ★★★ ROOT-CAUSE ফিক্স — নেভ আইটেম কখনো দুই লাইনে ভাঙবে না।
+     আগে white-space সেট ছিল না (default: normal), তাই flex সংকুচিত হলে
+     "LIKE - FOLLOW - SUBSCRIBE" এর মতো লম্বা লেবেল ভেতরে wrap হয়ে যেত।
+     nowrap = টেক্সট এক লাইনে; flex-shrink:0 = আইটেম কখনো তার প্রকৃত
+     প্রস্থের নিচে চাপে না (font ছোট নয়, প্রস্থ ঠিক)। */
+  white-space:nowrap;
+  flex-shrink:0;
+  transition:color var(--dur-fast) var(--ease);
+}
+.v-nav::after {
+  content:''; position:absolute; left:.6875rem; right:.6875rem; bottom:7px; height:2px;
+  background:var(--violet); transform:scaleX(0); transform-origin:left;
+  transition:transform var(--dur-base) var(--ease);
+}
+.v-nav:hover { color:var(--v-ink); }
+.v-nav:hover::after { transform:scaleX(1); }
+.v-nav[data-active='true'] { color:var(--v-ink); }
+.v-nav[data-active='true']::after { transform:scaleX(1); }
+
+/* ─────────── পটভূমির টেক্সচার ───────────
+   গ্রিড কখনো পুরো পর্দাজুড়ে সমান উজ্জ্বল নয় — mask দিয়ে কিনারায়
+   মিলিয়ে যায়, নাহলে "গ্রাফ কাগজ" এর মতো সস্তা লাগে। */
+.v-grid {
+  background-image:
+    linear-gradient(rgba(109,40,217,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(109,40,217,.06) 1px, transparent 1px);
+  background-size:72px 72px;
+  -webkit-mask-image:radial-gradient(ellipse 80% 65% at 50% 38%, #000 28%, transparent 78%);
+  mask-image:radial-gradient(ellipse 80% 65% at 50% 38%, #000 28%, transparent 78%);
+}
+.v-hair { height:1px; background:linear-gradient(90deg, transparent, var(--v-edge2) 18%, var(--v-edge2) 82%, transparent); }
+
+/* হলোগ্রাফিক স্ক্যানলাইন — অপারেটরের উপস্থিতির ভাষা */
+.v-scan { position:relative; }
+.v-scan::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(180deg, rgba(125,227,255,.05) 0 1px, transparent 1px 4px);
+  mix-blend-mode:screen;
+}
+
+/* ─────────── পাঠ্যের চিকিৎসা ───────────
+   ⚠️ `background-clip:text` ব্যবহার করা লেখার computed color
+   `transparent` হয়, তাই স্বয়ংক্রিয় কনট্রাস্ট-মাপক যন্ত্র সবসময়
+   ১:১ দেখায়। সেটি যন্ত্রের সীমাবদ্ধতা, নকশার ত্রুটি নয় —
+   প্রতিটি স্টপ ইচ্ছাকৃতভাবে উজ্জ্বল রাখা হয়েছে। */
+/* ★ DARK থিমে text-clip গ্রেডিয়েন্ট উজ্জ্বল — প্রতিটি স্টপ
+   ইচ্ছাকৃতভাবে উঁচু-আলোয়, গাঢ় পটভূমিতে ঝলমল করে। */
+.v-text-volt { background:linear-gradient(100deg,#ecffbf,#c8ff3d 45%,#a3e635 80%);
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+.v-text-ice  { background:linear-gradient(100deg,#ddd6fe,#a78bfa 40%,#7dd3fc 80%);
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+/* বিশাল রূপরেখা-লেখা — সেকশনের পেছনের স্তর */
+.v-outline {
+  color:transparent;
+  -webkit-text-stroke:1px rgba(255,255,255,.09);
+}
+
+/* ─────────── গতি ───────────
+   সবগুলোই CSS — প্রতি-ফ্রেমে JS খরচ শূন্য (CLAUDE.md §4)।
+   `prefers-reduced-motion` এর বৈশ্বিক নিয়ম এগুলোকেও শূন্য করে। */
+@keyframes v-sweep   { 0%{transform:translateX(-120%)} 100%{transform:translateX(240%)} }
+@keyframes v-flow    { from{transform:translateX(-66.667%)} to{transform:translateX(0)} }
+@keyframes v-ring    { to{transform:rotate(360deg)} }
+@keyframes v-breathe { 0%,100%{opacity:.35;transform:scale(.97)} 50%{opacity:.85;transform:scale(1.03)} }
+@keyframes v-lift    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+@keyframes v-blink   { 0%,100%{opacity:1} 50%{opacity:.25} }
+@keyframes v-scanline{ 0%{transform:translateY(-100%);opacity:0} 12%{opacity:1} 88%{opacity:1} 100%{transform:translateY(420%);opacity:0} }
+@keyframes v-ticker  { to{transform:translateX(-50%)} }
+@keyframes v-ticker-rev { from{transform:translateX(-50%)} to{transform:translateX(0)} }
+
+/* ═══════════ বৈশ্বিক লোডিং ওভারলে (LoadingProvider.tsx) ═══════════
+   প্ল্যাটফর্মের **একমাত্র** পূর্ণপর্দা লোডিং স্তর। আগে এর আকৃতি
+   `BrandedLoader` এর ভেতরে Tailwind ক্লাসে ছিল, আর লগইনে আলাদা
+   একটি ম্যাসকট-ওভারলে ছিল — দুটি সমান্তরাল ব্যবস্থা। এখন আকৃতি
+   এখানেই, একবারই।
+
+   ঢোকা-বেরোনো দুটোই animation (transition নয়) — কারণ উপাদানটি
+   mount হওয়ার সাথে সাথেই চলা শুরু করতে হবে; transition এর জন্য
+   দুই ফ্রেমের rAF-নাচ লাগত।
+
+   ⚠️ `both` fill রাখা জরুরি: `prefers-reduced-motion` এর বৈশ্বিক
+   নিয়ম duration কে .01ms করে দেয়, তখনও শেষ-অবস্থা (opacity:1)
+   ধরে থাকে — অর্থাৎ animation কমানো থাকলেও ওভারলে অদৃশ্য হয় না।
+
+   z-160 কেন: সাইটের সবচেয়ে উঁচু মডাল z-120, বুট-পর্দা z-200।
+   অর্থাৎ এটি সব মডাল ঢাকে, কিন্তু বুট-পর্দাকে ঢাকে না — বুট
+   সবসময় শেষ কথা। */
+@keyframes v-ovl-in  { from{opacity:0} to{opacity:1} }
+@keyframes v-ovl-out { from{opacity:1} to{opacity:0} }
+.v-ovl {
+  position:fixed; inset:0; z-index:160;
+  display:grid; place-items:center;
+  padding:24px;
+  animation:v-ovl-in .26s var(--ease) both;
+
+  /* ★ "ব্লার + সামান্য ম্লান" — দুই স্তরে:
+     ১. পর্দা নিজেই `--v-void` এর ৮৮% — গাঢ় থিমে অন্ধকার করে,
+        হালকা থিমে **ঢেকে** দেয়। শুধু "গাঢ় করা" এখানে চলত না:
+        হালকা থিমে `--v-void` প্রায় সাদা (#f4f6fb), তাই ৭৪%
+        দিয়ে আগে কিছুই ম্লান হয়নি আর ফর্মের লেখা ম্যাসকটের
+        বার্তার সাথে মিশে যাচ্ছিল (স্ক্রিনশটেই ধরা পড়েছিল)।
+     ২. উপরে একটি নরম vignette — কেন্দ্র পরিষ্কার, প্রান্ত ঘন,
+        ফলে চোখ নিজে থেকেই ম্যাসকটে যায়। */
+  background:
+    radial-gradient(125% 95% at 50% 44%,
+      transparent 0%,
+      color-mix(in srgb, var(--v-void) 42%, transparent) 62%,
+      color-mix(in srgb, var(--v-void) 72%, transparent) 100%),
+    color-mix(in srgb, var(--v-void) var(--v-ovl-scrim, 88%), transparent);
+  -webkit-backdrop-filter:blur(16px) saturate(.85);
+  backdrop-filter:blur(16px) saturate(.85);
+}
+/* ⚠️ হালকা থিমে পর্দা **আরও ঘন** হতে হয়। কারণটি বিপরীতমুখী মনে হলেও
+   সরল: গাঢ় থিমে ৮৮% কালো পর্দার নিচে উজ্জ্বল লেখা ১২% এ নেমে
+   কার্যত মিলিয়ে যায়; কিন্তু হালকা থিমে ৮৮% সাদা পর্দার নিচে
+   **কালো** লেখার ১২% থেকে যায় — যা সাদা পটভূমিতে এখনো স্পষ্ট পড়া
+   যায়। মোবাইল স্ক্রিনশটে ঠিক তাই দেখা গিয়েছিল: ম্যাসকটের বার্তার
+   পিছনে লগইন ফর্ম ও ট্যাব-বার দিব্যি পড়া যাচ্ছিল।
+   ⚠️ এটি কেবল অস্বচ্ছতা — ম্যাসকটের বার্তা পর্দার **উপরে**, তাই
+   তার কনট্রাস্ট এতে একটুও কমে না। */
+:root[data-theme='light'] .v-ovl { --v-ovl-scrim:96%; }
+.v-ovl--out { animation:v-ovl-out .22s var(--ease) both; }
+
+/* ওভারলে ওঠা অবস্থায় পাতা স্ক্রল হবে না — ব্লারের নিচে কনটেন্ট
+   সরতে থাকলে দৃশ্যটি ভেঙে যায়।
+   ⚠️ `scrollbar-gutter:stable` **অপরিহার্য**: শুধু `overflow:hidden`
+   দিলে স্ক্রলবার উধাও হয়ে পুরো পাতা ~১৫px ডানে লাফাত — ঠিক সেই
+   layout shift যা এই পর্দার নিষিদ্ধ তালিকায়। gutter সেই জায়গাটুকু
+   ধরে রাখে, তাই সরণ শূন্য। */
+body:has(.v-ovl) { overflow:hidden; scrollbar-gutter:stable; }
+
+/* ═══ ওভারলে চলাকালীন পটভূমির সাজসজ্জা স্থির ═══
+   `backdrop-filter` তখনই ব্যয়বহুল যখন তার **পিছনের ছবি বদলায়** —
+   প্রতিটি ফ্রেমে পুরো এলাকা নতুন করে ব্লার করতে হয়। এই সাইটের
+   পটভূমিতে একটি canvas rAF-লুপ ও ৩০+ ভাসমান কণা অনবরত চলে।
+
+   মাপা (আসল GPU, ১২৮০×৮৬০):
+     পটভূমি চালু + ব্লার .......... ২৪ FPS
+     ব্লার বন্ধ ................... ৫০ FPS   ← পুরো খরচ এই জুটিতেই
+   অর্থাৎ SVG প্রায় বিনামূল্যে চলছিল; দোষ ছিল "চলমান পটভূমির
+   উপর ব্লার"। তাই ওভারলে ওঠামাত্র সাজসজ্জা থামে।
+
+   ⚠️ আগে এটি JS দিয়ে `data-mascot-busy` অ্যাট্রিবিউট বসিয়ে হতো —
+   একটি বাড়তি অবস্থা, যা কম্পোনেন্ট ক্র্যাশ করলে আটকে থাকত।
+   `:has()` সেই অবস্থাটাই বিলুপ্ত করে: শর্তটি DOM-ই, আলাদা কোনো
+   সত্যের উৎস নেই। `:has()` না চিনলে শুধু এই অপ্টিমাইজেশনটুকু
+   হয় না — দৃশ্য অবিকল একই থাকে। */
+body:has(> #v-boot) .site-bg canvas,
+body:has(.v-ovl) .site-bg canvas { display:none !important; }
+
+body:has(> #v-boot) .site-bg *,
+body:has(.v-ovl) .site-bg *,
+body:has(.v-ovl) .v-flow-line { animation-play-state:paused !important; }
+
+/* ═══════════ BOOT স্তর — পূর্ণ পৃষ্ঠা লোড / রিলোড ═══════════
+   ⚠️ কেন এটি আলাদা: `LoadingProvider` একটি React কম্পোনেন্ট, তাই
+   হাইড্রেশনের **আগে** সে কিছুই আঁকতে পারে না। F5 চাপলে বা প্রথমবার
+   সাইটে ঢুকলে JS চালুই হয়নি — তখন গ্রাহক ফাঁকা পর্দা দেখত
+   (Playwright এ মাপা: ~২.৫ সেকেন্ড ফাঁকা)। তাই এই স্তরটি
+   **সার্ভার-রেন্ডার করা HTML** এ থাকে ও বিশুদ্ধ CSS এ চলে —
+   প্রথম paint এই দৃশ্যমান, JS লাগে না।
+
+   দুটি নিরাপত্তা:
+   ১. **grace (.18s)** — দ্রুত লোডে কখনো ঝলকায় না।
+   ২. **safety (8s)** — JS কখনো না চললেও পর্দা নিজে থেকে সরে যায়,
+      নাহলে JS ব্যর্থ হলে সাইট চিরতরে ঢাকা পড়ে থাকত। */
+#v-boot {
+  position:fixed; inset:0; z-index:200;
+  display:grid; place-items:center;
+  background:var(--v-void);
+  opacity:0;
+  animation:v-boot-in .28s var(--ease) .18s forwards,
+            v-boot-safety 0s linear 8s forwards;
+}
+@keyframes v-boot-in     { to { opacity:1 } }
+@keyframes v-boot-safety { to { opacity:0; visibility:hidden; pointer-events:none } }
+
+/* ═══════════ AMBIENT স্তর — উপরের শক্তি-রেখা ═══════════
+   অ-বিঘ্নকারী লোডিং: রুট বদল, অ্যাডমিন সেভ, তালিকা রিফ্রেশ।
+   পুরনো `NavProgress` এর বদলি — একটিই ব্যবস্থা, দুটি নয়।
+
+   ⚠️ `pointer-events:none` আবশ্যক: রেখাটি পর্দার একদম উপরে বসে,
+   নাহলে ন্যাভবারের প্রথম কয়েক পিক্সেলে ক্লিক আটকে যেত। */
+.v-ambient {
+  position:fixed; inset-inline:0; top:0; height:2px; z-index:150;
+  pointer-events:none; overflow:hidden;
+  opacity:0; transition:opacity .25s var(--ease);
+}
+.v-ambient[data-on] { opacity:1; }
+.v-ambient__beam {
+  position:absolute; inset-block:0; left:0; width:42%;
+  background:linear-gradient(90deg, transparent, var(--v-volt) 22%, var(--v-ice) 55%, var(--v-plasma) 78%, transparent);
+  filter:drop-shadow(0 0 6px rgba(var(--accent-glow),.45));
+  transform:translateX(-100%);
+}
+/* সরাসরি বাঁ→ডান সুইপ; কেবল transform, তাই compositor-এ চলে */
+.v-ambient[data-on] .v-ambient__beam { animation:v-ambient-sweep 1.15s cubic-bezier(.4,0,.3,1) infinite; }
+@keyframes v-ambient-sweep { 0% { transform:translateX(-100%) } 100% { transform:translateX(340%) } }
+
+/* ⚠️ আগে এটি `background-position` অ্যানিমেট করত। ওটি compositor-এ
+   চলে না — প্রতি ফ্রেমে রি-পেইন্ট লাগত, আর রেখাটি ন্যাভবার, ফুটার ও
+   মোবাইল ট্যাব-বারে **সবসময়** বসে থাকে (প্রতি পাতায় তিনটি অবিরাম
+   রি-পেইন্ট)। এখন একটি চওড়া ছদ্ম-উপাদান `translateX` করে — একই
+   চেহারা, কিন্তু সম্পূর্ণ GPU-তে। Playwright এর animation-অডিটে
+   এটিই ধরা পড়েছিল। */
+.v-flow-line { position:relative; overflow:hidden; }
+.v-flow-line::after {
+  content:''; position:absolute; inset-block:0; left:0; width:300%;
+  background:linear-gradient(90deg, transparent, var(--v-volt) 16%, var(--v-ice) 40%, var(--v-plasma) 64%, transparent 90%);
+  animation:v-flow 7s linear infinite;
+}
+.v-spin     { animation:v-ring 26s linear infinite; }
+.v-spin-rev { animation:v-ring 40s linear infinite reverse; }
+.v-breathe  { animation:v-breathe 6s ease-in-out infinite; }
+.v-lift     { animation:v-lift 9s ease-in-out infinite; }
+.v-blink    { animation:v-blink 2.4s ease-in-out infinite; }
+
+/* দ্বিমুখী টিকার — দুটি সারি বিপরীত দিকে চলে, যা একক সারির
+   চেয়ে অনেক বেশি "যন্ত্র চালু আছে" অনুভূতি দেয় */
+.v-ticker     { display:inline-flex; white-space:nowrap; animation:v-ticker 34s linear infinite; }
+.v-ticker-rev { display:inline-flex; white-space:nowrap; animation:v-ticker-rev 40s linear infinite; }
+
+/* হোভারে আলোর ঝলক — বিশ্রামে খরচ শূন্য */
+.v-sheen { position:relative; overflow:hidden; }
+.v-sheen::after {
+  content:''; position:absolute; top:0; bottom:0; width:34%;
+  background:linear-gradient(100deg, transparent, rgba(109,40,217,.08), transparent);
+  transform:translateX(-120%); opacity:0; pointer-events:none;
+}
+.v-sheen:hover::after { opacity:1; animation:v-sweep 1.05s var(--ease); }
+
+/* ─────────── স্ক্রল-রিভিল ───────────
+   ⚠️ এই তিনটি নিয়মের ক্রমই পুরো নিরাপত্তা।
+
+   ডিফল্ট (`data-rv` অনুপস্থিত) = **সম্পূর্ণ দৃশ্যমান**। সার্ভার-
+   রেন্ডার করা HTML এ কোনো লেখা কখনো লুকানো থাকে না। JS চালু
+   হলে তবেই উপাদান "armed" হয়, আর কেবল তখনই যদি সে fold এর
+   নিচে থাকে (VoltReveal.tsx)।
+
+   কেন এত সাবধানতা: এই কোডবেসে ঠিক এই শ্রেণির বাগ ঘটেছে —
+   `whileInView` + `opacity:0` মিলে পুরো দোকান ফাঁকা জায়গা
+   হিসেবে রেন্ডার হয়েছিল (BUG-01)। */
+.v-rv[data-rv='armed'] { opacity:0; transform:translateY(30px); transition:none; }
+.v-rv[data-rv='shown'] {
+  opacity:1; transform:translateY(0);
+  transition:opacity .75s var(--ease), transform .75s var(--ease);
+  transition-delay:var(--rv-delay, 0s);
+}
+
+/* ─────────── স্পটলাইট কার্ড ───────────
+   কার্ডের উপর কার্সরের অবস্থান দুটি CSS ভেরিয়েবলে আসে (JS থেকে,
+   কেবল pointermove এ — rAF লুপ নয়), আর আলোটি বিশুদ্ধ CSS। */
+.v-spot { position:relative; }
+.v-spot::before {
+  content:''; position:absolute; inset:0; z-index:0; pointer-events:none;
+  opacity:0; transition:opacity var(--dur-base) var(--ease);
+  background:radial-gradient(320px circle at var(--mx,50%) var(--my,50%), rgba(200,255,61,.13), transparent 62%);
+}
+.v-spot:hover::before { opacity:1; }
+
+
+/* ═══════════ রসিদ প্রিন্ট/সংরক্ষণ (2.11) ═══════════
+   গ্রাহক অর্ডারের রসিদ PDF হিসেবে সংরক্ষণ করতে পারে।
+   পর্দার সাজসজ্জা (ব্যাকগ্রাউন্ড, ন্যাভ, ফুটার) বাদ দিয়ে
+   শুধু প্রয়োজনীয় তথ্য কাগজে যায়। */
+@media print {
+  /* গাঢ় থিম কাগজে অপাঠ্য — সাদা-কালোয় ফেরানো হয় */
+  body { background:#fff !important; color:#000 !important; padding-bottom:0 !important; }
+  body::before, body::after { display:none !important; }
+  header, footer, nav, .skip-link { display:none !important; }
+  .card {
+    background:#fff !important; border:1px solid #ccc !important;
+    box-shadow:none !important; break-inside:avoid;
+  }
+  .lux-text, .dsp { color:#000 !important; -webkit-text-fill-color:#000 !important; background:none !important; }
+  a[href]::after { content:""; }  /* URL ছাপানো হয় না — অগোছালো লাগে */
+}
+
+/* ═══════════ স্পর্শ-লক্ষ্যের মেঝে ═══════════
+   ⚠️ একটিই নিয়ম নয়, দুটি — কারণ একটিই নিয়ম চাপালে অ্যাডমিন
+   টেবিলের ঘনত্ব ধ্বংস হয়ে যায়, যা নিজেই একটি UX ক্ষতি:
+
+   • বোতাম ও স্বতন্ত্র নিয়ন্ত্রণ → ৪০px (CLAUDE.md §17)
+   • টেবিল-ঘরের ভেতরের লেখা-লিংক ও চেকবক্স → ২৪px
+     (WCAG 2.5.8 AA এর প্রকৃত দাবি)
+
+   চেকবক্সে দৃশ্যমান মাপ ছোট রেখেও ছদ্ম-উপাদান দিয়ে ক্লিক-এলাকা
+   ৪০px এ বাড়ানো হয় — ঘনত্ব অক্ষত, আঙুলের জন্য জায়গা পূর্ণ। */
+button.badge { min-height: 40px; }
+
+input[type='checkbox'], input[type='radio'] {
+  position: relative;
+  width: 24px; height: 24px;
+  accent-color: var(--v-volt);
+  cursor: pointer;
+}
+/* অদৃশ্য কিন্তু আঙুলের জন্য বাস্তব — লেআউটে কোনো প্রভাব নেই */
+input[type='checkbox']::after, input[type='radio']::after {
+  content: ''; position: absolute; inset: -9px;
+}
+
+/* টেবিল/লেখার ভেতরের লিংক — ২৪px মেঝে (WCAG 2.5.8 AA) */
+table.tbl td a, td a, .card a.underline { display: inline-flex; align-items: center; min-height: 24px; }
+
+/* ═══════════════════════════════════════════════════════════
+   ★ টেলিগ্রাম Connection Wizard — গেমিং-ধাঁচের মাইক্রো-ইন্টারঅ্যাকশন
+
+   নিয়ম: সব অ্যানিমেশন **শুধু transform/opacity** — এই দুটি
+   compositor-only, অর্থাৎ প্রতি ফ্রেমে repaint হয় না। অন্য কোনো
+   property অ্যানিমেট করলে লোডিং-স্ক্রিনেই FPS পড়ে যেত।
+
+   ⚠️ `prefers-reduced-motion` উপরের গ্লোবাল নিয়মে (লাইন ~82) এমনিতেই
+   সব অ্যানিমেশন শূন্য করে দেয় — এখানে আলাদা করে লেখার দরকার নেই।
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── ধাপ পরিবর্তনের ট্রানজিশন ── */
+.wz-step { animation: wz-in .34s cubic-bezier(.22,1,.36,1) both; }
+.wz-step[data-dir='back'] { animation-name: wz-in-back; }
+@keyframes wz-in { from { opacity:0; transform: translateX(18px) } to { opacity:1; transform:none } }
+@keyframes wz-in-back { from { opacity:0; transform: translateX(-18px) } to { opacity:1; transform:none } }
+
+/* ── প্রগ্রেস ইন্ডিকেটর ── */
+.wz-dot { position:relative; transition: transform .25s cubic-bezier(.22,1,.36,1); }
+.wz-dot[data-state='active'] { transform: scale(1.18); }
+.wz-dot[data-state='active']::after {
+  content:''; position:absolute; inset:-5px; border-radius:999px;
+  border:1.5px solid var(--v-volt); opacity:.55;
+  animation: wz-ring 1.9s ease-in-out infinite;
+}
+@keyframes wz-ring { 0%,100%{ transform:scale(1); opacity:.5 } 50%{ transform:scale(1.22); opacity:.12 } }
+
+/* ── সফলতা: রিং-বার্স্ট + টিক ── */
+.wz-success { animation: wz-pop .45s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes wz-pop { 0%{ transform:scale(.6); opacity:0 } 60%{ transform:scale(1.08) } 100%{ transform:scale(1); opacity:1 } }
+.wz-burst::before, .wz-burst::after {
+  content:''; position:absolute; inset:0; border-radius:999px;
+  border:2px solid var(--v-volt); opacity:0;
+  animation: wz-burst 1.1s ease-out forwards;
+}
+.wz-burst::after { animation-delay:.16s; }
+@keyframes wz-burst { 0%{ transform:scale(.7); opacity:.7 } 100%{ transform:scale(1.9); opacity:0 } }
+
+/* ── ত্রুটি: ঝাঁকুনি ── */
+.wz-error { animation: wz-shake .42s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes wz-shake {
+  10%,90%{ transform:translateX(-1.5px) } 20%,80%{ transform:translateX(3px) }
+  30%,50%,70%{ transform:translateX(-6px) } 40%,60%{ transform:translateX(6px) }
+}
+
+/* ── লোডিং: কক্ষপথ ── */
+.wz-orbit { position:relative; display:inline-block; width:16px; height:16px; }
+.wz-orbit::before, .wz-orbit::after {
+  content:''; position:absolute; width:5px; height:5px; border-radius:999px;
+  background: var(--v-volt); top:50%; left:50%; margin:-2.5px;
+  animation: wz-orbit 1.05s linear infinite;
+}
+.wz-orbit::after { background: var(--v-ice); animation-delay:-.52s; }
+@keyframes wz-orbit { from{ transform:rotate(0) translateX(7px) } to{ transform:rotate(360deg) translateX(7px) } }
+
+/* ── গেমিং মাইক্রো-ইন্টারঅ্যাকশন: বোতামে আলোর ঝলক ── */
+.wz-cta { position:relative; overflow:hidden; }
+.wz-cta::after {
+  content:''; position:absolute; top:0; bottom:0; width:38%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.22), transparent);
+  transform: translateX(-160%); pointer-events:none;
+}
+.wz-cta:hover::after { animation: wz-sweep .85s ease-out; }
+@keyframes wz-sweep { to { transform: translateX(320%) } }
+.wz-cta:active { transform: translateY(1px); }
+
+/* ── ধাপের কার্ড ভেসে ওঠা ── */
+.wz-rise { animation: wz-rise .4s cubic-bezier(.22,1,.36,1) both; }
+@keyframes wz-rise { from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:none } }
+
+/* ═══════════ ব্র্যান্ড লোগো — থিম অনুযায়ী বদল ═══════════
+   দুটো <img> ই DOM-এ থাকে; CSS একটিকে লুকায়। কেন এভাবে:
+   সার্ভার-রেন্ডারে থিম জানা যায় না, তাই JS দিয়ে বেছে নিলে প্রথম
+   পেইন্টে ভুল লোগো দেখিয়ে পরে বদলাত (ঝলকানি + হাইড্রেশন-অমিল)।
+   CSS-ভিত্তিক বদল প্রথম ফ্রেম থেকেই সঠিক। */
+.brand-logo-light { display: none; }
+:root[data-theme='light'] .brand-logo-dark { display: none; }
+:root[data-theme='light'] .brand-logo-light { display: inline-block; }
+
+/* ═══════════════════════════════════════════════════════════
+   ★★★ NOVA — "The Charge-Up" (NovaCat.tsx)
+
+   নিয়ম: **শুধু transform ও opacity**। দুটোই compositor-only, তাই
+   প্রতি ফ্রেমে repaint হয় না। কোনো filter/blur/width অ্যানিমেট নয়।
+
+   ── চক্রের নাট্যকাঠামো (৫.২s) ──
+   একটি লোডিং-লুপ মনে থাকে তখনই, যখন তাতে **একটি ঘটনা** ঘটে।
+   আগের ৪.৪s লুপে বিড়াল কেবল একটি বল ঠেলত — সুন্দর, কিন্তু
+   ঘটনাহীন। এখানে স্পষ্ট চারটি বীট, আর শীর্ষমুহূর্ত ৪৪%-এ:
+
+     ০–১৮%   ডায়মন্ড ভেসে আসে; বিড়াল চোখ-মাথা দিয়ে অনুসরণ করে
+     ১৮–২৬%  প্রস্তুতি — থাবা পিছনে, কান খাড়া (প্রত্যাশা তৈরি)
+     ২৬–৩০%  **আঘাত** — স্ফুলিঙ্গ, দেহে ঝাঁকুনি
+     ৩০–৪৪%  ডায়মন্ড চিহ্নের দিকে ছোটে (streak + কণা-রেখা)
+     ৪৪%     **পরিশোধ** — চিহ্ন জ্বলে ওঠে, শকওয়েভ, রশ্মি
+     ৪৪–৭০%  চিহ্ন চার্জিত; বিড়াল খুশিতে চোখ কুঁচকে হাসে
+     ৭০–১০০% চিহ্ন ম্লান হয়, ডায়মন্ড ফিরে আসে, আবার শুরু
+
+   ⚠️ সবাই **একই ৫.২s** চক্রে, তাই আঘাত-স্ফুলিঙ্গ-ঝাঁকুনি-ইগনিশন
+   কখনো ফেজ হারায় না। বিপরীতে শ্বাস/লেজ/কান/পলক ইচ্ছাকৃতভাবে
+   **অন্য দৈর্ঘ্যে** (৩.৮/৪.৬/৫.৯/৬.৭/৫.৪s) — সম্মিলিত গতি কখনো
+   একই জায়গায় ফিরে আসে না, তাই লুপটি চোখে ধরা পড়ে না।
+   ═══════════════════════════════════════════════════════════ */
+
+/* `width`/`height` অ্যাট্রিবিউট **সর্বোচ্চ** মাপ হিসেবে কাজ করে —
+   সরু পর্দায় SVG নিজেই ছোট হয়, তাই breakpoint বা JS মাপজোক লাগে না। */
+.nv-svg { display: block; max-width: 100%; height: auto; }
+.nv-svg * { transform-box: fill-box; }
+.nv-still * { animation: none !important; }
+
+/* ── পরিবেশ ── */
+.nv-amb { transform-origin: 50% 50%; animation: nv-amb 5.6s ease-in-out infinite; }
+@keyframes nv-amb {
+  0%, 100% { transform: scale(1);    opacity: .85 }
+  50%      { transform: scale(1.06); opacity: 1 }
+}
+/* HUD বন্ধনী — খুব মৃদু, নাহলে মনোযোগ কেড়ে নেয় */
+.nv-hud { animation: nv-hud 4.8s ease-in-out infinite; }
+@keyframes nv-hud { 0%, 100% { opacity: .3 } 50% { opacity: .52 } }
+/* মঞ্চের ষড়ভুজ জাল — চার্জের সাথে সাড়া দেয় */
+.nv-grid { transform-origin: 50% 50%; animation: nv-grid 5.2s ease-out infinite; }
+@keyframes nv-grid {
+  0%, 40%  { opacity: .18; transform: scale(1) }
+  46%      { opacity: .55; transform: scale(1.04) }
+  70%      { opacity: .28; transform: scale(1) }
+  100%     { opacity: .18; transform: scale(1) }
+}
+
+/* ── দেহ: মৃদু ওঠানামা + আঘাতের ঝাঁকুনি + খুশির লাফ ── */
+.nv-body { animation: nv-body 5.2s cubic-bezier(.4,0,.35,1) infinite; }
+@keyframes nv-body {
+  0%, 100% { transform: translateY(0) }
+  22%      { transform: translateY(-1px) }
+  29%      { transform: translateY(-5px) }   /* আঘাতের ঝাঁকুনি */
+  36%      { transform: translateY(0) }
+  47%      { transform: translateY(-6px) }   /* ইগনিশনে খুশির লাফ */
+  54%      { transform: translateY(0) }
+  60%      { transform: translateY(-3px) }
+  68%      { transform: translateY(0) }
+}
+
+.nv-breathe { transform-origin: 50% 100%; animation: nv-breathe 3.8s ease-in-out infinite; }
+@keyframes nv-breathe {
+  0%, 100% { transform: scaleY(1) scaleX(1) }
+  50%      { transform: scaleY(1.028) scaleX(.994) }
+}
+
+.nv-shadow { transform-origin: 50% 50%; animation: nv-shadow 5.2s cubic-bezier(.4,0,.35,1) infinite; }
+@keyframes nv-shadow {
+  0%, 100% { transform: scaleX(1);   opacity: .34 }
+  29%      { transform: scaleX(.9);  opacity: .2 }
+  47%      { transform: scaleX(.88); opacity: .18 }
+  68%      { transform: scaleX(1);   opacity: .34 }
+}
+
+/* ── মাথা: ডায়মন্ড অনুসরণ, তারপর চিহ্নের দিকে তাকানো ── */
+.nv-head { transform-origin: 50% 92%; animation: nv-head 5.2s cubic-bezier(.4,0,.3,1) infinite; }
+@keyframes nv-head {
+  0%, 12%  { transform: rotate(0deg) translateX(0) }
+  22%      { transform: rotate(5deg) translateX(3px) }
+  29%      { transform: rotate(8deg) translateX(4px) }   /* আঘাতের ঝোঁক */
+  40%      { transform: rotate(6deg) translateX(3px) }   /* উড়ন্ত ডায়মন্ড দেখে */
+  50%      { transform: rotate(7deg) translateX(4px) }   /* চিহ্নের দিকে */
+  70%      { transform: rotate(4deg) translateX(2px) }
+  100%     { transform: rotate(0deg) translateX(0) }
+}
+.nv-pupil { animation: nv-pupil 5.2s cubic-bezier(.4,0,.3,1) infinite; }
+@keyframes nv-pupil {
+  0%, 10%  { transform: translateX(0) }
+  24%      { transform: translateX(2.6px) }
+  44%      { transform: translateX(4.2px) }   /* চিহ্নে স্থির */
+  68%      { transform: translateX(3.4px) }
+  100%     { transform: translateX(0) }
+}
+
+/* ── পলক + খুশির চোখ ──
+   ⚠️ একই উপাদানে **দুটি** অ্যানিমেশন কমা দিয়ে: আলাদা ক্লাসে ভাগ
+   করলে দুটি `animation` ঘোষণা পরস্পরকে বাতিল করত। */
+.nv-eyes { transform-origin: 50% 50%; animation: nv-blink 5.4s ease-in-out infinite, nv-eyes-hide 5.2s linear infinite; }
+@keyframes nv-blink {
+  0%, 40%, 45.5%, 85%, 100% { transform: scaleY(1) }
+  42.5%, 43.8%              { transform: scaleY(.06) }
+  87.5%, 88.8%              { transform: scaleY(.06) }
+}
+@keyframes nv-eyes-hide {
+  0%, 44%, 70%, 100% { opacity: 1 }
+  47%, 66%           { opacity: 0 }
+}
+.nv-eyes-happy { opacity: 0; animation: nv-happy 5.2s linear infinite; }
+@keyframes nv-happy {
+  0%, 44%, 70%, 100% { opacity: 0 }
+  47%, 66%           { opacity: 1 }
+}
+
+/* ── কান ── */
+.nv-ear-l { transform-origin: 72% 100%; animation: nv-ear-l 5.9s ease-in-out infinite; }
+.nv-ear-r { transform-origin: 28% 100%; animation: nv-ear-r 6.7s ease-in-out infinite; }
+@keyframes nv-ear-l {
+  0%, 22%, 30%, 100% { transform: rotate(0deg) }
+  25%                { transform: rotate(-8deg) }
+  27.5%              { transform: rotate(3deg) }
+}
+@keyframes nv-ear-r {
+  0%, 54%, 63%, 100% { transform: rotate(0deg) }
+  57%                { transform: rotate(7deg) }
+  60%                { transform: rotate(-3deg) }
+}
+
+/* ── লেজ ── pivot ডান-নিচে: লেজ দেহ থেকে বাঁয়ে বেরোয় */
+.nv-tail { transform-origin: 98% 100%; animation: nv-tail 4.6s ease-in-out infinite; }
+@keyframes nv-tail {
+  0%, 100% { transform: rotate(5deg) }
+  33%      { transform: rotate(-7deg) }
+  66%      { transform: rotate(9deg) }
+}
+
+/* ── কলার ও ট্যাগ — ট্যাগটি দুলে, ইগনিশনে ঝলকে ── */
+.nv-tag { transform-origin: 50% 0%; animation: nv-tag 5.2s ease-in-out infinite; }
+@keyframes nv-tag {
+  0%, 100% { transform: rotate(-3deg) }
+  29%      { transform: rotate(6deg) }    /* আঘাতের ধাক্কা */
+  47%      { transform: rotate(-7deg) }
+  62%      { transform: rotate(3deg) }
+  80%      { transform: rotate(-3deg) }
+}
+
+/* ── থাবা: প্রস্তুতি → আঘাত → ফেরা ── */
+.nv-paw { transform-origin: 12% 14%; animation: nv-paw 5.2s cubic-bezier(.34,0,.2,1) infinite; }
+@keyframes nv-paw {
+  0%, 14%  { transform: rotate(0deg) translateX(0) }
+  23%      { transform: rotate(-28deg) translateX(-5px) }  /* পিছনে টানা */
+  29%      { transform: rotate(7deg) translateX(16px) }    /* আঘাত */
+  38%      { transform: rotate(-6deg) translateX(2px) }
+  48%      { transform: rotate(-14deg) translateX(4px) }   /* উল্লাসে তোলা */
+  62%      { transform: rotate(-10deg) translateX(3px) }
+  100%     { transform: rotate(0deg) translateX(0) }
+}
+
+/* ══════════ ডায়মন্ড — বিড়াল থেকে চিহ্ন পর্যন্ত ══════════
+   বিশ্রামে (২৬৬,১৫০), লক্ষ্য চিহ্নের কেন্দ্র (৩৫২,১১৮) → Δ(+86,−32)।
+   ⚠️ ৪৪%-এ ডায়মন্ড **অদৃশ্য** হয় (চিহ্নে শুষে নেওয়া) — তখনই
+   ইগনিশন। দুটি একই ফ্রেমে না ঘটলে "লেগেছে" মনে হতো না। */
+.nv-dia { animation: nv-dia 5.2s infinite; }
+@keyframes nv-dia {
+  0%   { transform: translate(-6px,-4px) scale(1); opacity: 1; animation-timing-function: cubic-bezier(.4,0,.5,1) }
+  14%  { transform: translate(-14px,4px) scale(1);  opacity: 1; animation-timing-function: cubic-bezier(.3,0,.2,1) }
+  23%  { transform: translate(-20px,2px) scale(1);  opacity: 1; animation-timing-function: cubic-bezier(.4,0,.9,1) }
+  29%  { transform: translate(-12px,0) scale(1.06); opacity: 1; animation-timing-function: cubic-bezier(.1,.7,.3,1) }
+  43%  { transform: translate(84px,-31px) scale(.9); opacity: 1; animation-timing-function: linear }
+  44%  { transform: translate(86px,-32px) scale(.5); opacity: 0 }   /* শুষে নেওয়া */
+  70%  { transform: translate(86px,-32px) scale(.5); opacity: 0; animation-timing-function: cubic-bezier(.3,1.5,.5,1) }
+  84%  { transform: translate(-6px,-4px) scale(1);  opacity: 1 }    /* ফিরে আসা */
+  100% { transform: translate(-6px,-4px) scale(1);  opacity: 1 }
+}
+.nv-dia-bloom { transform-origin: 50% 50%; animation: nv-dia-bloom 5.2s ease-out infinite; }
+@keyframes nv-dia-bloom {
+  0%, 24% { transform: scale(1);    opacity: .75 }
+  30%     { transform: scale(1.55); opacity: 1 }
+  44%     { transform: scale(1.1);  opacity: .9 }
+  100%    { transform: scale(1);    opacity: .75 }
+}
+/* গতি-রেখা — কেবল উড়ন্ত অবস্থায় */
+.nv-dia-streak { transform-origin: 50% 50%; opacity: 0; animation: nv-dia-streak 5.2s linear infinite; }
+@keyframes nv-dia-streak {
+  0%, 29%, 46%, 100% { opacity: 0; transform: scaleX(.4) }
+  34%                { opacity: .6; transform: scaleX(1.4) }
+  42%                { opacity: .3; transform: scaleX(1.1) }
+}
+.nv-dia-sat { transform-origin: 50% 50%; animation: nv-sat 3.4s linear infinite; }
+@keyframes nv-sat { to { transform: rotate(-360deg) } }
+/* কণা-রেখা — ডায়মন্ডের পিছনে */
+.nv-trail-p { opacity: 0; animation: nv-trail 5.2s ease-out infinite; }
+.nv-trail-p--2 { animation-delay: .06s }
+.nv-trail-p--3 { animation-delay: .12s }
+@keyframes nv-trail {
+  0%, 29% { opacity: 0;  transform: translate(0,0) scale(1) }
+  33%     { opacity: .95; transform: translate(-16px,6px) scale(.9) }
+  44%     { opacity: 0;  transform: translate(-46px,16px) scale(.3) }
+  100%    { opacity: 0;  transform: translate(-46px,16px) scale(.3) }
+}
+
+/* ── থাবার স্ফুলিঙ্গ — কেবল সংস্পর্শের মুহূর্তে ── */
+.nv-spark { transform-origin: 50% 50%; opacity: 0; animation: nv-spark 5.2s ease-out infinite; }
+@keyframes nv-spark {
+  0%, 27% { opacity: 0; transform: scale(.4) }
+  29.5%   { opacity: 1; transform: scale(1) }
+  36%     { opacity: 0; transform: scale(1.5) }
+  100%    { opacity: 0; transform: scale(1.5) }
+}
+
+/* ══════════ ব্র্যান্ড-চিহ্ন: ম্লান → জ্বলন্ত → ম্লান ══════════ */
+.nv-mark-dim { animation: nv-mark-dim 5.2s ease-out infinite; }
+@keyframes nv-mark-dim {
+  0%, 43% { opacity: 1 }
+  46%     { opacity: 0 }
+  68%     { opacity: 0 }
+  78%     { opacity: 1 }
+  100%    { opacity: 1 }
+}
+.nv-mark-lit { opacity: 0; animation: nv-mark-lit 5.2s ease-out infinite; }
+@keyframes nv-mark-lit {
+  0%, 43% { opacity: 0 }
+  45%     { opacity: 1 }
+  68%     { opacity: 1 }
+  78%     { opacity: 0 }
+  100%    { opacity: 0 }
+}
+/* পুরো চিহ্নটি আঘাতে সামান্য "ধাক্কা" খায় — জড় বস্তু মনে হয় না */
+.nv-mark { transform-origin: 50% 50%; animation: nv-mark 5.2s cubic-bezier(.2,.9,.3,1) infinite; }
+@keyframes nv-mark {
+  0%, 42% { transform: scale(1) }
+  45%     { transform: scale(1.12) }
+  52%     { transform: scale(.98) }
+  60%     { transform: scale(1.02) }
+  70%     { transform: scale(1) }
+  100%    { transform: scale(1) }
+}
+.nv-mark-bloom { transform-origin: 50% 50%; opacity: 0; animation: nv-mark-bloom 5.2s ease-out infinite; }
+/* ⚠️ চার্জিত পর্বে আভা **ধরে রাখতে হয়**। প্রথমে ৫৬%-এই তা ম্লান
+   হয়ে যেত, ফলে বিড়াল যখন খুশিতে হাসছে তখন চিহ্নটি দেখতে নিভে
+   যাওয়া মনে হতো — পরিশোধের মুহূর্তটাই দুর্বল হয়ে পড়ত। */
+@keyframes nv-mark-bloom {
+  0%, 42% { opacity: 0;   transform: scale(.6) }
+  45%     { opacity: 1;   transform: scale(1.12) }
+  52%     { opacity: .82; transform: scale(.96) }
+  68%     { opacity: .72; transform: scale(1) }
+  78%     { opacity: 0;   transform: scale(.82) }
+  100%    { opacity: 0;   transform: scale(.6) }
+}
+/* বজ্রটি জ্বলে ওঠার ঠিক পরে একবার ঝিলিক দেয় */
+.nv-bolt { animation: nv-bolt 5.2s linear infinite; }
+@keyframes nv-bolt {
+  0%, 44% { opacity: .95 }
+  47%     { opacity: .55 }
+  50%     { opacity: 1 }
+  56%     { opacity: .8 }
+  68%     { opacity: .95 }
+  100%    { opacity: .95 }
+}
+/* শকওয়েভ — দুটি রিং, একটি সামান্য পিছিয়ে */
+.nv-shock { transform-origin: 50% 50%; opacity: 0; animation: nv-shock 5.2s cubic-bezier(.15,.7,.3,1) infinite; }
+.nv-shock--2 { animation-delay: .09s }
+@keyframes nv-shock {
+  0%, 43% { opacity: 0;   transform: scale(.9) }
+  45%     { opacity: .9;  transform: scale(1.05) }
+  58%     { opacity: 0;   transform: scale(1.75) }
+  100%    { opacity: 0;   transform: scale(1.75) }
+}
+/* আঘাতের রশ্মি */
+.nv-burst { transform-origin: 50% 50%; opacity: 0; animation: nv-burst 5.2s ease-out infinite; }
+@keyframes nv-burst {
+  0%, 43% { opacity: 0; transform: scale(.55) }
+  45.5%   { opacity: .95; transform: scale(.85) }
+  54%     { opacity: 0; transform: scale(1.2) }
+  100%    { opacity: 0; transform: scale(1.2) }
+}
+
+/* ── ভাসমান কণা ── */
+.nv-mote { opacity: 0; animation: nv-mote 7s ease-in-out infinite; }
+.nv-mote--2 { animation-delay: 1.4s; animation-duration: 8.2s }
+.nv-mote--3 { animation-delay: 2.9s; animation-duration: 6.4s }
+.nv-mote--4 { animation-delay: 4.1s; animation-duration: 9s }
+.nv-mote--5 { animation-delay: 5.5s; animation-duration: 7.6s }
+.nv-mote--6 { animation-delay: 3.4s; animation-duration: 8.8s }
+@keyframes nv-mote {
+  0%   { opacity: 0;   transform: translateY(6px) }
+  25%  { opacity: .55; transform: translateY(0) }
+  60%  { opacity: .3;  transform: translateY(-10px) }
+  100% { opacity: 0;   transform: translateY(-20px) }
+}
+
+/* ═══════════ স্ট্যাটাস বার্তা — CSS দিয়ে ক্রস-ফেড ═══════════
+   কোনো JS টাইমার নেই: তিনটি বার্তা স্তূপ করে রাখা, একটিই
+   অ্যানিমেশন পালা করে দেখায়। ফলে **সার্ভার-রেন্ডার করা বুট-পর্দাতেও**
+   হুবহু একই আচরণ — JS চালু হওয়ার আগেই বার্তা বদলাতে থাকে। */
+.nv-msg { display: grid; }
+.nv-msg > span { grid-area: 1 / 1; opacity: 0; animation: nv-msg 9s ease-in-out infinite; }
+.nv-msg > span:nth-child(2) { animation-delay: 3s }
+.nv-msg > span:nth-child(3) { animation-delay: 6s }
+/* ⚠️ সময়গুলো **ওভারল্যাপ করতেই হবে**। প্রথম সংস্করণে একটি বার্তা
+   ৩৩% এ পুরো মিলিয়ে যেত আর পরেরটি ৩৬% এর আগে ফুটত না — মাঝের
+   ~০.৪ সেকেন্ড পর্দায় **কোনো বার্তাই থাকত না**। টেস্টে সেটি ধরা
+   পড়েছিল ("০ → ১ দৃশ্যমান")। বিলম্ব ৩s, তাই এখানে বেরিয়ে যাওয়া
+   ৩৩% (=৩s) এর **পরে** শেষ হয় — দুটি বার্তা এক পলকের জন্য একসাথে
+   থাকে, সেটাই আসল ক্রস-ফেড। */
+@keyframes nv-msg {
+  0%      { opacity: 0; transform: translateY(5px) }
+  4%, 33% { opacity: 1; transform: translateY(0) }
+  42%     { opacity: 0; transform: translateY(-5px) }
+  100%    { opacity: 0; transform: translateY(-5px) }
+}
+
+/* ── অগ্রগতির সরু রেখা (শতাংশ নয় — কেবল "চলছে" ইঙ্গিত) ── */
+.nv-bar { overflow: hidden; }
+.nv-bar > i { display: block; width: 40%; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--v-volt), transparent);
+  animation: nv-bar 1.9s cubic-bezier(.5,0,.5,1) infinite; }
+@keyframes nv-bar {
+  0%   { transform: translateX(-110%) }
+  100% { transform: translateX(360%) }
+}
+
+/* ═══════════ কম-গতি পছন্দ ═══════════
+   গ্লোবাল নিয়ম সব অ্যানিমেশন .01ms করে দেয় — তাতে দৃশ্যটি জমে যেত।
+   চাহিদা: "সরল করো, মান একই রাখো"। তাই কেবল **শান্ত** স্তরগুলো
+   ফেরানো হয়: শ্বাস, পলক ও বার্তা-বদল। ছোটাছুটি, আঘাত, শকওয়েভ,
+   রশ্মি ও কণা সম্পূর্ণ স্থির।
+
+   ⚠️ কিন্তু চিহ্নটি **জ্বলন্ত অবস্থাতেই** থেমে থাকে (`.nv-mark-lit`
+   এর opacity ১, `.nv-mark-dim` ০) — নাহলে কম-গতির ব্যবহারকারী একটি
+   ম্লান, অসম্পূর্ণ লোগো দেখতেন। গল্পটি বলা যায় না, কিন্তু গল্পের
+   **ফলাফল**টি দেখানো যায়: ব্র্যান্ড-চিহ্ন চার্জিত। */
+@media (prefers-reduced-motion: reduce) {
+  .nv-body, .nv-head, .nv-paw, .nv-tail, .nv-ear-l, .nv-ear-r, .nv-shadow,
+  .nv-spark, .nv-trail-p, .nv-dia, .nv-dia-bloom, .nv-dia-streak, .nv-dia-sat,
+  .nv-mote, .nv-pupil, .nv-eyes-happy, .nv-amb, .nv-hud, .nv-grid, .nv-tag,
+  .nv-mark, .nv-mark-bloom, .nv-mark-dim, .nv-mark-lit, .nv-shock, .nv-burst,
+  .nv-bolt, .nv-bar > i {
+    animation: none !important;
+  }
+  /* স্থির অবস্থায় চিহ্নটি জ্বলন্ত, ডায়মন্ড দৃশ্যমান, শকওয়েভ/রশ্মি নেই */
+  .nv-mark-lit { opacity: 1 !important; }
+  .nv-mark-dim, .nv-shock, .nv-burst, .nv-spark, .nv-trail-p, .nv-dia-streak {
+    opacity: 0 !important;
+  }
+  .nv-mark-bloom { opacity: .45 !important; }
+  .nv-dia { opacity: 1 !important; }
+  .nv-eyes-happy { opacity: 0 !important; }
+
+  .nv-breathe {
+    animation: nv-breathe 7s ease-in-out infinite !important;
+    animation-duration: 7s !important;
+  }
+  .nv-eyes {
+    animation: nv-blink 9s ease-in-out infinite !important;
+    animation-duration: 9s !important;
+    opacity: 1 !important;
+  }
+  .nv-msg > span {
+    animation: nv-msg 9s ease-in-out infinite !important;
+    animation-duration: 9s !important;
+  }
+}
+
+/* ── InlinePulse — কক্ষপথে তিনটি কণা (স্পিনার নয়) ── */
+.nv-pulse { position: relative; }
+.nv-pulse > i {
+  position: absolute; top: 50%; left: 50%;
+  width: 22%; height: 22%; margin: -11% 0 0 -11%;
+  border-radius: 999px; background: var(--v-volt);
+  animation: nv-pulse 1.15s linear infinite;
+}
+.nv-pulse > i:nth-child(2) { background: var(--v-ice); animation-delay: -.383s }
+.nv-pulse > i:nth-child(3) { background: var(--v-volt); animation-delay: -.766s; opacity: .6 }
+@keyframes nv-pulse {
+  from { transform: rotate(0deg) translateX(150%) }
+  to   { transform: rotate(360deg) translateX(150%) }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nv-pulse > i { animation: nv-pulse-rm 1.4s ease-in-out infinite !important; animation-duration: 1.4s !important; }
+  .nv-pulse > i:nth-child(2) { animation-delay: .2s !important }
+  .nv-pulse > i:nth-child(3) { animation-delay: .4s !important }
+  @keyframes nv-pulse-rm { 0%,100% { opacity: .25 } 50% { opacity: 1 } }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   ★★★ TOAST / নোটিফিকেশন — টোকেন-চালিত, দুই থিমেই
+
+   ── কেন নতুন করে লেখা হলো ──
+   আগে `Toast.tsx` লেগেসি Tailwind প্যালেট-ক্লাস ব্যবহার করত
+   (`bg-emerald-50 text-emerald-800` ইত্যাদি)। উপরের "bridge"
+   ব্লক ওগুলোকে `!important` দিয়ে পুনর্লিখন করে — যা inline
+   প্যানেলের জন্য বানানো, ভাসমান ওভারলের জন্য নয়। ফলাফল ছিল:
+
+     · `bg-*-50` → **১২% অস্বচ্ছ** ফিল, তাই নিচের নavbar/পাতা
+       টোস্টের ভেতর দিয়ে দেখা যেত — "লেখা ভাঙা / আইকন ওভারল্যাপ"
+     · `text-emerald-800` ও `text-amber-800` → **দুটোই** `--v-volt`
+       (একই লাইম), তাই warning দেখতে success এর মতো
+     · info এর `text-rose-800`/`bg-rose-50` → **হুবহু error এর রঙ**,
+       তাই তথ্য-বার্তা ব্যর্থতার মতো দেখাত
+     · কন্ট্রাস্ট: dark-এ error/info ৩.৫৮:১, light-এ চারটিই ~৩.৬:১
+       — WCAG AA (৪.৫:১) এর নিচে
+
+   ── এখনকার নিয়ম ──
+   ১. পৃষ্ঠতল **অস্বচ্ছ** (`--v-pit` বেস + ভূমিকা-টিন্ট) — কিছুই
+      ভেতর দিয়ে দেখা যায় না।
+   ২. বার্তার লেখা সবসময় `--v-ink` — dark ও light **দুই থিমেই**
+      AA পার করে, ভূমিকা যাই হোক।
+   ৩. ভূমিকা বোঝায় **আইকন + বাঁ-ধারের বার + হালকা টিন্ট**, লেখার
+      রঙ দিয়ে নয়। তাই রঙ-অন্ধ ব্যবহারকারীও আইকনে বোঝেন।
+   ৪. Tailwind প্যালেট-ক্লাস **ব্যবহার করা হয়নি** — bridge আর
+      কখনো এই কম্পোনেন্ট ছুঁতে পারবে না।
+   ═══════════════════════════════════════════════════════════ */
+
+/* ★ হোস্ট — মোবাইলে নিচে-মাঝে, ডেস্কটপে ডানে-উপরে।
+   `--v-toast-top` রানটাইমে ToastProvider বসায় (sticky হেডার/ট্যাবের
+   ঠিক নিচে), কারণ উচ্চতা পাতাভেদে আলাদা: পাবলিক ৭০px, অ্যাডমিন
+   ৬৯+৫৯=১২৮px। আগে `top-0` ছিল, তাই টোস্ট navbar-এর উপর বসত। */
+.v-toast-host {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 120;              /* navbar ৪০ · admin-nav ৩০ · dialog ৯০ এর উপরে */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .6rem;
+  padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+@media (min-width: 640px) {
+  .v-toast-host {
+    inset-inline: auto;
+    right: 1rem;
+    bottom: auto;
+    top: var(--v-toast-top, 5.5rem);
+    align-items: flex-end;
+    padding: 0;
+  }
+}
+
+.v-toast {
+  --v-toast-accent: var(--v-ice);
+  --v-toast-tint: rgba(125, 211, 252, .10);
+  pointer-events: auto;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: .7rem;
+  width: 100%;
+  max-width: 26rem;
+  padding: .8rem .9rem .8rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--v-edge2);
+  border-left: 3px solid var(--v-toast-accent);
+  /* ★ অস্বচ্ছ: টিন্ট স্তর + কঠিন বেস — পেছনের কিছু দেখা যায় না */
+  background:
+    linear-gradient(0deg, var(--v-toast-tint), var(--v-toast-tint)),
+    var(--v-pit);
+  color: var(--v-ink);
+  box-shadow: var(--v-shadow-3);
+  overflow-wrap: anywhere;
+}
+
+.v-toast__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  color: var(--v-toast-accent);
+}
+.v-toast__icon svg { width: 18px; height: 18px; display: block; }
+
+.v-toast__msg {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: .875rem;
+  line-height: 1.55;
+  color: var(--v-ink);
+}
+
+.v-toast__x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin: -2px -4px 0 0;
+  border-radius: 8px;
+  color: var(--v-mut);
+  transition: color var(--dur-fast, .15s) var(--ease, ease), background var(--dur-fast, .15s) var(--ease, ease);
+}
+.v-toast__x:hover { color: var(--v-ink); background: var(--v-fill2); }
+.v-toast__x:focus-visible { outline: 2px solid var(--v-toast-accent); outline-offset: 2px; }
+
+/* ── ভূমিকা-রঙ ──
+   ★ C3-এর পর accent সরাসরি `--sem-*` থেকে আসে, তাই থিম বদলালে
+     আলাদা override লাগে না — টোকেনই বদলে যায়। শুধু টিন্ট
+     (স্বচ্ছ ভরাট) থিমভেদে আলাদা, কারণ গাঢ় পটভূমিতে বেশি
+     অস্বচ্ছতা লাগে, সাদায় কম। */
+.v-toast--success { --v-toast-accent:var(--sem-success); --v-toast-tint:rgba(163,230,53,.10); }
+.v-toast--error   { --v-toast-accent:var(--sem-danger);  --v-toast-tint:rgba(251,113,133,.11); }
+.v-toast--warning { --v-toast-accent:var(--sem-warning); --v-toast-tint:rgba(251,191,36,.11); }
+.v-toast--info    { --v-toast-accent:var(--sem-info);    --v-toast-tint:rgba(125,211,252,.11); }
+
+:root[data-theme='light'] .v-toast--success { --v-toast-tint:rgba(21,128,61,.07); }
+:root[data-theme='light'] .v-toast--error   { --v-toast-tint:rgba(190,18,60,.06); }
+:root[data-theme='light'] .v-toast--warning { --v-toast-tint:rgba(180,83,9,.07); }
+:root[data-theme='light'] .v-toast--info    { --v-toast-tint:rgba(3,105,161,.06); }
+
+/* ── ইনলাইন alert-* · light-এ কেবল টিন্ট নরম (accent টোকেনেই বদলায়) ── */
+:root[data-theme='light'] .alert-error   { --alert-tint:rgba(190,18,60,.06); }
+:root[data-theme='light'] .alert-success { --alert-tint:rgba(21,128,61,.07); }
+:root[data-theme='light'] .alert-warn    { --alert-tint:rgba(180,83,9,.07); }

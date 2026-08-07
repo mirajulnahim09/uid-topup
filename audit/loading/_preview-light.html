@@ -1,0 +1,377 @@
+<!doctype html><html data-t="light"><head><meta charset="utf-8"><style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--v-void:#f4f6fb; --v-ink:#0f1729; --v-volt:#5a8a00; --v-ice:#0284c7;}
+    /* ওভারলের আসল চেহারা: থিমের void-রঙ ৮৮% + নরম vignette */
+    body{min-height:100vh;display:grid;place-items:center;
+      font-family:system-ui,'Noto Sans Bengali',sans-serif;
+      background:var(--v-void);
+    }
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;
+      background:radial-gradient(125% 95% at 50% 44%, transparent 0%,
+        rgba(0,0,0,.18) 62%, rgba(0,0,0,.34) 100%);}
+    :root[data-t='light'] body::before{background:radial-gradient(125% 95% at 50% 44%,
+      transparent 0%, rgba(20,28,48,.05) 62%, rgba(20,28,48,.11) 100%);}
+    .v-dsp{font-weight:800}
+    .flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}
+    .gap-3{gap:.75rem}.text-center{text-align:center}.mt-0\.5{margin-top:.125rem}
+    .block{display:block}.rounded-full{border-radius:9999px}
+    .h-\[3px\]{height:3px}.w-\[132px\]{width:132px}
+    .nv-svg * { transform-box: fill-box; }
+.nv-still * { animation: none !important; }
+
+/* ── পরিবেশ ── */
+.nv-amb { transform-origin: 50% 50%; animation: nv-amb 5.6s ease-in-out infinite; }
+@keyframes nv-amb {
+  0%, 100% { transform: scale(1);    opacity: .85 }
+  50%      { transform: scale(1.06); opacity: 1 }
+}
+/* HUD বন্ধনী — খুব মৃদু, নাহলে মনোযোগ কেড়ে নেয় */
+.nv-hud { animation: nv-hud 4.8s ease-in-out infinite; }
+@keyframes nv-hud { 0%, 100% { opacity: .3 } 50% { opacity: .52 } }
+/* মঞ্চের ষড়ভুজ জাল — চার্জের সাথে সাড়া দেয় */
+.nv-grid { transform-origin: 50% 50%; animation: nv-grid 5.2s ease-out infinite; }
+@keyframes nv-grid {
+  0%, 40%  { opacity: .18; transform: scale(1) }
+  46%      { opacity: .55; transform: scale(1.04) }
+  70%      { opacity: .28; transform: scale(1) }
+  100%     { opacity: .18; transform: scale(1) }
+}
+
+/* ── দেহ: মৃদু ওঠানামা + আঘাতের ঝাঁকুনি + খুশির লাফ ── */
+.nv-body { animation: nv-body 5.2s cubic-bezier(.4,0,.35,1) infinite; }
+@keyframes nv-body {
+  0%, 100% { transform: translateY(0) }
+  22%      { transform: translateY(-1px) }
+  29%      { transform: translateY(-5px) }   /* আঘাতের ঝাঁকুনি */
+  36%      { transform: translateY(0) }
+  47%      { transform: translateY(-6px) }   /* ইগনিশনে খুশির লাফ */
+  54%      { transform: translateY(0) }
+  60%      { transform: translateY(-3px) }
+  68%      { transform: translateY(0) }
+}
+
+.nv-breathe { transform-origin: 50% 100%; animation: nv-breathe 3.8s ease-in-out infinite; }
+@keyframes nv-breathe {
+  0%, 100% { transform: scaleY(1) scaleX(1) }
+  50%      { transform: scaleY(1.028) scaleX(.994) }
+}
+
+.nv-shadow { transform-origin: 50% 50%; animation: nv-shadow 5.2s cubic-bezier(.4,0,.35,1) infinite; }
+@keyframes nv-shadow {
+  0%, 100% { transform: scaleX(1);   opacity: .34 }
+  29%      { transform: scaleX(.9);  opacity: .2 }
+  47%      { transform: scaleX(.88); opacity: .18 }
+  68%      { transform: scaleX(1);   opacity: .34 }
+}
+
+/* ── মাথা: ডায়মন্ড অনুসরণ, তারপর চিহ্নের দিকে তাকানো ── */
+.nv-head { transform-origin: 50% 92%; animation: nv-head 5.2s cubic-bezier(.4,0,.3,1) infinite; }
+@keyframes nv-head {
+  0%, 12%  { transform: rotate(0deg) translateX(0) }
+  22%      { transform: rotate(5deg) translateX(3px) }
+  29%      { transform: rotate(8deg) translateX(4px) }   /* আঘাতের ঝোঁক */
+  40%      { transform: rotate(6deg) translateX(3px) }   /* উড়ন্ত ডায়মন্ড দেখে */
+  50%      { transform: rotate(7deg) translateX(4px) }   /* চিহ্নের দিকে */
+  70%      { transform: rotate(4deg) translateX(2px) }
+  100%     { transform: rotate(0deg) translateX(0) }
+}
+.nv-pupil { animation: nv-pupil 5.2s cubic-bezier(.4,0,.3,1) infinite; }
+@keyframes nv-pupil {
+  0%, 10%  { transform: translateX(0) }
+  24%      { transform: translateX(2.6px) }
+  44%      { transform: translateX(4.2px) }   /* চিহ্নে স্থির */
+  68%      { transform: translateX(3.4px) }
+  100%     { transform: translateX(0) }
+}
+
+/* ── পলক + খুশির চোখ ──
+   ⚠️ একই উপাদানে **দুটি** অ্যানিমেশন কমা দিয়ে: আলাদা ক্লাসে ভাগ
+   করলে দুটি `animation` ঘোষণা পরস্পরকে বাতিল করত। */
+.nv-eyes { transform-origin: 50% 50%; animation: nv-blink 5.4s ease-in-out infinite, nv-eyes-hide 5.2s linear infinite; }
+@keyframes nv-blink {
+  0%, 40%, 45.5%, 85%, 100% { transform: scaleY(1) }
+  42.5%, 43.8%              { transform: scaleY(.06) }
+  87.5%, 88.8%              { transform: scaleY(.06) }
+}
+@keyframes nv-eyes-hide {
+  0%, 44%, 70%, 100% { opacity: 1 }
+  47%, 66%           { opacity: 0 }
+}
+.nv-eyes-happy { opacity: 0; animation: nv-happy 5.2s linear infinite; }
+@keyframes nv-happy {
+  0%, 44%, 70%, 100% { opacity: 0 }
+  47%, 66%           { opacity: 1 }
+}
+
+/* ── কান ── */
+.nv-ear-l { transform-origin: 72% 100%; animation: nv-ear-l 5.9s ease-in-out infinite; }
+.nv-ear-r { transform-origin: 28% 100%; animation: nv-ear-r 6.7s ease-in-out infinite; }
+@keyframes nv-ear-l {
+  0%, 22%, 30%, 100% { transform: rotate(0deg) }
+  25%                { transform: rotate(-8deg) }
+  27.5%              { transform: rotate(3deg) }
+}
+@keyframes nv-ear-r {
+  0%, 54%, 63%, 100% { transform: rotate(0deg) }
+  57%                { transform: rotate(7deg) }
+  60%                { transform: rotate(-3deg) }
+}
+
+/* ── লেজ ── pivot ডান-নিচে: লেজ দেহ থেকে বাঁয়ে বেরোয় */
+.nv-tail { transform-origin: 98% 100%; animation: nv-tail 4.6s ease-in-out infinite; }
+@keyframes nv-tail {
+  0%, 100% { transform: rotate(5deg) }
+  33%      { transform: rotate(-7deg) }
+  66%      { transform: rotate(9deg) }
+}
+
+/* ── কলার ও ট্যাগ — ট্যাগটি দুলে, ইগনিশনে ঝলকে ── */
+.nv-tag { transform-origin: 50% 0%; animation: nv-tag 5.2s ease-in-out infinite; }
+@keyframes nv-tag {
+  0%, 100% { transform: rotate(-3deg) }
+  29%      { transform: rotate(6deg) }    /* আঘাতের ধাক্কা */
+  47%      { transform: rotate(-7deg) }
+  62%      { transform: rotate(3deg) }
+  80%      { transform: rotate(-3deg) }
+}
+
+/* ── থাবা: প্রস্তুতি → আঘাত → ফেরা ── */
+.nv-paw { transform-origin: 12% 14%; animation: nv-paw 5.2s cubic-bezier(.34,0,.2,1) infinite; }
+@keyframes nv-paw {
+  0%, 14%  { transform: rotate(0deg) translateX(0) }
+  23%      { transform: rotate(-28deg) translateX(-5px) }  /* পিছনে টানা */
+  29%      { transform: rotate(7deg) translateX(16px) }    /* আঘাত */
+  38%      { transform: rotate(-6deg) translateX(2px) }
+  48%      { transform: rotate(-14deg) translateX(4px) }   /* উল্লাসে তোলা */
+  62%      { transform: rotate(-10deg) translateX(3px) }
+  100%     { transform: rotate(0deg) translateX(0) }
+}
+
+/* ══════════ ডায়মন্ড — বিড়াল থেকে চিহ্ন পর্যন্ত ══════════
+   বিশ্রামে (২৬৬,১৫০), লক্ষ্য চিহ্নের কেন্দ্র (৩৫২,১১৮) → Δ(+86,−32)।
+   ⚠️ ৪৪%-এ ডায়মন্ড **অদৃশ্য** হয় (চিহ্নে শুষে নেওয়া) — তখনই
+   ইগনিশন। দুটি একই ফ্রেমে না ঘটলে "লেগেছে" মনে হতো না। */
+.nv-dia { animation: nv-dia 5.2s infinite; }
+@keyframes nv-dia {
+  0%   { transform: translate(-6px,-4px) scale(1); opacity: 1; animation-timing-function: cubic-bezier(.4,0,.5,1) }
+  14%  { transform: translate(-14px,4px) scale(1);  opacity: 1; animation-timing-function: cubic-bezier(.3,0,.2,1) }
+  23%  { transform: translate(-20px,2px) scale(1);  opacity: 1; animation-timing-function: cubic-bezier(.4,0,.9,1) }
+  29%  { transform: translate(-12px,0) scale(1.06); opacity: 1; animation-timing-function: cubic-bezier(.1,.7,.3,1) }
+  43%  { transform: translate(84px,-31px) scale(.9); opacity: 1; animation-timing-function: linear }
+  44%  { transform: translate(86px,-32px) scale(.5); opacity: 0 }   /* শুষে নেওয়া */
+  70%  { transform: translate(86px,-32px) scale(.5); opacity: 0; animation-timing-function: cubic-bezier(.3,1.5,.5,1) }
+  84%  { transform: translate(-6px,-4px) scale(1);  opacity: 1 }    /* ফিরে আসা */
+  100% { transform: translate(-6px,-4px) scale(1);  opacity: 1 }
+}
+.nv-dia-bloom { transform-origin: 50% 50%; animation: nv-dia-bloom 5.2s ease-out infinite; }
+@keyframes nv-dia-bloom {
+  0%, 24% { transform: scale(1);    opacity: .75 }
+  30%     { transform: scale(1.55); opacity: 1 }
+  44%     { transform: scale(1.1);  opacity: .9 }
+  100%    { transform: scale(1);    opacity: .75 }
+}
+/* গতি-রেখা — কেবল উড়ন্ত অবস্থায় */
+.nv-dia-streak { transform-origin: 50% 50%; opacity: 0; animation: nv-dia-streak 5.2s linear infinite; }
+@keyframes nv-dia-streak {
+  0%, 29%, 46%, 100% { opacity: 0; transform: scaleX(.4) }
+  34%                { opacity: .6; transform: scaleX(1.4) }
+  42%                { opacity: .3; transform: scaleX(1.1) }
+}
+.nv-dia-sat { transform-origin: 50% 50%; animation: nv-sat 3.4s linear infinite; }
+@keyframes nv-sat { to { transform: rotate(-360deg) } }
+/* কণা-রেখা — ডায়মন্ডের পিছনে */
+.nv-trail-p { opacity: 0; animation: nv-trail 5.2s ease-out infinite; }
+.nv-trail-p--2 { animation-delay: .06s }
+.nv-trail-p--3 { animation-delay: .12s }
+@keyframes nv-trail {
+  0%, 29% { opacity: 0;  transform: translate(0,0) scale(1) }
+  33%     { opacity: .95; transform: translate(-16px,6px) scale(.9) }
+  44%     { opacity: 0;  transform: translate(-46px,16px) scale(.3) }
+  100%    { opacity: 0;  transform: translate(-46px,16px) scale(.3) }
+}
+
+/* ── থাবার স্ফুলিঙ্গ — কেবল সংস্পর্শের মুহূর্তে ── */
+.nv-spark { transform-origin: 50% 50%; opacity: 0; animation: nv-spark 5.2s ease-out infinite; }
+@keyframes nv-spark {
+  0%, 27% { opacity: 0; transform: scale(.4) }
+  29.5%   { opacity: 1; transform: scale(1) }
+  36%     { opacity: 0; transform: scale(1.5) }
+  100%    { opacity: 0; transform: scale(1.5) }
+}
+
+/* ══════════ ব্র্যান্ড-চিহ্ন: ম্লান → জ্বলন্ত → ম্লান ══════════ */
+.nv-mark-dim { animation: nv-mark-dim 5.2s ease-out infinite; }
+@keyframes nv-mark-dim {
+  0%, 43% { opacity: 1 }
+  46%     { opacity: 0 }
+  68%     { opacity: 0 }
+  78%     { opacity: 1 }
+  100%    { opacity: 1 }
+}
+.nv-mark-lit { opacity: 0; animation: nv-mark-lit 5.2s ease-out infinite; }
+@keyframes nv-mark-lit {
+  0%, 43% { opacity: 0 }
+  45%     { opacity: 1 }
+  68%     { opacity: 1 }
+  78%     { opacity: 0 }
+  100%    { opacity: 0 }
+}
+/* পুরো চিহ্নটি আঘাতে সামান্য "ধাক্কা" খায় — জড় বস্তু মনে হয় না */
+.nv-mark { transform-origin: 50% 50%; animation: nv-mark 5.2s cubic-bezier(.2,.9,.3,1) infinite; }
+@keyframes nv-mark {
+  0%, 42% { transform: scale(1) }
+  45%     { transform: scale(1.12) }
+  52%     { transform: scale(.98) }
+  60%     { transform: scale(1.02) }
+  70%     { transform: scale(1) }
+  100%    { transform: scale(1) }
+}
+.nv-mark-bloom { transform-origin: 50% 50%; opacity: 0; animation: nv-mark-bloom 5.2s ease-out infinite; }
+/* ⚠️ চার্জিত পর্বে আভা **ধরে রাখতে হয়**। প্রথমে ৫৬%-এই তা ম্লান
+   হয়ে যেত, ফলে বিড়াল যখন খুশিতে হাসছে তখন চিহ্নটি দেখতে নিভে
+   যাওয়া মনে হতো — পরিশোধের মুহূর্তটাই দুর্বল হয়ে পড়ত। */
+@keyframes nv-mark-bloom {
+  0%, 42% { opacity: 0;   transform: scale(.6) }
+  45%     { opacity: 1;   transform: scale(1.12) }
+  52%     { opacity: .82; transform: scale(.96) }
+  68%     { opacity: .72; transform: scale(1) }
+  78%     { opacity: 0;   transform: scale(.82) }
+  100%    { opacity: 0;   transform: scale(.6) }
+}
+/* বজ্রটি জ্বলে ওঠার ঠিক পরে একবার ঝিলিক দেয় */
+.nv-bolt { animation: nv-bolt 5.2s linear infinite; }
+@keyframes nv-bolt {
+  0%, 44% { opacity: .95 }
+  47%     { opacity: .55 }
+  50%     { opacity: 1 }
+  56%     { opacity: .8 }
+  68%     { opacity: .95 }
+  100%    { opacity: .95 }
+}
+/* শকওয়েভ — দুটি রিং, একটি সামান্য পিছিয়ে */
+.nv-shock { transform-origin: 50% 50%; opacity: 0; animation: nv-shock 5.2s cubic-bezier(.15,.7,.3,1) infinite; }
+.nv-shock--2 { animation-delay: .09s }
+@keyframes nv-shock {
+  0%, 43% { opacity: 0;   transform: scale(.9) }
+  45%     { opacity: .9;  transform: scale(1.05) }
+  58%     { opacity: 0;   transform: scale(1.75) }
+  100%    { opacity: 0;   transform: scale(1.75) }
+}
+/* আঘাতের রশ্মি */
+.nv-burst { transform-origin: 50% 50%; opacity: 0; animation: nv-burst 5.2s ease-out infinite; }
+@keyframes nv-burst {
+  0%, 43% { opacity: 0; transform: scale(.55) }
+  45.5%   { opacity: .95; transform: scale(.85) }
+  54%     { opacity: 0; transform: scale(1.2) }
+  100%    { opacity: 0; transform: scale(1.2) }
+}
+
+/* ── ভাসমান কণা ── */
+.nv-mote { opacity: 0; animation: nv-mote 7s ease-in-out infinite; }
+.nv-mote--2 { animation-delay: 1.4s; animation-duration: 8.2s }
+.nv-mote--3 { animation-delay: 2.9s; animation-duration: 6.4s }
+.nv-mote--4 { animation-delay: 4.1s; animation-duration: 9s }
+.nv-mote--5 { animation-delay: 5.5s; animation-duration: 7.6s }
+.nv-mote--6 { animation-delay: 3.4s; animation-duration: 8.8s }
+@keyframes nv-mote {
+  0%   { opacity: 0;   transform: translateY(6px) }
+  25%  { opacity: .55; transform: translateY(0) }
+  60%  { opacity: .3;  transform: translateY(-10px) }
+  100% { opacity: 0;   transform: translateY(-20px) }
+}
+
+/* ═══════════ স্ট্যাটাস বার্তা — CSS দিয়ে ক্রস-ফেড ═══════════
+   কোনো JS টাইমার নেই: তিনটি বার্তা স্তূপ করে রাখা, একটিই
+   অ্যানিমেশন পালা করে দেখায়। ফলে **সার্ভার-রেন্ডার করা বুট-পর্দাতেও**
+   হুবহু একই আচরণ — JS চালু হওয়ার আগেই বার্তা বদলাতে থাকে। */
+.nv-msg { display: grid; }
+.nv-msg > span { grid-area: 1 / 1; opacity: 0; animation: nv-msg 9s ease-in-out infinite; }
+.nv-msg > span:nth-child(2) { animation-delay: 3s }
+.nv-msg > span:nth-child(3) { animation-delay: 6s }
+/* ⚠️ সময়গুলো **ওভারল্যাপ করতেই হবে**। প্রথম সংস্করণে একটি বার্তা
+   ৩৩% এ পুরো মিলিয়ে যেত আর পরেরটি ৩৬% এর আগে ফুটত না — মাঝের
+   ~০.৪ সেকেন্ড পর্দায় **কোনো বার্তাই থাকত না**। টেস্টে সেটি ধরা
+   পড়েছিল ("০ → ১ দৃশ্যমান")। বিলম্ব ৩s, তাই এখানে বেরিয়ে যাওয়া
+   ৩৩% (=৩s) এর **পরে** শেষ হয় — দুটি বার্তা এক পলকের জন্য একসাথে
+   থাকে, সেটাই আসল ক্রস-ফেড। */
+@keyframes nv-msg {
+  0%      { opacity: 0; transform: translateY(5px) }
+  4%, 33% { opacity: 1; transform: translateY(0) }
+  42%     { opacity: 0; transform: translateY(-5px) }
+  100%    { opacity: 0; transform: translateY(-5px) }
+}
+
+/* ── অগ্রগতির সরু রেখা (শতাংশ নয় — কেবল "চলছে" ইঙ্গিত) ── */
+.nv-bar { overflow: hidden; }
+.nv-bar > i { display: block; width: 40%; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--v-volt), transparent);
+  animation: nv-bar 1.9s cubic-bezier(.5,0,.5,1) infinite; }
+@keyframes nv-bar {
+  0%   { transform: translateX(-110%) }
+  100% { transform: translateX(360%) }
+}
+
+/* ═══════════ কম-গতি পছন্দ ═══════════
+   গ্লোবাল নিয়ম সব অ্যানিমেশন .01ms করে দেয় — তাতে দৃশ্যটি জমে যেত।
+   চাহিদা: "সরল করো, মান একই রাখো"। তাই কেবল **শান্ত** স্তরগুলো
+   ফেরানো হয়: শ্বাস, পলক ও বার্তা-বদল। ছোটাছুটি, আঘাত, শকওয়েভ,
+   রশ্মি ও কণা সম্পূর্ণ স্থির।
+
+   ⚠️ কিন্তু চিহ্নটি **জ্বলন্ত অবস্থাতেই** থেমে থাকে (`.nv-mark-lit`
+   এর opacity ১, `.nv-mark-dim` ০) — নাহলে কম-গতির ব্যবহারকারী একটি
+   ম্লান, অসম্পূর্ণ লোগো দেখতেন। গল্পটি বলা যায় না, কিন্তু গল্পের
+   **ফলাফল**টি দেখানো যায়: ব্র্যান্ড-চিহ্ন চার্জিত। */
+@media (prefers-reduced-motion: reduce) {
+  .nv-body, .nv-head, .nv-paw, .nv-tail, .nv-ear-l, .nv-ear-r, .nv-shadow,
+  .nv-spark, .nv-trail-p, .nv-dia, .nv-dia-bloom, .nv-dia-streak, .nv-dia-sat,
+  .nv-mote, .nv-pupil, .nv-eyes-happy, .nv-amb, .nv-hud, .nv-grid, .nv-tag,
+  .nv-mark, .nv-mark-bloom, .nv-mark-dim, .nv-mark-lit, .nv-shock, .nv-burst,
+  .nv-bolt, .nv-bar > i {
+    animation: none !important;
+  }
+  /* স্থির অবস্থায় চিহ্নটি জ্বলন্ত, ডায়মন্ড দৃশ্যমান, শকওয়েভ/রশ্মি নেই */
+  .nv-mark-lit { opacity: 1 !important; }
+  .nv-mark-dim, .nv-shock, .nv-burst, .nv-spark, .nv-trail-p, .nv-dia-streak {
+    opacity: 0 !important;
+  }
+  .nv-mark-bloom { opacity: .45 !important; }
+  .nv-dia { opacity: 1 !important; }
+  .nv-eyes-happy { opacity: 0 !important; }
+
+  .nv-breathe {
+    animation: nv-breathe 7s ease-in-out infinite !important;
+    animation-duration: 7s !important;
+  }
+  .nv-eyes {
+    animation: nv-blink 9s ease-in-out infinite !important;
+    animation-duration: 9s !important;
+    opacity: 1 !important;
+  }
+  .nv-msg > span {
+    animation: nv-msg 9s ease-in-out infinite !important;
+    animation-duration: 9s !important;
+  }
+}
+
+/* ── InlinePulse — কক্ষপথে তিনটি কণা (স্পিনার নয়) ── */
+.nv-pulse { position: relative; }
+.nv-pulse > i {
+  position: absolute; top: 50%; left: 50%;
+  width: 22%; height: 22%; margin: -11% 0 0 -11%;
+  border-radius: 999px; background: var(--v-volt);
+  animation: nv-pulse 1.15s linear infinite;
+}
+.nv-pulse > i:nth-child(2) { background: var(--v-ice); animation-delay: -.383s }
+.nv-pulse > i:nth-child(3) { background: var(--v-volt); animation-delay: -.766s; opacity: .6 }
+@keyframes nv-pulse {
+  from { transform: rotate(0deg) translateX(150%) }
+  to   { transform: rotate(360deg) translateX(150%) }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nv-pulse > i { animation: nv-pulse-rm 1.4s ease-in-out infinite !important; animation-duration: 1.4s !important; }
+  .nv-pulse > i:nth-child(2) { animation-delay: .2s !important }
+  .nv-pulse > i:nth-child(3) { animation-delay: .4s !important }
+  @keyframes nv-pulse-rm { 0%,100% { opacity: .25 } 50% { opacity: 1 } }
+}
+
+  </style></head><body><div class="flex flex-col items-center gap-3 text-center"><svg class="nv-svg" width="460" height="271.4" viewBox="0 0 440 260" fill="none" aria-hidden="true"><defs><linearGradient id="pv-fur" x1=".28" y1="0" x2=".72" y2="1"><stop offset="0" stop-color="#6d7ca8"></stop><stop offset=".42" stop-color="#445075"></stop><stop offset="1" stop-color="#1e2740"></stop></linearGradient><linearGradient id="pv-furHead" x1=".3" y1="0" x2=".7" y2="1"><stop offset="0" stop-color="#7d8cb8"></stop><stop offset=".45" stop-color="#4c5980"></stop><stop offset="1" stop-color="#28324f"></stop></linearGradient><linearGradient id="pv-fluff" x1=".5" y1="0" x2=".5" y2="1"><stop offset="0" stop-color="#f6f9ff"></stop><stop offset="1" stop-color="#c6d2e8"></stop></linearGradient><linearGradient id="pv-rim" x1="1" y1=".75" x2=".1" y2=".1"><stop offset="0" stop-color="#d8ff6a" stop-opacity="1"></stop><stop offset=".45" stop-color="#a6ee3d" stop-opacity=".7"></stop><stop offset="1" stop-color="#7de3ff" stop-opacity="0"></stop></linearGradient><linearGradient id="pv-cool" x1="0" y1=".2" x2="1" y2=".9"><stop offset="0" stop-color="#7de3ff" stop-opacity=".5"></stop><stop offset="1" stop-color="#7de3ff" stop-opacity="0"></stop></linearGradient><linearGradient id="pv-mark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c8ff3d"></stop><stop offset=".52" stop-color="#7de3ff"></stop><stop offset="1" stop-color="#7b2cff"></stop></linearGradient><mask id="pv-cut"><polygon points="352,72 391.84,95 391.84,141 352,164 312.16,141 312.16,95" fill="#fff"></polygon><path d="M359.67 89.52 L334.48 121.29 H347.18 L344.33 146.48 L369.52 114.71 H356.82 Z" fill="#000"></path></mask><linearGradient id="pv-diaTop" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#ffffff"></stop><stop offset=".5" stop-color="#bdefff"></stop><stop offset="1" stop-color="#6cc9f0"></stop></linearGradient><linearGradient id="pv-diaBot" x1=".2" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#8ddcf7"></stop><stop offset=".55" stop-color="#3aa6d8"></stop><stop offset="1" stop-color="#1b6f9c"></stop></linearGradient><radialGradient id="pv-bloomIce" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#7de3ff" stop-opacity=".6"></stop><stop offset=".35" stop-color="#7de3ff" stop-opacity=".22"></stop><stop offset="1" stop-color="#7de3ff" stop-opacity="0"></stop></radialGradient><radialGradient id="pv-bloomLime" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#e8ffb0" stop-opacity=".85"></stop><stop offset=".28" stop-color="#c8ff3d" stop-opacity=".4"></stop><stop offset=".65" stop-color="#a6ee3d" stop-opacity=".1"></stop><stop offset="1" stop-color="#a6ee3d" stop-opacity="0"></stop></radialGradient><radialGradient id="pv-stage" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#7de3ff" stop-opacity=".26"></stop><stop offset=".5" stop-color="#7b2cff" stop-opacity=".08"></stop><stop offset="1" stop-color="#7b2cff" stop-opacity="0"></stop></radialGradient><radialGradient id="pv-amb" cx=".5" cy=".45" r=".5"><stop offset="0" stop-color="#8fb0ff" stop-opacity=".2"></stop><stop offset=".6" stop-color="#7de3ff" stop-opacity=".07"></stop><stop offset="1" stop-color="#7de3ff" stop-opacity="0"></stop></radialGradient><radialGradient id="pv-shade" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#03050b" stop-opacity=".55"></stop><stop offset=".55" stop-color="#03050b" stop-opacity=".26"></stop><stop offset="1" stop-color="#03050b" stop-opacity="0"></stop></radialGradient><radialGradient id="pv-iris" cx=".38" cy=".3" r=".78"><stop offset="0" stop-color="#dcff92"></stop><stop offset=".4" stop-color="#a5e83f"></stop><stop offset=".78" stop-color="#5fa81c"></stop><stop offset="1" stop-color="#2b5c0d"></stop></radialGradient></defs><ellipse class="nv-amb" cx="210" cy="122" rx="205" ry="104" fill="url(#pv-amb)"></ellipse><g class="nv-hud" stroke="#7de3ff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".38"><path d="M14 40V18h22M426 40V18h-22M14 220v22h22M426 220v22h-22"></path></g><ellipse cx="170" cy="216" rx="150" ry="30" fill="url(#pv-stage)"></ellipse><g class="nv-grid" stroke="#7de3ff" stroke-width="1" fill="none" opacity=".22"><polygon points="170,196 218,208 218,226 170,238 122,226 122,208"></polygon><polygon points="170,204 200,211.5 200,222.5 170,230 140,222.5 140,211.5"></polygon></g><ellipse class="nv-shadow" cx="163" cy="215" rx="92" ry="17" fill="url(#pv-shade)"></ellipse><g fill="#c8ff3d"><circle class="nv-mote nv-mote--1" cx="72" cy="76" r="1.8"></circle><circle class="nv-mote nv-mote--2" cx="404" cy="58" r="1.4"></circle><circle class="nv-mote nv-mote--3" cx="262" cy="38" r="1.6"></circle><circle class="nv-mote nv-mote--4" cx="118" cy="34" r="1.3"></circle><circle class="nv-mote nv-mote--5" cx="418" cy="186" r="1.5"></circle><circle class="nv-mote nv-mote--6" cx="44" cy="140" r="1.2"></circle></g><g class="nv-mark"><circle class="nv-mark-bloom" cx="352" cy="118" r="86" fill="url(#pv-bloomLime)"></circle><polygon class="nv-shock nv-shock--1" points="352,72 391.84,95 391.84,141 352,164 312.16,141 312.16,95" fill="none" stroke="#e8ffb0" stroke-width="2.5" stroke-linejoin="round"></polygon><polygon class="nv-shock nv-shock--2" points="352,72 391.84,95 391.84,141 352,164 312.16,141 312.16,95" fill="none" stroke="#7de3ff" stroke-width="1.8" stroke-linejoin="round"></polygon><g class="nv-mark-dim"><polygon points="352,72 391.84,95 391.84,141 352,164 312.16,141 312.16,95" fill="url(#pv-mark)" mask="url(#pv-cut)" opacity=".26"></polygon><polygon points="352,72 391.84,95 391.84,141 352,164 312.16,141 312.16,95" fill="none" stroke="url(#pv-mark)" stroke-width="2" stroke-linejoin="round" opacity=".5"></polygon><polygon points="352,83.4 381.57,100.5 381.57,135.5 352,152.6 322.43,135.5 322.43,100.5" fill="none" stroke="rgba(125,227,255,.28)" stroke-width="1.1" stroke-linejoin="round"></polygon></g><g class="nv-mark-lit"><polygon points="352,72 391.84,95 391.84,141 352,164 312.16,141 312.16,95" fill="url(#pv-mark)" mask="url(#pv-cut)"></polygon><polygon points="352,72 391.84,95 391.84,141 352,164 312.16,141 312.16,95" fill="none" stroke="#eaffb8" stroke-width="2.4" stroke-linejoin="round"></polygon><polygon points="352,83.4 381.57,100.5 381.57,135.5 352,152.6 322.43,135.5 322.43,100.5" fill="none" stroke="rgba(232,255,176,.7)" stroke-width="1.3" stroke-linejoin="round"></polygon><path class="nv-bolt" d="M359.67 89.52 L334.48 121.29 H347.18 L344.33 146.48 L369.52 114.71 H356.82 Z" fill="#f6ffe0" opacity=".95"></path></g><g class="nv-burst" stroke="#eaffb8" stroke-width="2.6" stroke-linecap="round" fill="none"><path d="M352 46V22M352 190v24M410 118h24M294 118h-24M394 76l17-17M394 160l17 17M310 76l-17-17M310 160l-17 17"></path></g></g><g class="nv-body"><g class="nv-tail"><path d="M115 200c-30 6-52-8-58-30-6-21 4-42 20-49" stroke="url(#pv-fur)" stroke-width="17" stroke-linecap="round" fill="none"></path><path d="M115 200c-30 6-52-8-58-30-6-21 4-42 20-49" stroke="url(#pv-cool)" stroke-width="5" stroke-linecap="round" fill="none" opacity=".75"></path></g><ellipse cx="105" cy="200" rx="27" ry="15" fill="url(#pv-fur)"></ellipse><ellipse cx="221" cy="200" rx="27" ry="15" fill="url(#pv-fur)"></ellipse><g class="nv-breathe"><path d="M99 206c-9-38 0-76 20-95 14-13 36-17 55-12 26 7 43 29 46 58 2 21-3 38-11 49z" fill="url(#pv-fur)"></path><path d="M99 206c-9-38 0-76 20-95 8-8 19-13 30-15-14 8-24 22-29 38-7 22-7 47-2 72z" fill="url(#pv-cool)" opacity=".5"></path><path d="M127 206c-8-27-4-50 8-63 8-9 21-10 30-4 12 8 19 24 19 42 0 11-2 20-5 25z" fill="url(#pv-fluff)"></path><ellipse cx="163" cy="204" rx="60" ry="10" fill="#0a0f1e" opacity=".22"></ellipse></g><ellipse cx="105" cy="203" rx="15" ry="8.5" fill="url(#pv-fluff)" opacity=".95"></ellipse><ellipse cx="221" cy="203" rx="15" ry="8.5" fill="url(#pv-fluff)" opacity=".95"></ellipse><ellipse cx="105" cy="202" rx="5" ry="3" fill="#f2a8bd" opacity=".55"></ellipse><g class="nv-head"><g class="nv-ear-l"><path d="M121 72 103 22l48 26z" fill="url(#pv-furHead)"></path><path d="M124 66 113 34l26 15z" fill="#f2a8bd" opacity=".45"></path></g><g class="nv-ear-r"><path d="M199 72 217 22l-48 26z" fill="url(#pv-furHead)"></path><path d="M196 66 207 34l-26 15z" fill="#f2a8bd" opacity=".45"></path><path d="M217 22 200 71" stroke="url(#pv-rim)" stroke-width="3.4" stroke-linecap="round"></path></g><ellipse cx="160" cy="92" rx="57" ry="49" fill="url(#pv-furHead)"></ellipse><path d="M160 43c-31 0-57 22-57 49 0 17 10 32 26 41-10-11-16-25-16-41 0-24 19-44 47-49z" fill="url(#pv-cool)" opacity=".55"></path><ellipse cx="160" cy="134" rx="40" ry="10" fill="#0a0f1e" opacity=".26"></ellipse><ellipse cx="125" cy="106" rx="12" ry="7" fill="#f2a8bd" opacity=".3"></ellipse><ellipse cx="195" cy="106" rx="12" ry="7" fill="#f2a8bd" opacity=".3"></ellipse><g class="nv-eyes"><g><ellipse cx="139" cy="88" rx="12" ry="14" fill="#080b13"></ellipse><ellipse cx="139" cy="88" rx="9.6" ry="11.6" fill="url(#pv-iris)"></ellipse><ellipse class="nv-pupil" cx="139" cy="88" rx="4.2" ry="8.4" fill="#080b13"></ellipse><circle cx="143" cy="82" r="3.6" fill="#fff" opacity=".96"></circle><circle cx="135" cy="94" r="1.8" fill="#fff" opacity=".55"></circle></g><g><ellipse cx="181" cy="88" rx="12" ry="14" fill="#080b13"></ellipse><ellipse cx="181" cy="88" rx="9.6" ry="11.6" fill="url(#pv-iris)"></ellipse><ellipse class="nv-pupil" cx="181" cy="88" rx="4.2" ry="8.4" fill="#080b13"></ellipse><circle cx="185" cy="82" r="3.6" fill="#fff" opacity=".96"></circle><circle cx="177" cy="94" r="1.8" fill="#fff" opacity=".55"></circle></g></g><g class="nv-eyes-happy" stroke="#080b13" stroke-width="3.6" stroke-linecap="round" fill="none"><path d="M130 90c4.5-6.5 13.5-6.5 18 0"></path><path d="M172 90c4.5-6.5 13.5-6.5 18 0"></path></g><path d="M160 108l-6-5h12z" fill="#f2a8bd"></path><path d="M160 109v4.4m0 0c-3.8 0-5.6-2.3-5.6-2.3m5.6 2.3c3.8 0 5.6-2.3 5.6-2.3" stroke="#080b13" stroke-width="2" stroke-linecap="round" fill="none" opacity=".85"></path><g stroke="#eef3ff" stroke-width="1.6" stroke-linecap="round" opacity=".55"><path d="M115 100H91M116 107l-22 6M116 93l-22-6"></path><path d="M205 100h24M204 107l22 6M204 93l22-6"></path></g><path d="M217 92a57 49 0 0 1 0 84" stroke="url(#pv-rim)" stroke-width="4" stroke-linecap="round" fill="none" transform="translate(-29 -50)"></path></g><g class="nv-collar"><path d="M131 136c9 8 20 12 30 12s21-4 30-12" stroke="#c8ff3d" stroke-width="7" stroke-linecap="round" fill="none"></path><path d="M131 136c9 8 20 12 30 12s21-4 30-12" stroke="#eaffb8" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".65"></path><g class="nv-tag"><polygon points="161,149 170,154 170,164 161,169 152,164 152,154" fill="url(#pv-mark)"></polygon><polygon points="161,149 170,154 170,164 161,169 152,164 152,154" fill="none" stroke="#eaffb8" stroke-width="1" opacity=".8"></polygon><path d="M162.6 153.5 157.5 160h2.6l-.6 5 5.1-6.5h-2.6z" fill="#0a0f1e" opacity=".85"></path></g></g><g class="nv-paw"><ellipse cx="189" cy="142" rx="17" ry="15" fill="#0a0f1e" opacity=".28"></ellipse><path d="M179 128c11-6 25-4 35 3l14 8c9 5 9 16 0 21-9 5-19 2-25-4l-23-14c-7-4-7-11-1-14z" fill="url(#pv-furHead)" stroke="#141c30" stroke-width="2.2" stroke-linejoin="round"></path><path d="M183 141l23 14c6 6 16 9 25 4" stroke="#151d33" stroke-width="4" stroke-linecap="round" fill="none" opacity=".6"></path><ellipse cx="235" cy="150" rx="17" ry="13.5" fill="url(#pv-fluff)"></ellipse><ellipse cx="235" cy="150" rx="17" ry="13.5" fill="none" stroke="#1b2439" stroke-width="1.4" opacity=".35"></ellipse><ellipse cx="237" cy="153" rx="6.4" ry="4.6" fill="#f2a8bd" opacity=".85"></ellipse><circle cx="229" cy="144" r="2.8" fill="#f2a8bd" opacity=".7"></circle><circle cx="243" cy="143" r="2.8" fill="#f2a8bd" opacity=".7"></circle><path d="M214 131l14 8c8 5 9 15 1 20" stroke="url(#pv-rim)" stroke-width="3.6" stroke-linecap="round" fill="none"></path></g><path d="M194 100c16 12 26 32 27 55 .5 11 0 21-2 30" stroke="url(#pv-rim)" stroke-width="4.5" stroke-linecap="round" fill="none" opacity=".85"></path></g><g class="nv-dia"><ellipse class="nv-dia-streak" cx="266" cy="150" rx="52" ry="11" fill="url(#pv-bloomIce)"></ellipse><circle class="nv-dia-bloom" cx="266" cy="150" r="40" fill="url(#pv-bloomIce)"></circle><path d="M254 138h24l9 10h-42z" fill="url(#pv-diaTop)"></path><path d="M245 148h42l-21 25z" fill="url(#pv-diaBot)"></path><g stroke="#f2fbff" stroke-width="1.1" opacity=".55" fill="none"><path d="M254 138l-9 10M278 138l9 10M266 138v10M245 148l21 25M287 148l-21 25M258 148l8 25M274 148l-8 25"></path></g><path d="M256 140h9l-3 5h-9z" fill="#ffffff" opacity=".7"></path><g class="nv-dia-sat"><circle cx="266" cy="150" r="2.4" fill="#eaffff" transform="translate(30 0)"></circle><circle cx="266" cy="150" r="1.7" fill="#c8ff3d" transform="translate(-30 0)"></circle></g><g fill="#bdefff"><circle class="nv-trail-p nv-trail-p--1" cx="266" cy="150" r="3.4"></circle><circle class="nv-trail-p nv-trail-p--2" cx="266" cy="150" r="2.6"></circle><circle class="nv-trail-p nv-trail-p--3" cx="266" cy="150" r="1.9"></circle></g></g><g class="nv-spark" fill="none" stroke-linecap="round"><g stroke="#eaffff" stroke-width="5" opacity=".5"><path d="M246 150h13M237 135l9 7M237 165l9-7M243 123l4 11M243 177l4-11"></path></g><g stroke="#5ec5ef" stroke-width="2.2"><path d="M246 150h13M237 135l9 7M237 165l9-7M243 123l4 11M243 177l4-11"></path></g></g></svg><p class="nv-msg v-dsp text-[15px] font-bold sm:text-[16px]" style="color:var(--v-ink);letter-spacing:-.01em"><span>নিরাপদে সংযুক্ত হচ্ছে…</span><span>আপনার গেমিং অভিজ্ঞতা প্রস্তুত হচ্ছে…</span><span>ড্যাশবোর্ড লোড হচ্ছে…</span></p><span class="nv-bar mt-0.5 block h-[3px] w-[132px] rounded-full" style="background:color-mix(in srgb, var(--v-ink) 12%, transparent)" aria-hidden="true"><i></i></span></div></body></html>

@@ -1,0 +1,36 @@
+node_modules
+.next
+out
+# ★★★ সিক্রেট — C1।
+#   আগে ছিল শুধু `.env` ও `.env*.local`। সেই দুটির কোনোটিই
+#   `.env.bak-20260805` ধরত না — অর্থাৎ ১৬টি লাইভ সিক্রেটসহ একটি
+#   ব্যাকআপ ফাইল রিপোতে ঢুকে যেতে পারত (এবং একটি ডিস্ট্রিবিউশন
+#   zip-এ সত্যিই ঢুকেছিল)। এখন `.env*` সব ধরে, আর কেবল
+#   `.env.example` (যাতে শুধু ফাঁকা প্লেসহোল্ডার) ছাড় পায়।
+.env*
+!.env.example
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# ★ লোকাল ড্রাইভারে (STORAGE_DRIVER=local, কেবল ডেভ) আপলোড করা ফাইল।
+#   প্রোডাকশনে সব ছবি Vercel Blob-এ যায়, তাই এগুলো কখনো সোর্স নয় —
+#   রিপোতে ঢুকলে ডেভের পরীক্ষামূলক ছবি ডিপ্লয়ে চলে যেত।
+public/uploads/
+
+# ★ scripts/pw-server.ts এর ws endpoint — প্রতি সেশনে বদলায়, মেশিন-নির্দিষ্ট
+ws.txt
+
+# ★ scripts/package-release.mjs এর আউটপুট zip — বিতরণের জিনিস, সোর্স নয়
+release/
+
+# ★ QA / verification artifacts — regenerable, not source.
+#   Playwright যাচাইয়ের সময় তৈরি হওয়া স্ক্রিনশট। রিপোর্টে এগুলোর
+#   ফলাফল লেখা আছে, তাই বাইনারি ফাইলগুলো রিপোতে রাখার দরকার নেই।
+.playwright-mcp/
+impl-*.png
+qa-*.png
+homepage*.png
+research-*.png
+p5-*.png
+p6-*.png

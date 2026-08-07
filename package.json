@@ -1,0 +1,58 @@
+{
+  "name": "uid-topup",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "db:constraints": "tsx prisma/apply-constraints.ts",
+    "db:setup": "prisma db push && tsx prisma/seed.ts && tsx prisma/apply-constraints.ts",
+    "test:money": "tsx scripts/money-invariants.ts",
+    "package:release": "node scripts/package-release.mjs"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "//overrides": "Next 14.2.35 bundles a nested postcss@8.4.31 vulnerable to sourceMappingURL path-traversal/file-read (GHSA-6g55, GHSA-r28c) and </style> XSS (GHSA-qx2v). Forcing the patched 8.5.x (semver-minor, Next-compatible) closes those without a breaking Next upgrade.",
+  "overrides": {
+    "postcss": "^8.5.25"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "@vercel/blob": "^2.6.1",
+    "bcryptjs": "^2.4.3",
+    "framer-motion": "^11.11.9",
+    "next": "^14.2.35",
+    "next-auth": "^4.24.10",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "resend": "^4.0.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.16.11",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
+    "playwright-core": "^1.61.1",
+    "postcss": "^8.5.25",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.13",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}

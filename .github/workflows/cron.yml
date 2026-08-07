@@ -1,0 +1,141 @@
+# ═══════════════════════════════════════════════════════════
+# ★★★ শিডিউলড জব (C2) — GitHub Actions, Vercel Cron নয়
+#
+#   কেন GitHub Actions:
+#   Vercel **Hobby** প্ল্যানে Cron দিনে মাত্র একবার চলে। তাতে
+#   নির্ধারিত ব্রডকাস্ট আর SLA সতর্কতা কার্যত অকেজো — ২৪ ঘণ্টা
+#   দেরিতে আসা SLA অ্যালার্টের কোনো মূল্য নেই। GitHub Actions
+#   ফ্রি-তেই ৫ মিনিট অন্তর চালাতে দেয়, তাই এখানেই।
+#
+#   ── যা সেট করতে হবে (একবার) ──
+#   GitHub → Settings → Secrets and variables → Actions:
+#     · APP_BASE_URL  — যেমন  https://your-site.vercel.app  (স্ল্যাশ ছাড়া)
+#     · CRON_SECRET   — Vercel-এর env-এ যে মান আছে, হুবহু সেটিই
+#   দুটোর যেকোনো একটি না মিললে জব 401 পাবে ও workflow লাল হবে।
+#
+#   ⚠️ সৎভাবে — GitHub-এর নির্ধারিত রানের সীমাবদ্ধতা:
+#     · ব্যস্ত সময়ে কয়েক মিনিট **দেরিতে** চলতে পারে (গ্যারান্টি নেই)
+#     · পাবলিক রিপোতে ৬০ দিন কোনো কমিট না হলে schedule **নিষ্ক্রিয়**
+#       হয়ে যায় — GitHub ইমেইল পাঠায়, কিন্তু খেয়াল না করলে জব চুপচাপ
+#       বন্ধ থাকবে
+#   এই দুটির বিরুদ্ধে রক্ষাকবচ: `/api/admin/readiness` → `jobs[]`
+#   প্রতিটি জবের শেষ-রান সময় দেখায় এবং প্রত্যাশিত সময়ের ২× পেরোলে
+#   `stale: true` ও একটি warning তোলে।
+# ═══════════════════════════════════════════════════════════
+name: Cron Jobs
+
+on:
+  schedule:
+    # টেলিগ্রাম শিডিউলার — প্রতি ১০ মিনিট
+    - cron: '*/10 * * * *'
+    # SLA ভঙ্গ — প্রতি ১৫ মিনিট
+    - cron: '*/15 * * * *'
+    # রেট-লিমিট পরিষ্কার — প্রতিদিন ০৩:১৭ UTC (≈ ০৯:১৭ ঢাকা, কম ট্রাফিক)
+    - cron: '17 3 * * *'
+  # হাতে চালানোর সুযোগ — সিক্রেট বদলানোর পর যাচাই করতে
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'কোন জব চালাবেন'
+        required: true
+        default: all
+        type: choice
+        options: [all, telegram-scheduler, sla-breach, ratelimit-cleanup]
+
+# একই জব একসাথে দুবার চললে ডুপ্লিকেট ব্রডকাস্ট যেতে পারে
+concurrency:
+  group: cron-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: Trigger scheduled endpoints
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Guard — secrets present
+        env:
+          BASE: ${{ secrets.APP_BASE_URL }}
+          SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$BASE" ] || [ -z "$SECRET" ]; then
+            echo "::error::APP_BASE_URL বা CRON_SECRET সেট করা নেই — Settings → Secrets → Actions দেখুন"
+            exit 1
+          fi
+
+      - name: Decide which jobs to run
+        id: pick
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          MANUAL: ${{ github.event.inputs.job }}
+        run: |
+          # ★ একটি ফাইলে তিনটি schedule থাকলে GitHub প্রতিবারই এই
+          #   workflow চালায় — কোনটি ট্রিগার করেছে তা
+          #   `github.event.schedule` বলে। সেটিই এখানে বাছা হয়।
+          if [ -n "$MANUAL" ]; then
+            if [ "$MANUAL" = "all" ]; then
+              echo "jobs=telegram-scheduler sla-breach ratelimit-cleanup" >> "$GITHUB_OUTPUT"
+            else
+              echo "jobs=$MANUAL" >> "$GITHUB_OUTPUT"
+            fi
+          elif [ "$SCHEDULE" = "*/10 * * * *" ]; then
+            echo "jobs=telegram-scheduler" >> "$GITHUB_OUTPUT"
+          elif [ "$SCHEDULE" = "*/15 * * * *" ]; then
+            echo "jobs=sla-breach" >> "$GITHUB_OUTPUT"
+          elif [ "$SCHEDULE" = "17 3 * * *" ]; then
+            echo "jobs=ratelimit-cleanup" >> "$GITHUB_OUTPUT"
+          else
+            echo "jobs=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Call endpoints
+        env:
+          BASE: ${{ secrets.APP_BASE_URL }}
+          SECRET: ${{ secrets.CRON_SECRET }}
+          JOBS: ${{ steps.pick.outputs.jobs }}
+        run: |
+          set -u
+          if [ -z "$JOBS" ]; then
+            echo "কোনো জব বাছা হয়নি — কিছুই করার নেই"
+            exit 0
+          fi
+
+          failed=0
+          for job in $JOBS; do
+            url="${BASE%/}/api/cron/$job"
+            echo "── $job → $url"
+
+            # ★ দুবার চেষ্টা: Neon auto-suspend থেকে জাগতে প্রথম
+            #   অনুরোধ সময় নিতে পারে (cold start)। একটি ক্ষণস্থায়ী
+            #   টাইমআউটে জব হারিয়ে যাওয়া উচিত নয়।
+            for attempt in 1 2; do
+              code=$(curl -sS -o /tmp/out.json -w '%{http_code}' \
+                      --max-time 120 \
+                      -X POST "$url" \
+                      -H "Authorization: Bearer $SECRET" \
+                      -H 'Content-Type: application/json' || echo 000)
+
+              if [ "$code" = "200" ]; then
+                echo "   ✓ HTTP 200"
+                cat /tmp/out.json; echo
+                break
+              fi
+
+              echo "   ✗ চেষ্টা $attempt — HTTP $code"
+              cat /tmp/out.json 2>/dev/null || true; echo
+              if [ "$attempt" = "2" ]; then
+                # ★ 401 = সিক্রেট মেলেনি; আলাদা করে বলা হয় যাতে
+                #   ডিবাগ করতে গিয়ে সময় নষ্ট না হয়
+                if [ "$code" = "401" ]; then
+                  echo "::error::$job — 401: CRON_SECRET GitHub ও Vercel-এ এক নয়"
+                else
+                  echo "::error::$job — HTTP $code"
+                fi
+                failed=1
+              else
+                sleep 10
+              fi
+            done
+          done
+
+          exit $failed

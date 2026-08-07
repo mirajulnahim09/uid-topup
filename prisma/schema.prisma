@@ -1,0 +1,719 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═════════ USER ═════════
+model User {
+  id       String     @id @default(cuid())
+  name     String
+  email    String     @unique
+  phone    String     @unique
+  password String
+  role     Role       @default(USER)
+  balance  Decimal    @default(0) @db.Decimal(12, 2)
+  isBanned Boolean    @default(false)
+  status   UserStatus @default(ACTIVE) // ★ 3-state: ACTIVE/SUSPENDED/BLOCKED
+
+  // ★ ইমেইল-মালিকানা যাচাই (C3)। credentials রেজিস্ট্রেশন false দিয়ে শুরু
+  //   হয়; Google সাইন-ইন (Google নিজেই ইনবক্স যাচাই করে) true করে দেয়।
+  //   একটি unverified credentials-অ্যাকাউন্টে পরে আসল মালিক Google দিয়ে
+  //   ঢুকলে অ্যাকাউন্টটি reclaim হয় (পুরনো পাসওয়ার্ড বাতিল) — account-
+  //   takeover পথ বন্ধ। ইমেইল-ভেরিফিকেশন লিংক (Resend) ছাড়াই কাজ করে।
+  emailVerified Boolean @default(false)
+
+  // ═══════ ADMIN 2FA (Phase 2) ═══════
+  // ★ TOTP-ভিত্তিক দুই-ধাপ যাচাই — মূলত অ্যাডমিনের জন্য (অ্যাডমিন
+  //   অ্যাকাউন্ট compromise = সব গ্রাহকের টাকার ঝুঁকি)। USER-ও চালু
+  //   করতে পারে। secret base32, এনক্রিপ্ট করে রাখা (secretbox)।
+  //   ⚠️ twoFactorEnabled true হলেই কেবল লগইনে কোড চাওয়া হয়।
+  twoFactorSecret   String? // এনক্রিপ্টেড TOTP secret (base32)
+  twoFactorEnabled  Boolean @default(false)
+  // ★ এককালীন recovery কোড (SHA-256 হ্যাশ, JSON array) — ফোন হারালে
+  //   ঢোকার শেষ উপায়। প্রতিটি একবারই ব্যবহারযোগ্য।
+  twoFactorRecovery String?
+
+  // ═══════ SESSION EPOCH (Phase 2) ═══════
+  // ★ "সব ডিভাইস থেকে সাইন-আউট" — JWT stateless, তাই individual session
+  //   revoke সম্ভব নয়; কিন্তু এই সংখ্যা বাড়িয়ে দিলে পুরনো সব টোকেন
+  //   অকার্যকর হয় (jwt callback প্রতি refresh এ মিলিয়ে দেখে)। অ্যাডমিন
+  //   অ্যাকাউন্ট compromise সন্দেহে বা পাসওয়ার্ড বদলে সব সেশন kill করা যায়।
+  sessionEpoch Int @default(0)
+
+  referralCode      String  @unique
+  referredById      String?
+  referredBy        User?   @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals         User[]  @relation("Referrals")
+  referralBonusPaid Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deposits      Deposit[]
+  orders        Order[]
+  ledger        LedgerEntry[]
+  couponUses    CouponUse[]
+  notifications Notification[]
+  reviews       Review[]
+
+  @@index([createdAt])
+  @@index([referredById])
+}
+
+// ═════════ RATE LIMIT (C2) ═════════
+// ★ শেয়ার্ড রেট-লিমিট স্টোর — in-memory Map serverless-এ প্রতি ইনস্ট্যান্সে
+//   আলাদা হওয়ায় লগইন/অর্ডার/ডিপোজিট থ্রটল বাইপাস হতো। এই টেবিলে atomic
+//   upsert (ON CONFLICT ... RETURNING) দিয়ে সব ইনস্ট্যান্স একই কাউন্টার
+//   দেখে। মেয়াদোত্তীর্ণ সারি periodically মুছে ফেলা হয় (rateLimit.ts)।
+model RateLimitBucket {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+}
+
+/// ★ ভূমিকা — ইচ্ছাকৃতভাবে **দুটিই**: গ্রাহক ও মালিক।
+///
+///   স্তরভিত্তিক অ্যাডমিন (STAFF) ব্যবসায়িক সিদ্ধান্তে বাদ দেওয়া
+///   হয়েছে: পুরো অ্যাডমিন প্যানেল — ডিপোজিট অনুমোদন, অর্ডার
+///   প্রসেসিং, ব্যালেন্স সমন্বয়, গ্রাহক ব্যবস্থাপনা, সার্চ,
+///   রিফান্ড, সেটিংস — কেবল মালিকই চালান। একটিমাত্র প্রশাসনিক
+///   ভূমিকা রাখায় অনুমতির নিয়ম সরল ও দ্ব্যর্থহীন থাকে।
+enum Role {
+  USER
+  /// মালিক — সম্পূর্ণ অ্যাডমিন প্যানেল
+  ADMIN
+}
+
+// ═════════ CATALOG ═════════
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  slug      String    @unique
+  icon      String?
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  products  Product[]
+}
+
+model Product {
+  id                    Int      @id @default(autoincrement())
+  categoryId            Int
+  name                  String
+  slug                  String
+  image                 String? // ★ প্রাইমারি কভার (সব জায়গায় ডিফল্ট)
+  thumbnail             String? // ★ ঐচ্ছিক ছোট থাম্বনেইল (না থাকলে cover ব্যবহৃত হয়)
+  banner                String? // ★ ঐচ্ছিক ওয়াইড ব্যানার (প্রোডাক্ট-ডিটেইল হেডার, future)
+  description           String?
+  needsUid              Boolean  @default(true)
+  uidLabel              String   @default("Player UID")
+  uidHint               String?
+  /// ★ কোন সার্ভিস দিয়ে UID যাচাই হবে। null = যাচাই সম্ভব নয়,
+  ///   তখন double-entry (দুইবার লিখে মিলিয়ে দেখা) fallback চলবে।
+  uidValidationProvider String?
+  sortOrder             Int      @default(0)
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+
+  category Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants Variant[]
+  /// ★ ঐচ্ছিক গ্যালারি (অতিরিক্ত ছবি)। প্রাইমারি কভার = `image` ফিল্ড।
+  images   ProductImage[]
+
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+/// ★ প্রোডাক্ট গ্যালারি — ভবিষ্যতের একাধিক-ছবি সমর্থনের প্রস্তুতি।
+///   কভার ছবি এখনও `Product.image`; এই টেবিল কেবল অতিরিক্ত ছবি রাখে।
+///   পুরোপুরি additive — বিদ্যমান কোনো কিছু ভাঙে না। চালু করতে
+///   `npm run db:push` চালান (নতুন টেবিল তৈরি হবে)।
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+}
+
+/// ★★★ কেন্দ্রীয় মিডিয়া লাইব্রেরি — "একবার আপলোড, সর্বত্র ব্যবহার"।
+///   প্রতিটি আপলোড এখানে রেকর্ড হয় (URL + মেটাডেটা)। প্রোডাক্ট, ব্যানার,
+///   ক্যাম্পেইন, পপআপ ইত্যাদি এই লাইব্রেরি থেকে ছবি বেছে নেয় (URL রেফারেন্স)।
+///   SEO/a11y: alt/title/description প্রতিটি ছবির সাথে থাকে।
+model Media {
+  id          String    @id @default(cuid())
+  url         String    @unique
+  key         String? // storage-এর ভেতরের কী
+  storage     String    @default("blob") // কোন ড্রাইভার (blob/local/s3/r2)
+  folder      String    @default("site")
+  type        MediaType @default(IMAGE)
+  mime        String
+  bytes       Int       @default(0)
+  width       Int?
+  height      Int?
+  alt         String? // SEO/a11y — বিকল্প টেক্সট
+  title       String?
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([folder, createdAt])
+  @@index([type, createdAt])
+}
+
+enum MediaType {
+  IMAGE
+  // future-ready: VIDEO, DOCUMENT, AUDIO
+}
+
+/// ★ প্যাকেজভিত্তিক ডেলিভারি প্রতিশ্রুতি (2.14)
+///   কিছু প্যাকেজ (যেমন সাবস্ক্রিপশন) স্বাভাবিকভাবেই বেশি সময় নেয়।
+///   একই "Instant" ব্যাজ সবখানে বসানো মিথ্যা ও বিরোধ তৈরি করে।
+model Variant {
+  id              Int      @id @default(autoincrement())
+  productId       Int
+  label           String
+  price           Decimal  @db.Decimal(12, 2)
+  costPrice       Decimal  @default(0) @db.Decimal(12, 2)
+  oldPrice        Decimal? @db.Decimal(12, 2)
+  stock           Int      @default(-1)
+  sortOrder       Int      @default(0)
+  isActive        Boolean  @default(true)
+  isPopular       Boolean  @default(false)
+  /// ★ এই প্যাকেজের সাধারণ ডেলিভারি সময় (মিনিট)।
+  ///   null = প্রোডাক্ট/সাইটের সাধারণ SLA প্রযোজ্য।
+  ///   ⚠️ কখনো "Instant" লেখা হয় না — ম্যানুয়াল সিস্টেমে সেটি মিথ্যা।
+  deliveryMinutes Int?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orders  Order[]
+
+  @@index([productId])
+}
+
+// ═════════ SITE CONTENT ═════════
+model Banner {
+  id        Int      @id @default(autoincrement())
+  image     String
+  title     String?
+  subtitle  String?
+  link      String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// ═════════ হোমপেজ বিপণন — অ্যাডমিন-নিয়ন্ত্রিত (সম্পূর্ণ যোগমূলক) ═════════
+// ★ একটিই মডেল হোমপেজের সব বিপণন-উপাদান ধরে; `placement` দিয়ে ভাগ:
+//     POPUP  — প্রবেশের সময় দেখানো মডাল (অফার/ইভেন্ট/গিভঅ্যাওয়ে/টুর্নামেন্ট)
+//     HERO   — হিরোর মার্কেটিং কনটেন্ট (শিরোনাম/CTA/ছবি)
+//     SLIDER — প্রচারণা ব্যানার স্লাইডার
+//     NOTICE — নোটিশ/ঘোষণা বার (একাধিক, নির্ধারিত সময়সূচি)
+//     STRIP  — বিশ্বাস-স্ট্রিপ / চলমান বার্তা
+//     PROMO  — যেকোনো প্রচারণামূলক সেকশন কার্ড
+//
+//   ⚠️ কোনো বিদ্যমান টেবিল বা কলাম বদলানো হয়নি — এটি নতুন টেবিল,
+//   তাই পুরনো ডেটা বা API কিছুই ভাঙে না (Option A: additive only)।
+//   `startsAt`/`endsAt` দিয়ে সময়সূচি — অ্যাডমিন আগেভাগে অফার বসিয়ে
+//   রাখতে পারে, নির্দিষ্ট সময়ে নিজে থেকে চালু/বন্ধ হবে।
+model Campaign {
+  id          Int       @id @default(autoincrement())
+  placement   String    @default("SLIDER")
+  kind        String    @default("PROMO")
+  title       String?
+  subtitle    String?
+  imageUrl    String?
+  ctaLabel    String?
+  ctaLink     String?
+  badge       String?
+  dismissible Boolean   @default(true)
+  // ★ Phase 3 (additive) — পপআপ কত ঘন ঘন দেখাবে:
+  //   once    = প্রতি দর্শকে একবার (dismiss মনে রাখা হয়)
+  //   session = প্রতি সেশনে একবার
+  //   always  = প্রতিবার (জরুরি/maintenance এর জন্য)
+  frequency   String    @default("once")
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([placement, isActive, sortOrder])
+}
+
+model SocialLink {
+  id        Int     @id @default(autoincrement())
+  platform  String
+  url       String
+  label     String?
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+}
+
+// ═════════ PAYMENT ═════════
+model PaymentChannel {
+  id          Int       @id @default(autoincrement())
+  method      PayMethod
+  accountNo   String
+  accountType String    @default("Personal")
+  instruction String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+}
+
+enum PayMethod {
+  BKASH
+  NAGAD
+  ROCKET
+  UPAY
+}
+
+// ═════════ COUPON ═════════
+model Coupon {
+  id           Int          @id @default(autoincrement())
+  code         String       @unique
+  type         DiscountType
+  value        Decimal      @db.Decimal(12, 2)
+  minOrder     Decimal      @default(0) @db.Decimal(12, 2)
+  maxDiscount  Decimal?     @db.Decimal(12, 2)
+  usageLimit   Int?
+  usageCount   Int          @default(0)
+  perUserLimit Int          @default(1)
+  startsAt     DateTime     @default(now())
+  expiresAt    DateTime?
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+
+  uses   CouponUse[]
+  orders Order[]
+
+  @@index([code, isActive])
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
+model CouponUse {
+  id        String   @id @default(cuid())
+  couponId  Int
+  userId    String
+  orderId   String?
+  discount  Decimal  @db.Decimal(12, 2)
+  createdAt DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([couponId, userId])
+}
+
+// ═════════ DEPOSIT ═════════
+model Deposit {
+  id            String               @id @default(cuid())
+  depositNo     Int                  @unique @default(autoincrement())
+  userId        String
+  method        PayMethod
+  amount        Decimal              @db.Decimal(12, 2)
+  trxId         String               @unique
+  senderNo      String
+  screenshot    String?
+  status        DepositStatus        @default(PENDING)
+  adminNote     String?
+  createdAt     DateTime             @default(now())
+  reviewedAt    DateTime?
+  /// ★ ওয়ালেট টপ-আপ, নাকি একটি নির্দিষ্ট অর্ডারের সরাসরি পেমেন্ট
+  intent        DepositIntent        @default(WALLET_TOPUP)
+  /// ★ ORDER_PAYMENT হলে কোন অর্ডারের জন্য
+  linkedOrderId String?
+  /// ★ বাতিলের কাঠামোবদ্ধ কারণ — গ্রাহককে সুনির্দিষ্ট বার্তা দিতে
+  rejectReason  DepositRejectReason?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([status, createdAt])
+  @@index([linkedOrderId])
+}
+
+enum DepositStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ═════════ ORDER ═════════
+model Order {
+  id                  String           @id @default(cuid())
+  orderNo             Int              @unique @default(autoincrement())
+  userId              String
+  variantId           Int
+  playerUid           String
+  playerName          String?
+  subtotal            Decimal          @db.Decimal(12, 2)
+  discount            Decimal          @default(0) @db.Decimal(12, 2)
+  price               Decimal          @db.Decimal(12, 2)
+  /// ★ Phase 5 — অর্ডারের সময়কার unit cost snapshot (মুনাফা হিসাবের জন্য)।
+  ///   Variant.costPrice পরে বদলালেও এই ঐতিহাসিক মান অপরিবর্তিত থাকে, তাই
+  ///   পুরনো অর্ডারের মুনাফা সঠিক থাকে। 0 = অজানা (পুরনো অর্ডার/ফ্রি)।
+  costPrice           Decimal          @default(0) @db.Decimal(12, 2)
+  productName         String
+  variantName         String
+  couponId            Int?
+  status              OrderStatus      @default(PENDING)
+  adminNote           String?
+  internalNote        String? // ★ শুধু অ্যাডমিন — কাস্টমার দেখে না
+  createdAt           DateTime         @default(now())
+  completedAt         DateTime?
+  // ★ SLA — অর্ডারের সময় হিসাব করা হয়, পরে সেটিংস বদলালেও এই
+  //   অর্ডারের প্রতিশ্রুতি বদলাবে না (snapshot, দামের মতোই)
+  slaDueAt            DateTime?
+  /// ★ UID যাচাই করে পাওয়া আসল গেম-নাম। অ্যাডমিন ডেলিভারির আগে
+  ///   এটি মিলিয়ে দেখে — ভুল অ্যাকাউন্টে টপ-আপ ঠেকানোর দ্বিতীয় স্তর।
+  verifiedPlayerName  String?
+  /// ★ বাতিল/ব্যর্থতার কাঠামোবদ্ধ কারণ
+  failReason          OrderFailReason?
+  /// ★ গ্রাহক নিজে নিশ্চিত করেছে — জিনিস পৌঁছেছে
+  deliveryConfirmedAt DateTime?
+  /// ★ গ্রাহক জানিয়েছে পায়নি — অ্যাডমিনের হস্তক্ষেপ দরকার।
+  ///   এটাই সেই ব্যর্থতা ধরে যা অ্যাডমিন নিজে কখনো দেখতে পেত না।
+  deliveryDisputedAt  DateTime?
+  /// ★ লগইন ছাড়া অর্ডার ট্র্যাক করার গোপন টোকেন।
+  ///   ⚠️ অনুমানযোগ্য নয় — ক্রিপ্টো-random। অর্ডার নাম্বার দিয়ে
+  ///   অন্যের অর্ডার দেখার (enumeration) পথ বন্ধ রাখতে এটি জরুরি।
+  trackToken          String?          @unique
+
+  /// ★★★ ফুলফিলমেন্ট claim (3.7) — একাধিক অ্যাডমিন একসাথে কাজ করলে
+  ///     একই অর্ডার দুজনে গেমে ডেলিভারি দেওয়া ঠেকায়।
+  ///
+  ///     ⚠️ এটি **টাকার সুরক্ষা নয়**। ডাবল-রিফান্ড / ডাবল-স্ট্যাটাস
+  ///     আগেই ঠেকায় `SELECT ... FOR UPDATE` row-lock — সেটিই আসল রক্ষা
+  ///     এবং সেটি অপরিবর্তিত আছে। claim ঠেকায় সেই ক্ষতিটা যা ডাটাবেস
+  ///     কখনো দেখতেই পায় না: দুজন অ্যাডমিন **গেমের ভেতরে** দুবার
+  ///     ডায়মন্ড পাঠিয়ে দিলে সিস্টেমে একটাই অর্ডার, কিন্তু বাস্তবে
+  ///     দুবার খরচ হয়ে গেছে।
+  ///
+  ///     AdminLog-এর মতোই id + name দুটোই রাখা — নাম snapshot, যাতে
+  ///     অ্যাডমিন ডিলিট হলেও "কে ধরেছিল" পড়া যায় (relation নয়)।
+  claimedById   String?
+  claimedByName String?
+  claimedAt     DateTime?
+
+  /// ★★★ এ পর্যন্ত মোট কত টাকা ফেরত গেছে (3.14)
+  ///
+  ///     ⚠️ এই একটি ফিল্ডই আংশিক রিফান্ডের পুরো সুরক্ষা।
+  ///     নিয়ম: `refundedAmount + নতুন অঙ্ক <= price` — সবসময়,
+  ///     লক করা transaction এর ভেতরে যাচাই।
+  ///
+  ///     ⚠️ পূর্ণ রিফান্ডের (FAIL) পথও এটি `price` বসিয়ে দেয়।
+  ///     ফলে একই নিয়ম দুটো কাজ করে: আংশিক রিফান্ড কখনো মোট
+  ///     দামের বেশি হতে পারে না, **আর** যে অর্ডার একবার পুরো
+  ///     ফেরত হয়েছে তাতে আর এক পয়সাও ফেরত দেওয়া যায় না।
+  ///     আলাদা কোনো "already refunded" পতাকার দরকার পড়ে না।
+  refundedAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  variant Variant      @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  coupon  Coupon?      @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  events  OrderEvent[]
+  review  Review?
+
+  @@index([userId])
+  @@index([status, createdAt])
+  // ★ Phase 3 পারফরম্যান্স — getShowcase() এর groupBy(variantId,
+  //   where status=COMPLETED) ও variant-ভিত্তিক বিক্রি হিসাব দ্রুত করে।
+  //   order টেবিল বড় হলে (5000 ইউজার) index ছাড়া পূর্ণ scan হতো।
+  @@index([status, variantId])
+  @@index([variantId])
+}
+
+/// ★ অর্ডারের ঘটনাপঞ্জি — append-only, LedgerEntry এর মতোই।
+///   কাস্টমারকে "কোথায় আছে" দেখায়, আর সাপোর্টকে সঠিক সময়রেখা দেয়।
+///   কখনো UPDATE/DELETE করা হয় না।
+model OrderEvent {
+  id        String         @id @default(cuid())
+  orderId   String
+  status    OrderStatus
+  note      String?
+  actorType OrderActorType @default(SYSTEM)
+  actorId   String?
+  createdAt DateTime       @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+}
+
+enum OrderActorType {
+  SYSTEM
+  ADMIN
+  CUSTOMER
+}
+
+/// ★ গ্রাহকের রিভিউ — শুধুমাত্র প্রকৃত, সম্পন্ন ও গ্রাহক-নিশ্চিত
+///   অর্ডারের বিপরীতে। তাই প্রতিটি রিভিউ যাচাইযোগ্য কেনাকাটার সাথে
+///   যুক্ত — বানানো রিভিউ ঢোকানোর পথ নেই।
+///   ⚠️ orderId unique — এক অর্ডারে একটিই রিভিউ।
+model Review {
+  id          String   @id @default(cuid())
+  orderId     String   @unique
+  userId      String
+  rating      Int // ১–৫
+  body        String?
+  photoUrl    String? // ★ ঐচ্ছিক — গ্রাহক চাইলে অর্ডারের স্ক্রিনশট দিতে পারে (বাধ্যতামূলক নয়)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isPublished, createdAt])
+  @@index([userId])
+}
+
+/// ★ বাস্তব তথ্য থেকে হিসাব করা আস্থা-পরিসংখ্যান।
+///   ⚠️ কখনো হাতে লেখা সংখ্যা নয় — সব মান প্রকৃত অর্ডার/ডেলিভারি
+///   থেকে গোনা হয় (COMPETITOR_ANALYSIS.md: যাচাইযোগ্য না হলে
+///   বরং কিছু না দেখানোই ভালো)।
+model TrustMetric {
+  key        String   @id
+  value      String
+  computedAt DateTime @default(now())
+}
+
+/// ★ UID → গেম-নাম লুকআপের ক্যাশ।
+///   একই UID বারবার দেখা হয় (গ্রাহক নিজের অ্যাকাউন্টেই টপ-আপ করে),
+///   আর উজানের সার্ভিস ধীর ও অনির্ভরযোগ্য — তাই আক্রমণাত্মক ক্যাশিং।
+model UidLookupCache {
+  id         String   @id @default(cuid())
+  provider   String
+  uid        String
+  playerName String
+  checkedAt  DateTime @default(now())
+
+  @@unique([provider, uid])
+  @@index([checkedAt])
+}
+
+enum OrderStatus {
+  /// ★ ডাইরেক্ট-পে: অর্ডার তৈরি হয়েছে কিন্তু পেমেন্ট এখনো যাচাই হয়নি।
+  ///   ⚠️ এই অবস্থার অর্ডার ফুলফিল করা যাবে না — টাকা আসেনি।
+  AWAITING_PAYMENT
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+/// ★ ডিপোজিট কীসের জন্য — ওয়ালেটে টাকা যোগ, নাকি নির্দিষ্ট অর্ডারের দাম
+enum DepositIntent {
+  WALLET_TOPUP
+  ORDER_PAYMENT
+}
+
+/// ★ পেমেন্ট বাতিলের নির্দিষ্ট কারণ।
+///   কেন enum, মুক্ত টেক্সট নয়: ভালো বার্তা হাতে লিখতে সময় লাগে,
+///   তাই তাড়াহুড়োয় অ্যাডমিন "বাতিল" লিখে ছেড়ে দেয় — আর গ্রাহক
+///   বুঝতেই পারে না কী করতে হবে। নির্দিষ্ট কারণ বাছাই করলে
+///   সিস্টেম নিজেই সুনির্দিষ্ট ও কাজের বার্তা বানিয়ে দেয়।
+enum DepositRejectReason {
+  TRX_NOT_FOUND // স্টেটমেন্টে TrxID নেই
+  AMOUNT_MISMATCH // টাকার অঙ্ক মেলেনি
+  DUPLICATE_TRX // একই TrxID আগে ব্যবহৃত
+  UNCLEAR_PROOF // স্ক্রিনশট অস্পষ্ট/অসম্পূর্ণ
+  WRONG_ACCOUNT // ভুল নাম্বারে পাঠানো
+  OTHER // অন্য কারণ — নোট বাধ্যতামূলক
+}
+
+/// ★ অর্ডার সম্পন্ন না হওয়ার নির্দিষ্ট কারণ (রিফান্ডের সাথে)
+enum OrderFailReason {
+  INVALID_UID // UID ভুল/পাওয়া যায়নি
+  OUT_OF_STOCK // স্টক শেষ
+  GAME_SERVER_ISSUE // গেম সার্ভারের সমস্যা
+  PRICE_CHANGED // দাম বদলে গেছে
+  CUSTOMER_REQUEST // গ্রাহকের অনুরোধে
+  OTHER // অন্য কারণ — নোট বাধ্যতামূলক
+}
+
+// ═════════ LEDGER ═════════
+model LedgerEntry {
+  id           String     @id @default(cuid())
+  userId       String
+  type         LedgerType
+  amount       Decimal    @db.Decimal(12, 2)
+  balanceAfter Decimal    @db.Decimal(12, 2)
+  refId        String?
+  note         String?
+  createdAt    DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+}
+
+enum LedgerType {
+  DEPOSIT
+  ORDER
+  REFUND
+  ADMIN_ADJUST
+  REFERRAL_BONUS
+}
+
+// ═════════ NOTIFICATION ═════════
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+// ═════════ SETTINGS ═════════
+model Setting {
+  key   String @id
+  value String
+}
+
+// ═════════ ADMIN AUDIT LOG ═════════
+// ★ অ্যাডমিন কে কখন কী করল — সব রেকর্ড থাকে।
+//   টাকা নিয়ে ঝামেলা হলে এখানে দেখা যাবে কে দায়ী।
+/// ★ অডিট/অ্যাক্টিভিটি লগ — নাম ঐতিহাসিক (AdminLog) কিন্তু এখন
+///   বহু-অভিনেতা: ADMIN / CUSTOMER / SYSTEM। `adminId` কোনো FK নয়
+///   (যেকোনো actor id বা 'system')। নতুন কলামগুলো additive ও nullable/
+///   defaulted — পুরনো সারি ও কল-সাইট অক্ষত।
+model AdminLog {
+  id        String   @id @default(cuid())
+  adminId   String // actor id (admin/customer user id, বা 'system')
+  adminName String // actor নাম
+  actorType String   @default("ADMIN") // ADMIN | CUSTOMER | SYSTEM
+  role      String? // actor role (USER/ADMIN) snapshot
+  action    String // LOGIN, DEPOSIT_APPROVE, ORDER_COMPLETE...
+  targetId  String? // যে জিনিসে কাজ করল
+  amount    Decimal? @db.Decimal(12, 2)
+  detail    String? // ঐচ্ছিক বিস্তারিত / before→after (JSON বা টেক্সট)
+  ip        String?
+  userAgent String? // device/browser (if available)
+  createdAt DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([action, createdAt])
+  @@index([actorType, createdAt])
+}
+
+// ═════════ TELEGRAM ENTERPRISE (2026-08-05) ═════════
+// ★ বট **কনফিগ** ইচ্ছাকৃতভাবে এখানে নেই — সেটি `Setting.telegram_bots`
+//   JSON সারিতে এনক্রিপ্টেড অবস্থায় থাকে (lib/telegram/store.ts)। সেই
+//   ব্যবস্থা কাজ করছে, তাই ভাঙা হয়নি। এখানে শুধু **যা টেবিল ছাড়া চলে না**:
+//   প্রতি-বার্তার লগ (বিশ্লেষণ ও aggregation লাগে), শিডিউলার জব ও রান
+//   ইতিহাস, এবং টেমপ্লেট।
+
+/// প্রতিটি টেলিগ্রাম বার্তার লগ — সাফল্যের হার, ব্যবহার ও বিলম্ব এখান থেকেই হিসাব হয়।
+/// ⚠️ কোনো টোকেন/গোপন মান এখানে লেখা হয় না — শুধু botId (রেফারেন্স) ও ত্রুটি-বার্তা (scrub করা)।
+model TelegramMessageLog {
+  id        String   @id @default(cuid())
+  botId     String
+  event     String?
+  ok        Boolean
+  status    Int?
+  latencyMs Int      @default(0)
+  attempts  Int      @default(1)
+  bytes     Int      @default(0)
+  error     String?
+  response  String?
+  trigger   String   @default("EVENT") // EVENT | TEST | SCHEDULE
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([botId, createdAt])
+  @@index([ok, createdAt])
+}
+
+/// শিডিউলার জব — পুনরাবৃত্ত বা একবারের টেলিগ্রাম কাজ।
+model TelegramJob {
+  key         String  @id
+  label       String
+  description String?
+  enabled     Boolean @default(true)
+  status      String  @default("IDLE") // IDLE | RUNNING | PAUSED | STOPPED
+
+  // ── সময়সূচি ──
+  kind       String    @default("DAILY") // ONCE | HOURLY | DAILY | WEEKLY | MONTHLY
+  atHour     Int       @default(9)
+  atMinute   Int       @default(0)
+  weekday    Int? // 0=রবি … 6=শনি (WEEKLY)
+  dayOfMonth Int? // 1–28 (MONTHLY)
+  timezone   String    @default("Asia/Dhaka")
+  runOnceAt  DateTime?
+
+  // ── রাউটিং ──
+  botId       String? // null = ইভেন্ট-ভিত্তিক স্বাভাবিক রাউটিং
+  templateKey String?
+
+  // ── অবস্থা ──
+  nextRunAt  DateTime?
+  lastRunAt  DateTime?
+  lastStatus String?
+  lastError  String?
+  lastMs     Int?
+  runCount   Int       @default(0)
+  failCount  Int       @default(0)
+  totalMs    Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  runs TelegramJobRun[]
+
+  @@index([enabled, nextRunAt])
+}
+
+/// প্রতিটি জব-চালানোর ইতিহাস।
+model TelegramJobRun {
+  id         String      @id @default(cuid())
+  jobKey     String
+  job        TelegramJob @relation(fields: [jobKey], references: [key], onDelete: Cascade)
+  trigger    String      @default("SCHEDULE") // SCHEDULE | MANUAL | RETRY
+  status     String      @default("RUNNING") // RUNNING | SUCCESS | FAILED
+  startedAt  DateTime    @default(now())
+  finishedAt DateTime?
+  ms         Int?
+  detail     String?
+  error      String?
+
+  @@index([jobKey, startedAt])
+  @@index([status, startedAt])
+}
+
+/// পুনঃব্যবহারযোগ্য বার্তা-টেমপ্লেট ({{variable}} সমর্থন সহ)।
+model TelegramTemplate {
+  key       String   @id
+  label     String
+  body      String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
