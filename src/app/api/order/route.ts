@@ -50,36 +50,55 @@ export async function POST(req: Request) {
         //     ৩টা স্টকে ৫ জন একসাথে অর্ডার দিলে সবাই দেখত "stock=3 > 0",
         //     সবাই কিনে ফেলত, stock হয়ে যেত −2।
         //     FOR UPDATE দিলে একজনের পর আরেকজন — সবাই আসল stock দেখে।
+        // ★★★ H1 — টাকার প্রতিটি মান **লক করা রো থেকেই** আসে।
+        //     আগে লক নিত কেবল `id, stock`, আর `price`/`costPrice`
+        //     আসত পরের একটি **লক-বহির্ভূত** `findUnique` থেকে।
+        //     বাস্তবে Postgres-এ ওই দ্বিতীয় পাঠও নিরাপদ ছিল (রো-লক
+        //     ধরে রাখায় অন্য কেউ UPDATE করতে পারত না), কিন্তু সেই
+        //     নিরাপত্তা নির্ভর করত সূক্ষ্ম lock-semantics-এর উপর —
+        //     কেউ পরে `findUnique` লকের আগে সরালে, বা `FOR SHARE`-এ
+        //     বদলালে, নীরবে ভেঙে যেত। CLAUDE.md §2.1(৩) স্পষ্ট:
+        //     সিদ্ধান্তের মান **লক করা রো থেকে** নিতে হবে। এখন তাই।
         const lockedVariant = await tx.$queryRaw<
-          Array<{ id: number; stock: number }>
-        >`SELECT id, stock FROM "Variant" WHERE id = ${variantId} FOR UPDATE`;
+          Array<{
+            id: number; stock: number; price: string;
+            costPrice: string; isActive: boolean;
+          }>
+        >`SELECT id, stock, price, "costPrice", "isActive"
+            FROM "Variant" WHERE id = ${variantId} FOR UPDATE`;
 
-        if (!lockedVariant[0]) {
+        const lockedRow = lockedVariant[0];
+        if (!lockedRow) {
+          throw new ApiError('এই প্যাকেজটি এখন পাওয়া যাচ্ছে না', 400);
+        }
+        if (!lockedRow.isActive) {
           throw new ApiError('এই প্যাকেজটি এখন পাওয়া যাচ্ছে না', 400);
         }
 
-        // ★ দাম সবসময় DB থেকে — client এর পাঠানো price কখনো trust করি না
+        // ★ কেবল **অ-আর্থিক** ক্ষেত্র — নাম/লেবেল/প্রোডাক্টের অবস্থা।
+        //   এগুলোর কোনোটিই টাকার হিসাবে ব্যবহৃত হয় না।
         const variant = await tx.variant.findUnique({
           where: { id: variantId },
           include: { product: true },
         });
 
-        if (!variant || !variant.isActive || !variant.product.isActive) {
+        if (!variant || !variant.product.isActive) {
           throw new ApiError('এই প্যাকেজটি এখন পাওয়া যাচ্ছে না', 400);
         }
 
         // ★ লক করা রো থেকে stock পড়ি — findUnique এর টা বাসি হতে পারে
-        const liveStock = lockedVariant[0].stock;
+        const liveStock = lockedRow.stock;
         if (liveStock === 0) throw new ApiError('স্টক শেষ হয়ে গেছে', 400);
 
-        const subtotal = round2(Number(variant.price));
+        // ★ দাম লক করা রো থেকে — client এর পাঠানো price কখনো trust করি না
+        const subtotal = round2(Number(lockedRow.price));
 
         // ★★★ DEFENSE IN DEPTH — দাম কখনো negative হতে পারে না।
         //     অ্যাডমিন API তে guard আছে, কিন্তু যদি কোনোভাবে DB তে
         //     negative দাম ঢুকে যায় (ম্যানুয়াল SQL, বাগ, migration),
         //     তাহলে অর্ডার করলে ব্যালেন্স *বেড়ে* যেত — টাকা তৈরি হতো!
         if (!Number.isFinite(subtotal) || subtotal < 0) {
-          logger.error('order', 'invalid variant price', { variantId: variant.id, price: String(variant.price) });
+          logger.error('order', 'invalid variant price', { variantId: lockedRow.id, price: String(lockedRow.price) });
           throw new ApiError('এই প্যাকেজের দামে সমস্যা আছে — অ্যাডমিনকে জানান', 400);
         }
 
@@ -159,7 +178,8 @@ export async function POST(req: Request) {
             price: finalPrice,
             // ★ Phase 5 — অর্ডারের সময়কার cost snapshot (মুনাফা রিপোর্ট)।
             //   Variant.costPrice পরে বদলালেও এই মান অপরিবর্তিত থাকে।
-            costPrice: round2(Number(variant.costPrice) || 0),
+            //   H1: এটিও **লক করা রো** থেকে — মুনাফার হিসাব টাকার হিসাব।
+            costPrice: round2(Number(lockedRow.costPrice) || 0),
             productName: variant.product.name,
             variantName: variant.label,
             couponId,

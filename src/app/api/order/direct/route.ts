@@ -69,24 +69,35 @@ export async function POST(req: Request) {
 
     const result = await prisma.$transaction(
       async (tx) => {
-        // ★ স্টক race আটকাতে row lock — ওয়ালেট পথের মতোই
-        const lockedVariant = await tx.$queryRaw<Array<{ id: number; stock: number }>>`
-          SELECT id, stock FROM "Variant" WHERE id = ${variantId} FOR UPDATE`;
-        if (!lockedVariant[0]) throw new ApiError('এই প্যাকেজটি এখন পাওয়া যাচ্ছে না', 400);
+        // ★★★ H1 — স্টক ও **টাকার সব মান** একই লক করা রো থেকে।
+        //     ওয়ালেট-পথের (`/api/order`) মতোই; আগে এখানেও দাম আসত
+        //     লক-বহির্ভূত `findUnique` থেকে।
+        const lockedVariant = await tx.$queryRaw<
+          Array<{
+            id: number; stock: number; price: string;
+            costPrice: string; isActive: boolean;
+          }>
+        >`SELECT id, stock, price, "costPrice", "isActive"
+            FROM "Variant" WHERE id = ${variantId} FOR UPDATE`;
+        const lockedRow = lockedVariant[0];
+        if (!lockedRow || !lockedRow.isActive) {
+          throw new ApiError('এই প্যাকেজটি এখন পাওয়া যাচ্ছে না', 400);
+        }
 
+        // ★ কেবল অ-আর্থিক ক্ষেত্র (নাম, লেবেল, প্রোডাক্টের অবস্থা)
         const variant = await tx.variant.findUnique({
           where: { id: variantId },
           include: { product: true },
         });
-        if (!variant || !variant.isActive || !variant.product.isActive) {
+        if (!variant || !variant.product.isActive) {
           throw new ApiError('এই প্যাকেজটি এখন পাওয়া যাচ্ছে না', 400);
         }
 
-        const liveStock = lockedVariant[0].stock;
+        const liveStock = lockedRow.stock;
         if (liveStock === 0) throw new ApiError('স্টক শেষ হয়ে গেছে', 400);
 
-        // ★ দাম সবসময় DB থেকে — client কখনো দাম ঠিক করে না
-        const subtotal = round2(Number(variant.price));
+        // ★ দাম লক করা রো থেকে — client কখনো দাম ঠিক করে না
+        const subtotal = round2(Number(lockedRow.price));
         if (!Number.isFinite(subtotal) || subtotal < 0) {
           throw new ApiError('এই প্যাকেজের দামে সমস্যা আছে — অ্যাডমিনকে জানান', 400);
         }
@@ -95,6 +106,12 @@ export async function POST(req: Request) {
         let couponId: number | null = null;
         let couponLabel: string | null = null;
         if (couponCode) {
+          // ★★★ কুপন রো লক — `/api/order`-এ এটি আগেই ছিল, কিন্তু এই
+          //     পথে **ছিল না**। ফলে একই কুপন দিয়ে দুটি সমান্তরাল
+          //     direct-অর্ডার usageLimit/perUserLimit পেরিয়ে যেতে পারত।
+          //     লক-ক্রম variant → coupon → user — সর্বত্র অভিন্ন,
+          //     তাই deadlock হয় না।
+          await tx.$queryRaw`SELECT id FROM "Coupon" WHERE code = ${couponCode.trim().toUpperCase()} FOR UPDATE`;
           const c = await validateCoupon(tx, couponCode, user.id, subtotal);
           discount = c.discount;
           couponId = c.couponId;
@@ -129,8 +146,8 @@ export async function POST(req: Request) {
             subtotal,
             discount,
             price: finalPrice,
-            // ★ Phase 5 — cost snapshot (মুনাফা রিপোর্ট)
-            costPrice: round2(Number(variant.costPrice) || 0),
+            // ★ Phase 5 — cost snapshot (মুনাফা রিপোর্ট) — লক করা রো থেকে (H1)
+            costPrice: round2(Number(lockedRow.costPrice) || 0),
             productName: variant.product.name,
             variantName: variant.label,
             couponId,
