@@ -15,6 +15,37 @@
  */
 import { spawnSync } from 'node:child_process';
 import net from 'node:net';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+/**
+ * ★ প্যাকেজের আসল JS এন্ট্রি বের করি — `npx`/`.bin` shim নয়।
+ *
+ *   ⚠️ কেন: Node 20.12+/22+ এ নিরাপত্তা সংশোধনের (CVE-2024-27980) পর
+ *   উইন্ডোজে `spawnSync('npx.cmd', …)` `shell:true` ছাড়া **EINVAL**
+ *   দিয়ে ব্যর্থ হয় — stdout/stderr দুটোই ফাঁকা থাকে। ফলে হারনেস
+ *   নীরবে exit 1 করত আর মনে হতো টেস্ট চলেছে কিন্তু কিছু ছাপেনি।
+ *
+ *   `shell:true` দিলে সমস্যা মিটত, কিন্তু তখন আর্গুমেন্ট শেল-এর
+ *   হাতে পড়ে (কোটিং/ইনজেকশন ঝুঁকি)। তাই সরাসরি `process.execPath`
+ *   দিয়ে প্যাকেজের entry চালাই — কোনো শেল নেই, প্ল্যাটফর্ম-নিরপেক্ষ।
+ */
+function binEntry(pkg) {
+  const pj = require(`${pkg}/package.json`);
+  const rel = typeof pj.bin === 'string' ? pj.bin : pj.bin[pkg];
+  return require.resolve(`${pkg}/${rel.replace(/^\.\//, '')}`);
+}
+
+/** ★ node দিয়ে সরাসরি চালানো — ব্যর্থ হলে কারণসহ থামে (নীরব exit নয়) */
+function runNode(entry, args, env, label) {
+  const r = spawnSync(process.execPath, [entry, ...args], { stdio: 'inherit', env });
+  if (r.error) {
+    console.error(`\n✗ ${label} চালু করা যায়নি: ${r.error.message}\n`);
+    process.exit(1);
+  }
+  return r.status ?? 1;
+}
 
 const TEST_URL =
   process.env.TEST_DATABASE_URL ||
@@ -53,16 +84,19 @@ if (!reachable) {
   process.exit(1);
 }
 
-const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 // ★ প্রোডাকশন DATABASE_URL বাদ দিয়ে পরিবেশ বানাই
 const { DATABASE_URL: _prod, ...rest } = process.env;
 const env = { ...rest, DATABASE_URL: TEST_URL, TEST_DATABASE_URL: TEST_URL };
 
 // ── ৩. স্কিমা ──
 console.log('  prisma db push → টেস্ট ডাটাবেস …');
-let r = spawnSync(npx, ['prisma', 'db', 'push', '--skip-generate', '--accept-data-loss'], { stdio: 'inherit', env });
-if (r.status !== 0) process.exit(r.status ?? 1);
+const push = runNode(
+  binEntry('prisma'),
+  ['db', 'push', '--skip-generate', '--accept-data-loss'],
+  env,
+  'prisma',
+);
+if (push !== 0) process.exit(push);
 
 // ── ৪. টেস্ট ──
-r = spawnSync(npx, ['vitest', 'run', ...process.argv.slice(2)], { stdio: 'inherit', env });
-process.exit(r.status ?? 1);
+process.exit(runNode(binEntry('vitest'), ['run', ...process.argv.slice(2)], env, 'vitest'));
