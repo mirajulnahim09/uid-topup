@@ -81,7 +81,9 @@ const MEASURE = `(function () {
     'ত্রুটি (sem-danger / v-pit)':                ratio('--sem-danger', '--v-pit'),
     'তথ্য (sem-info / v-pit)':                    ratio('--sem-info', '--v-pit'),
     'প্লেসহোল্ডার (v-dim / v-field)':             ratio('--v-dim', '--v-field'),
-    'UI বর্ডার (v-edge2 / v-pit)':                ratio('--v-edge2', '--v-pit'),
+    'ইনপুট বর্ডার (v-edge-field / v-field)':      ratio('--v-edge-field', '--v-field'),
+    'ফোকাস রিং (v-focus-ring / v-field)':         ratio('--v-focus-ring', '--v-field'),
+    'কার্ড hairline (v-edge2 / v-pit)':           ratio('--v-edge2', '--v-pit'),
     'এলিভেশন ধাপ (v-steel / v-pit)':              ratio('--v-steel', '--v-pit')
   };
 })()`;
@@ -89,32 +91,33 @@ const MEASURE = `(function () {
 /** কেবল তথ্য — এলিভেশন ধাপ যত কম তত ভালো, এটি কন্ট্রাস্ট-দাবি নয় */
 const INFO_ONLY = new Set(['এলিভেশন ধাপ (v-steel / v-pit)']);
 
+/** UI উপাদান — WCAG 1.4.11 অনুযায়ী ৩:১ যথেষ্ট (লেখা নয়) */
+const UI_3TO1 = new Set([
+  'ইনপুট বর্ডার (v-edge-field / v-field)',
+  'ফোকাস রিং (v-focus-ring / v-field)',
+]);
+
 /**
- * ★★★ পূর্ব-বিদ্যমান ঘাটতি — Group C **তৈরি করেনি**, ধরা পড়িয়েছে।
+ * ★★★ ইচ্ছাকৃত নকশা-সিদ্ধান্ত (মালিকের অনুমোদিত) — ঘাটতি নয়।
  *
- *   এগুলো রিপোর্ট হয়, সংখ্যাসহ, কিন্তু এই রানকে ব্যর্থ করে না —
- *   কারণ সারানো Group C-র পরিধির বাইরে (§5 কেবল **light** থিম)।
- *   ⚠️ নীরবে মান নামানো হয়নি: প্রতিটি নিচে "known-gap" লেবেলে ছাপা
- *   হয়, আর `PROGRESS.md` এ পরবর্তী কাজ হিসেবে লেখা আছে।
- *   পাশাপাশি assert করা হয় যে এগুলো **আরও খারাপ হয়নি**।
+ *   কার্ডের hairline (`--v-edge2`) ইচ্ছাকৃতভাবে **নরম** (~১.৪–১.৬:১),
+ *   §5.4 যেমন চেয়েছে। WCAG 1.4.11 প্রতিটি সাজসজ্জার রেখায় ৩:১ চায় না —
+ *   চায় সেখানে, যেখানে **উপাদান চেনা** বা **অবস্থা বোঝা** ওই রেখার
+ *   উপর নির্ভর করে। সেই দুটি জায়গা আলাদা করে শক্ত করা হয়েছে:
+ *     · ইনপুটের সীমানা → `--v-edge-field` (≥৩:১)
+ *     · ফোকাসের অবস্থান → `--v-focus-ring` (≥৩:১)
+ *   কার্ডের প্রান্ত চেনার জন্য বর্ডার লাগে না — পৃষ্ঠতল ও ছায়াই
+ *   যথেষ্ট। তাই এটি রিপোর্ট হয়, কিন্তু ব্যর্থতা নয়।
  */
-const KNOWN_GAPS: { pair: string; theme?: string; accents?: string[]; floor: number; why: string }[] = [
+const BY_DESIGN: { pair: string; ceiling: number; why: string }[] = [
   {
-    pair: 'UI বর্ডার (v-edge2 / v-pit)', floor: 1.3,
-    why: 'WCAG 1.4.11 চায় ৩:১; দুই থিমেই ~১.৪–১.৬:১। §5.4 নিজেই light-এ edge2 নরম করতে বলেছে, তাই নকশা ও AA এখানে সাংঘর্ষিক — আলাদা সিদ্ধান্ত দরকার।',
-  },
-  {
-    pair: 'প্রাথমিক বোতাম (accent-ink / accent)', theme: 'dark',
-    accents: ['purple', 'blue', 'red'], floor: 3.5,
-    why: 'dark প্রিসেটে সাদা লেখা মাঝারি-উজ্জ্বল পৃষ্ঠতলে (~৩.৭–৪.২:১)। পূর্ব-বিদ্যমান; §5 light-থিমের কাজ, dark প্রিসেট ছোঁয়নি।',
+    pair: 'কার্ড hairline (v-edge2 / v-pit)', ceiling: 2.2,
+    why: 'ইচ্ছাকৃতভাবে নরম (§5.4)। উপাদান-চেনা ইনপুট-বর্ডার ও ফোকাস-রিং দিয়ে হয়, যেগুলো আলাদাভাবে ≥৩:১ enforce করা।',
   },
 ];
 
-function knownGap(pair: string, theme: string, accent: string) {
-  return KNOWN_GAPS.find((g) =>
-    g.pair === pair &&
-    (!g.theme || g.theme === theme) &&
-    (!g.accents || g.accents.includes(accent)));
+function byDesign(pair: string) {
+  return BY_DESIGN.find((g) => g.pair === pair);
 }
 
 (async () => {
@@ -165,15 +168,18 @@ function knownGap(pair: string, theme: string, accent: string) {
         for (const [pair, val] of Object.entries(r)) {
           if (INFO_ONLY.has(pair)) { console.log(`  info  ${pair.padEnd(42)} ${val}:1`); continue; }
 
-          const gap = knownGap(pair, theme, accent || 'lime');
-          if (gap) {
-            // ★ ব্যর্থ করি না, কিন্তু লুকাইও না — এবং অবনতি হলে ধরি
-            console.log(`  known-gap  ${pair.padEnd(38)} ${val}:1  (≥${gap.floor} floor)`);
-            check(`${label} · ${pair} আরও খারাপ হয়নি`, val >= gap.floor, `${val}:1`);
-            gaps.add(`${pair} — ${gap.why}`);
+          const design = byDesign(pair);
+          if (design) {
+            // ★ নকশা-সিদ্ধান্ত — নরম রাখা **উদ্দেশ্য**, তাই ব্যর্থতা নয়।
+            //   তবু ছাপা হয়, আর "অকারণে গাঢ় হয়ে যায়নি" যাচাই হয়।
+            console.log(`  by-design  ${pair.padEnd(38)} ${val}:1`);
+            check(`${label} · ${pair} নরমই আছে (≤${design.ceiling})`,
+              val <= design.ceiling, `${val}:1`);
+            gaps.add(`${pair} — ${design.why}`);
             continue;
           }
-          check(`${label} · ${pair} ≥ 4.5:1`, val >= 4.5, `${val}:1`);
+          const need = UI_3TO1.has(pair) ? 3 : 4.5;
+          check(`${label} · ${pair} ≥ ${need}:1`, val >= need, `${val}:1`);
         }
       }
     }
@@ -184,9 +190,8 @@ function knownGap(pair: string, theme: string, accent: string) {
   }
 
   if (gaps.size) {
-    console.log('\n── ⚠️ পূর্ব-বিদ্যমান ঘাটতি (Group C তৈরি করেনি) ──');
+    console.log('\n── ইচ্ছাকৃত নকশা-সিদ্ধান্ত (ঘাটতি নয়) ──');
     for (const g of gaps) console.log(`  · ${g}`);
-    console.log('  → PROGRESS.md এ পরবর্তী কাজ হিসেবে লেখা আছে।');
   }
 
   console.log('\n════════════════════════════════════════');

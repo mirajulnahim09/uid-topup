@@ -237,20 +237,36 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   /* ─── ফর্ম ───
      ⚠️ মোবাইলে `font-size:16px` — এর নিচে হলে iOS ফোকাসে পুরো পাতা
      জুম করে দেয়, যা ফর্ম ভরার সময় ভয়ানক বিরক্তিকর। */
+  /**
+   * ★★★ ইনপুটের বর্ডার এখন নিজস্ব `--v-edge-field` টোকেনে।
+   *
+   *   সিদ্ধান্ত (মালিক): কার্ডের hairline **নরমই থাকবে** (§5.4), কিন্তু
+   *   ইনপুটে সীমানা বোঝা যাওয়া জরুরি — ফর্মের ঘর কোথায় শুরু-শেষ তা
+   *   না বুঝলে ব্যবহারকারী আটকে যান। তাই কেবল field-এর জন্য এক ধাপ
+   *   গাঢ় টোকেন, যা তার নিজের পটভূমির (`--v-field`) সাপেক্ষে ≥৩:১।
+   *   কার্ড/টেবিলের `--v-edge2` অপরিবর্তিত — নরম, নকশা অনুযায়ী।
+   */
   .input {
     @apply w-full px-4 py-3 text-sm;
     border-radius: 2px;
     color: var(--v-ink);
     background: var(--v-field);
-    border: 1px solid var(--v-edge2);
+    border: 1px solid var(--v-edge-field);
     min-height: 48px; font-size: 16px;
     transition: border-color var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
   }
   .input::placeholder { color: var(--v-dim); }
+  /**
+   * ★ ফোকাস-রিং — WCAG 1.4.11 এর **আসল উদ্দেশ্য**: ব্যবহারকারী যেন
+   *   বুঝতে পারেন তিনি কোথায় আছেন। তাই স্থির বর্ডার নরম রেখে
+   *   **রিং**-কে ≥৩:১ করা হয়েছে (আগে rgba(139,92,246,.22) — প্রায়
+   *   অদৃশ্য, ২:১-ও ছিল না)। রঙ এখন `--v-focus-ring` টোকেন থেকে,
+   *   দুই থিমে আলাদা।
+   */
   .input:focus {
     outline: none;
-    border-color: rgba(139,92,246,.7);
-    box-shadow: 0 0 0 3px rgba(139,92,246,.22);
+    border-color: var(--v-focus-ring);
+    box-shadow: 0 0 0 3px var(--v-focus-ring-soft);
     background: var(--v-field-focus);
   }
   @screen sm { .input { font-size: 14px; } }
@@ -681,6 +697,11 @@ details > summary::-webkit-details-marker { display:none; }
   /* ── কিনারা (আলোকিত হেয়ারলাইন — গাঢ় পৃষ্ঠতলে দৃশ্যমান) ── */
   --v-edge:rgba(255,255,255,.09);
   --v-edge2:rgba(255,255,255,.16);
+  /* ★ ইনপুটের বর্ডার — কার্ডের চেয়ে গাঢ়, `--v-field` এর সাপেক্ষে ≥৩:১ */
+  --v-edge-field:rgba(255,255,255,.40);
+  /* ★ ফোকাস-রিং — ≥৩:১; soft সংস্করণ বাইরের হ্যালোর জন্য */
+  --v-focus-ring:#a78bfa;
+  --v-focus-ring-soft:rgba(167,139,250,.45);
 
   /* ── পৃষ্ঠতল-ভরাট টোকেন ──
      গাঢ় থিমে হালকা সাদা-ওভারলে = উঁচু পৃষ্ঠতল। থিমের সাথে উল্টে যায়। */
@@ -779,6 +800,13 @@ details > summary::-webkit-details-marker { display:none; }
      লেখা, তাই AA ৪.৫:১ প্রযোজ্য। #647082 এ ~৫:১। */
   --v-ink:#0f1729; --v-mut:#525f70; --v-dim:#647082;
   --v-edge:rgba(15,23,41,.10); --v-edge2:rgba(15,23,41,.16);
+  /* ★ ইনপুটের বর্ডার — কার্ডের hairline নরমই থাকে (§5.4), কিন্তু
+     ফর্মের ঘরের সীমানা বোঝা যাওয়া দরকার। `--v-field` (#f8f9fb) এর
+     সাপেক্ষে ≥৩:১। */
+  --v-edge-field:rgba(15,23,41,.55);
+  /* ★ ফোকাস-রিং — light-এ গাঢ় বেগুনি, ≥৩:১ */
+  --v-focus-ring:#6d28d9;
+  --v-focus-ring-soft:rgba(109,40,217,.35);
   --v-fill:rgba(15,23,41,.03); --v-fill2:rgba(15,23,41,.05);
 
   /* ═══════ §5.4 — দুই-স্তরের ছায়া ═══════
@@ -864,7 +892,15 @@ details > summary::-webkit-details-marker { display:none; }
    ডিফল্ট (lime) = :root। নিচেরগুলো শুধু অ্যাকসেন্ট টোকেন override করে,
    তাই একটিই attribute বদলালে পুরো ব্র্যান্ড-অ্যাকশন রঙ পাল্টে যায়।
    প্রতিটির dark মান (উজ্জ্বল) ও light-এ টেক্সট-নিরাপদ override দেওয়া। */
-:root[data-accent='purple'] { --accent:#8b5cf6; --accent-2:#a78bfa; --accent-strong:#7c3aed; --accent-ink:#ffffff; --accent-text:#a78bfa; --accent-glow:139,92,246; }
+/* ★★★ প্রিসেটের পৃষ্ঠতল **গাঢ়** করা হয়েছে — AA (মালিকের সিদ্ধান্ত)।
+   আগে সাদা লেখা মাঝারি-উজ্জ্বল পৃষ্ঠতলে বসত: purple ৪.২৩ · blue ৩.৬৮ ·
+   red ৩.৬৭ — তিনটিই AA (৪.৫) এর নিচে, অর্থাৎ প্রতিটি প্রাথমিক বোতামের
+   লেখা ওই প্রিসেটে পড়া কঠিন ছিল। প্রতিটির `--accent` এক ধাপ গাঢ়
+   করা হলো, আর `--accent-2`/`--accent-strong` (গ্রেডিয়েন্ট স্টপ) ও
+   `--accent-glow` সেই অনুযায়ী সরানো হলো যাতে গ্রেডিয়েন্ট ও আভা
+   বেমানান না লাগে। `--accent-text` (পাতার উপর লেখা) অপরিবর্তিত —
+   সেটি আগে থেকেই পাস করত। lime ও orange ছোঁয়া হয়নি (১৬.০২ ও ৮.৭১)। */
+:root[data-accent='purple'] { --accent:#7c3aed; --accent-2:#8b5cf6; --accent-strong:#6d28d9; --accent-ink:#ffffff; --accent-text:#a78bfa; --accent-glow:124,58,237; }
 /* ═══════ §5.1 — light-এ প্রিসেটগুলোও একই ব্যাকরণ মানে ═══════
    আগে light-এ প্রতিটি প্রিসেট কেবল `--accent-text` override করত,
    ফলে বোতামের পৃষ্ঠতল থেকে যেত উজ্জ্বল বেগুনি/নীল/লাল/কমলা —
@@ -878,13 +914,13 @@ details > summary::-webkit-details-marker { display:none; }
   --accent-ink:#ffffff; --accent-glow:15,23,41;
   --accent-text:#6d28d9;
 }
-:root[data-accent='blue'] { --accent:#3b82f6; --accent-2:#60a5fa; --accent-strong:#2563eb; --accent-ink:#ffffff; --accent-text:#60a5fa; --accent-glow:59,130,246; }
+:root[data-accent='blue'] { --accent:#1d4ed8; --accent-2:#2563eb; --accent-strong:#1e40af; --accent-ink:#ffffff; --accent-text:#60a5fa; --accent-glow:29,78,216; }
 :root[data-theme='light'][data-accent='blue'] {
   --accent:#0f1729; --accent-2:#1e2a44; --accent-strong:#0a1120;
   --accent-ink:#ffffff; --accent-glow:15,23,41;
   --accent-text:#1d4ed8;
 }
-:root[data-accent='red'] { --accent:#f43f5e; --accent-2:#fb7185; --accent-strong:#e11d48; --accent-ink:#ffffff; --accent-text:#fb7185; --accent-glow:244,63,94; }
+:root[data-accent='red'] { --accent:#be123c; --accent-2:#e11d48; --accent-strong:#9f1239; --accent-ink:#ffffff; --accent-text:#fb7185; --accent-glow:190,18,60; }
 :root[data-theme='light'][data-accent='red'] {
   --accent:#0f1729; --accent-2:#1e2a44; --accent-strong:#0a1120;
   --accent-ink:#ffffff; --accent-glow:15,23,41;

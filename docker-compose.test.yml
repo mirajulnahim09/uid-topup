@@ -1,0 +1,33 @@
+# ═══════════════════════════════════════════════════════════
+# ★★★ টেস্ট ডাটাবেস (Group D)
+#
+#   npm run test:db:up      → চালু
+#   npm run test            → স্কিমা push + Vitest
+#   npm run test:db:down    → বন্ধ ও ভলিউম মুছে ফেলা
+#
+#   ⚠️⚠️ লাইভ Neon **কখনো** টেস্টে ব্যবহার হয় না (CLAUDE.md §2.1)।
+#   টেস্ট প্রতিটি টেবিল truncate করে — লাইভ DB-তে চললে আসল গ্রাহক ও
+#   খতিয়ান মুছে যেত। `vitest.setup.ts` এর গার্ড localhost ছাড়া
+#   অন্য কোনো হোস্টে চলতেই দেয় না।
+#
+#   পোর্ট 5433 (5432 নয়) — কারও মেশিনে স্থানীয় Postgres চললে
+#   সংঘাত এড়াতে।
+# ═══════════════════════════════════════════════════════════
+services:
+  test-db:
+    image: postgres:16
+    container_name: uidtopup-test-db
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: uidtopup_test
+    ports:
+      - '5433:5432'
+    # ★ tmpfs — ডিস্কে কিছু লেখা হয় না, তাই টেস্ট দ্রুত ও প্রতিবার পরিষ্কার
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U test -d uidtopup_test']
+      interval: 2s
+      timeout: 3s
+      retries: 30

@@ -53,6 +53,47 @@ jobs:
       - name: Build
         run: npm run build
 
+  # ═══════════════════════════════════════════════════════════
+  # ★ টাকার পথের ইন্টিগ্রেশন টেস্ট (Group D)
+  #
+  #   ⚠️ নিজস্ব Postgres **সার্ভিস কনটেইনার** — লাইভ Neon কখনো নয়
+  #   (CLAUDE.md §2.1)। টেস্ট প্রতিটি টেবিল truncate করে, তাই
+  #   `vitest.setup.ts` এর গার্ড localhost ছাড়া চলতেই দেয় না।
+  # ═══════════════════════════════════════════════════════════
+  test:
+    name: Money-path tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: uidtopup_test
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U test -d uidtopup_test"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+
+    env:
+      TEST_DATABASE_URL: postgresql://test:test@localhost:5433/uidtopup_test
+      # ★ প্রোডাকশন DATABASE_URL ইচ্ছাকৃতভাবে **দেওয়া হয়নি** —
+      #   CI-তে লাইভ ডাটাবেসের কোনো কাজ নেই।
+      NEXTAUTH_SECRET: "ci-only-secret-at-least-24-characters-long"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - name: Run money-path tests
+        run: npm test
+
   # ★ নিরাপত্তা — নির্ভরতার পরিচিত দুর্বলতা স্ক্যান (high+ হলে fail নয়,
   #   শুধু রিপোর্ট — false positive যেন deploy না আটকায়)
   audit:
