@@ -29,5 +29,11 @@ declare module 'next-auth/jwt' {
     role?: Role;
     // ★ session epoch — "সব ডিভাইস সাইন-আউট" এর জন্য (Phase 2)
     epoch?: number;
+    /**
+     * ★ C5 — শেষ কবে DB থেকে ban/epoch যাচাই হয়েছে (epoch ms)।
+     *   অনুপস্থিত = পুরনো টোকেন (এই ফিচারের আগের); তখন **সাথে সাথে**
+     *   যাচাই হয় — লগ-আউট নয়, শুধু একবার DB দেখা।
+     */
+    lastChecked?: number;
   }
 }

@@ -89,6 +89,13 @@ async function findOrCreateGoogleUser(email: string, name: string) {
  */
 const DUMMY_HASH = '$2a$12$k8Y1cVvWZ3qJZ9L5oXbGYuJ0mN7pQ2rS4tU6vW8xY0zA1bC3dE5fG';
 
+/**
+ * ★ C5 — কত পর পর DB থেকে ban/epoch পুনঃযাচাই হবে।
+ *   ৫ মিনিট = ব্যান কার্যকর হওয়ার সর্বোচ্চ বিলম্ব। কমালে DB-চাপ বাড়ে,
+ *   বাড়ালে ব্যান করা ইউজার বেশিক্ষণ ঢুকতে পারেন।
+ */
+export const SESSION_REVALIDATE_MS = 5 * 60 * 1000;
+
 export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: '/login' },
@@ -327,6 +334,7 @@ export const authOptions: NextAuthOptions = {
         token.id = dbUser.id;
         token.role = dbUser.role;
         token.epoch = dbUser.sessionEpoch ?? 0;
+        token.lastChecked = Date.now();   // C5 — এইমাত্র DB দেখা হলো
         return token;
       }
 
@@ -339,11 +347,36 @@ export const authOptions: NextAuthOptions = {
           where: { id: user.id }, select: { sessionEpoch: true },
         });
         token.epoch = withEpoch?.sessionEpoch ?? 0;
+        token.lastChecked = Date.now();   // এইমাত্র DB দেখা হলো
+        return token;
       }
 
-      // ★ প্রতি refresh এ DB থেকে role/ban + session epoch re-verify
-      //   — ban করা ইউজার বা "সব ডিভাইস সাইন-আউট" করা টোকেন যেন না চলে
-      if (trigger === 'update' || !user) {
+      /**
+       * ★★★ C5 — ban / epoch পুনঃযাচাই, কিন্তু **থ্রটল করে**।
+       *
+       *   আগের শর্ত ছিল `trigger === 'update' || !user`। লগইনের পর
+       *   প্রায় প্রতিটি অনুরোধেই `user` থাকে না, অর্থাৎ শর্তটি কার্যত
+       *   **সবসময়** সত্য — প্রতিটি সেশন-পাঠে একটি করে DB কোয়েরি যেত।
+       *   Neon-এ সংযোগ-সীমা ও auto-suspend থাকায় সেটি বাস্তব খরচ।
+       *
+       *   অন্যদিকে `middleware.ts` কেবল স্বাক্ষরিত JWT-র দাবি পড়ে
+       *   (`getToken` — jwt callback চালায় না), তাই ব্যান করা ইউজার
+       *   middleware পার হয়ে যেত; আসল বাধা ছিল `requireUser()`।
+       *
+       *   সমাধান: `lastChecked` দাবি। ৫ মিনিটের বেশি পুরনো হলে তবেই
+       *   DB দেখা হয়। ফলে —
+       *     · ব্যান কার্যকর হতে **সর্বোচ্চ ৫ মিনিট** লাগে
+       *     · স্বাভাবিক ট্রাফিকে DB কোয়েরি নাটকীয়ভাবে কমে
+       *     · middleware-এ কোনো DB কল যোগ হয়নি (edge-এ চলে)
+       *
+       *   ⚠️ পুরনো টোকেনে `lastChecked` নেই → সাথে সাথে যাচাই হয়।
+       *      এটি লগ-আউট নয়, কেবল একবার DB দেখা — তাই ইতিমধ্যে
+       *      লগইন থাকা কেউ এই পরিবর্তনে বেরিয়ে যাবেন না।
+       */
+      const last = typeof token.lastChecked === 'number' ? token.lastChecked : 0;
+      const stale = Date.now() - last > SESSION_REVALIDATE_MS;
+
+      if (trigger === 'update' || stale) {
         if (!token.id) return {};
 
         const fresh = await prisma.user.findUnique({
@@ -355,16 +388,32 @@ export const authOptions: NextAuthOptions = {
         // ★★★ epoch mismatch = এই টোকেন revoke করা হয়েছে
         if ((token.epoch ?? 0) !== fresh.sessionEpoch) return {};
         token.role = fresh.role;
+        token.lastChecked = Date.now();
       }
 
       return token;
     },
 
     async session({ session, token }) {
-      // ★ টোকেন বাতিল হলে (ban/delete) jwt callback খালি {} ফেরত দেয়।
-      //   তখন session.user এ id বসাই না — middleware ও requireUser()
-      //   দুই জায়গাতেই আটকে যাবে।
-      if (!token?.id) return session;
+      /**
+       * ★★★ C5 — টোকেন বাতিল হলে (ban / delete / epoch অমিল) jwt
+       *   callback খালি `{}` ফেরত দেয়। আগে এখানে সেই ক্ষেত্রে
+       *   `session` **যেমন আছে তেমনই** ফেরত যেত — অর্থাৎ একটি
+       *   `user.id`-বিহীন কিন্তু **truthy** সেশন।
+       *
+       *   ফল: `requireUser()` ঠিকই আটকাত (সে `session?.user?.id`
+       *   দেখে), কিন্তু যেসব server component কেবল `if (!session)`
+       *   দেখে, তারা রেন্ডার করে ফেলত। মাপা হয়েছে — কোনো তথ্য
+       *   ফাঁস হতো না (id undefined বলে কোয়েরি খালি ফিরত), তবু
+       *   ব্যান করা ব্যবহারকারী লগইনে না গিয়ে একটি ফাঁকা অ্যাকাউন্ট
+       *   পাতা দেখতেন।
+       *
+       *   এখন `null` ফেরত যায় — `getServerSession()` তখন `null` দেয়,
+       *   তাই `if (!session)` লেখা প্রতিটি পাতা একবারেই সঠিক আচরণ করে।
+       *   ⚠️ NextAuth-এর টাইপ `Session` চায়, কিন্তু `getServerSession`
+       *   এর নিজের রিটার্ন টাইপ `Session | null` — তাই cast নিরাপদ।
+       */
+      if (!token?.id) return null as unknown as typeof session;
 
       session.user.id = token.id as string;
       session.user.role = token.role as 'USER' | 'ADMIN';

@@ -29,4 +29,26 @@ commit → এখানে এক লাইন।
 ```
 [x] G0 — git init + বেসলাইন commit — 2026-08-07 — .env ignored যাচাই করা (git check-ignore)
 [x] C4 — rate limiter fail-closed on auth — 2026-08-07 — prisma/tsc/lint/build ok — verify: scripts/verify/ratelimit-failclosed.ts 20/20
+[x] C5 — ban/epoch revalidation throttled to 5 min + null session when revoked — 2026-08-07 — prisma/tsc/lint/build ok — verify: ban-revocation.ts 14/14, route-guard-audit.ts 0 gaps
 ```
+
+### C5 — রুট-গার্ড অডিটের ফল
+
+৪৩টি API রুট · **০টি অরক্ষিত**। গার্ডহীন ৯টি রুট ইচ্ছাকৃতভাবে পাবলিক,
+প্রতিটির কারণ `scripts/verify/route-guard-audit.ts`-এ লেখা:
+
+| রুট | কেন পাবলিক |
+|---|---|
+| `/api/auth/[...nextauth]` | NextAuth handshake |
+| `/api/auth/2fa-check` | লগইনের আগে; নিজস্ব rate-limit + fail-closed |
+| `/api/auth/login-status` | কেবল বাকেট পড়ে |
+| `/api/auth/forgot` · `/api/auth/reset` | লগ-আউট অবস্থায় দরকার; IP rate-limit |
+| `/api/register` | সংজ্ঞা অনুযায়ী অননুমোদিত |
+| `/api/track` | অর্ডার নং + ফোন; কড়া IP rate-limit |
+| `/api/health` | আপটাইম প্রোব |
+| `/api/webhooks/payment/[provider]` | স্বাক্ষর যাচাই |
+
+⚠️ **যাচাইয়ের সময় পাওয়া বাড়তি তথ্য:** ব্যান API স্তরে **তাৎক্ষণিক**
+কার্যকর (`requireUser()` প্রতিটি কলে `isBanned` দেখে → ৪০৩)। ৫-মিনিটের
+উইন্ডোটি কেবল টোকেন/middleware স্তরের, কারণ middleware edge-এ চলে ও DB
+দেখে না — এটিই নকশা।
