@@ -33,8 +33,32 @@ commit → এখানে এক লাইন।
 [x] H1 — order price/costPrice from the locked row (+ coupon lock on /order/direct) — 2026-08-07 — prisma/tsc/lint/build ok — verify: order-price-lock.ts 13/13, test:money 18/18
 [x] H2 — getIp() ignores client x-forwarded-for unless TRUSTED_PROXY — 2026-08-07 — prisma/tsc/lint/build ok — verify: ip-spoofing.ts 8/8
 [x] H3 — nonce+hash CSP; script-src থেকে unsafe-inline, img-src থেকে বেয়ার https: সরানো — 2026-08-07 — prisma/tsc/lint/build ok — verify: csp-nonce.ts 15/15 (dev **ও** prod), audit-pages 32 পাতা ০ ত্রুটি
+[x] M1 M2 M5 — মিথ্যা থিম-মন্তব্য, --gold ডকুমেন্টেশন, theme-color টোকেন থেকে (+ mount বাগ) — 2026-08-07 — prisma/tsc/lint/build ok — verify: theme-meta-token.ts 11/11
+[ ] M6 — ISR — শুরু করা হয়নি (পরবর্তী; নিচে কারণ ও তথ্য)
 [~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-07
 ```
+
+### M6 (ISR) কেন এই commit-এ নেই
+
+তাড়াহুড়ো করে ক্যাশিং বদলানো হয়নি — ভুল করলে **এক ব্যবহারকারীর
+পাতা আরেকজনকে** পরিবেশন হতে পারে, যা এই প্রকল্পে সবচেয়ে খারাপ
+শ্রেণির বাগ। যা জানা গেছে (build আউটপুট থেকে):
+
+- `/product/[id]/[slug]` **ইতিমধ্যে SSG** (`●`, ১১টি পাথ prerendered) —
+  অর্থাৎ এটি এখনই স্ট্যাটিক, তবে redeploy ছাড়া কখনো রিফ্রেশ হয় না।
+  `revalidate: 300` যোগ করলে দাম/স্টক ৫ মিনিটে আপনা-আপনি হালনাগাদ হবে।
+- বাকি প্রায় সব রুট `ƒ (Dynamic)`।
+- `src/app/layout.tsx` `cookies()` পড়ে (ভাষা) — ISR-এর সাথে এর
+  মিথস্ক্রিয়া **যাচাই করা হয়নি**। ভাষা-কুকি ক্যাশে ঢুকে গেলে ভুল
+  ভাষায় পাতা পরিবেশন হতে পারে।
+
+**পরের সেশনে করণীয় (এই ক্রমে):**
+1. `/product/[id]/[slug]/page.tsx` পড়ুন — কোনো session/user-নির্দিষ্ট
+   ডেটা রেন্ডার হয় কিনা **প্রমাণ** করুন (RUN.md এটাই চায়)
+2. locale + ISR এর মিথস্ক্রিয়া যাচাই করুন
+3. তবেই `export const revalidate = 300`
+4. যাচাই: দাম বদলে ৫ মিনিট পর পাতায় প্রতিফলিত হয় কিনা; দুই ভিন্ন
+   ভাষা-কুকিতে ভিন্ন HTML আসে কিনা
 
 ### H3 — আংশিক: `style-src` এখনো `'unsafe-inline'`
 
@@ -58,7 +82,9 @@ commit → এখানে এক লাইন।
 **কারণ:** context ফুরিয়ে আসছে (RUN.md-এর ৩ নং বৈধ কারণ)।
 কোনো চেক ব্যর্থ হয়নি, কোনো টাস্ক ব্লকড নয়।
 
-### পরবর্তী টাস্ক: **H4 — polling load**
+### পরবর্তী টাস্ক: **M6 (ISR — উপরে বিস্তারিত), তারপর H4**
+
+### H4 — polling load
 
 `src/components/Navbar.tsx` ৬০s আর `src/components/AutoRefresh.tsx` ৩০s
 অন্তর পোল করে; Neon-এ সংযোগ-সীমা ও auto-suspend আছে।
@@ -71,7 +97,7 @@ commit → এখানে এক লাইন।
 
 | গ্রুপ | বাকি |
 |---|---|
-| B | H4 (SSE) · M1 M2 M5 M6 |
+| B | M6 (ISR) · H4 (SSE) |
 | C | লাইট থিম (CLAUDE.md §5, এক atomic পরিবর্তন) |
 | D | Vitest + টেস্ট Postgres — **E-এর আগেই**, RUN.md স্পষ্ট |
 | E | পেমেন্ট গেটওয়ে অবকাঠামো (credentials ছাড়া) |
@@ -95,6 +121,7 @@ scripts/verify/ban-revocation.ts         14 পাস · ০ ব্যর্থ
 scripts/verify/order-price-lock.ts       14 পাস · ০ ব্যর্থ
 scripts/verify/ip-spoofing.ts             8 পাস · ০ ব্যর্থ
 scripts/verify/csp-nonce.ts              15 পাস · ০ ব্যর্থ (dev ও prod)
+scripts/verify/theme-meta-token.ts       11 পাস · ০ ব্যর্থ
 scripts/audit-pages.ts                   ৩২ পাতা · ০ সমস্যা
 npm run test:money                       18 পাস · ০ ব্যর্থ
 prisma generate · typecheck · lint · build — চারটিই পরিষ্কার

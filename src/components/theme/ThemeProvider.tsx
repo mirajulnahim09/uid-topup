@@ -64,8 +64,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       animTimer.current = setTimeout(() => html.classList.remove('theme-anim'), 400);
     }
     html.dataset.theme = next;
+
+    /**
+     * ★★★ M5 — মেটা theme-color এখন **টোকেন থেকে** পড়া হয়।
+     *   আগে `next === 'dark' ? '#0a0b11' : '#f4f6fb'` হার্ডকোড ছিল —
+     *   অর্থাৎ একই রঙ দুই জায়গায়। `globals.css`-এ `--v-void` বদলালে
+     *   ব্রাউজারের অ্যাড্রেস-বার/স্ট্যাটাস-বার পুরনো রঙেই থেকে যেত
+     *   আর কেউ টের পেত না (মোবাইলে ছাড়া চোখেও পড়ে না)।
+     *   `dataset.theme` উপরে বসানোর পর `getComputedStyle` নতুন মানই দেয়।
+     *   ⚠️ fallback রাখা হয়েছে — টোকেন কোনো কারণে খালি এলে (খুব
+     *   আগেভাগে কল, বা CSS লোড হয়নি) মেটা ট্যাগ যেন খালি না হয়।
+     */
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', next === 'dark' ? '#0a0b11' : '#f4f6fb');
+    if (meta) {
+      const token = getComputedStyle(html).getPropertyValue('--v-void').trim();
+      meta.setAttribute('content', token || (next === 'dark' ? '#0a0b11' : '#f4f6fb'));
+    }
     setResolved(next);
   }, []);
 
@@ -77,7 +91,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (v === 'light' || v === 'dark' || v === 'system') stored = v;
     } catch { /* */ }
     setThemeState(stored);
-    setResolved(resolve(stored));
+    /**
+     * ★★★ M5 — আগে এখানে কেবল `setResolved(...)` ছিল, `apply()` নয়।
+     *   ফলে মাউন্টে মেটা `theme-color` **কখনো হালনাগাদ হতো না** —
+     *   `layout.tsx` এর স্থির `themeColor: '#0a0b11'` রয়ে যেত।
+     *   বাস্তব প্রভাব: light থিমের ব্যবহারকারী প্রতিবার পাতা লোডে
+     *   মোবাইল ব্রাউজারের অ্যাড্রেস-বার **গাঢ়** দেখতেন, যতক্ষণ না
+     *   নিজে হাতে থিম টগল করেন। ইনলাইন স্ক্রিপ্ট রঙ ঠিক করত, কিন্তু
+     *   মেটা ট্যাগ ছোঁয়াই হতো না।
+     *   ⚠️ animate=false — মাউন্টে ট্রানজিশন দিলে প্রথম রেন্ডারেই
+     *   অপ্রয়োজনীয় ঝলক হতো।
+     */
+    apply(resolve(stored), false);
 
     let a: AccentChoice = 'lime';
     try {
@@ -86,7 +111,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch { /* */ }
     setAccentState(a);
     document.documentElement.dataset.accent = a;
-  }, []);
+  }, [apply]);
 
   // 'system' হলে OS পরিবর্তন লাইভ শোনে
   useEffect(() => {
