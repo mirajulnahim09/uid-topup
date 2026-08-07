@@ -32,7 +32,62 @@ commit → এখানে এক লাইন।
 [x] C5 — ban/epoch revalidation throttled to 5 min + null session when revoked — 2026-08-07 — prisma/tsc/lint/build ok — verify: ban-revocation.ts 14/14, route-guard-audit.ts 0 gaps
 [x] H1 — order price/costPrice from the locked row (+ coupon lock on /order/direct) — 2026-08-07 — prisma/tsc/lint/build ok — verify: order-price-lock.ts 13/13, test:money 18/18
 [x] H2 — getIp() ignores client x-forwarded-for unless TRUSTED_PROXY — 2026-08-07 — prisma/tsc/lint/build ok — verify: ip-spoofing.ts 8/8
+[~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-07
 ```
+
+---
+
+## ⏸️ রান থামানো হয়েছে — কেন ও কোথা থেকে শুরু করবেন
+
+**কারণ:** context ফুরিয়ে আসছে (RUN.md-এর ৩ নং বৈধ কারণ)।
+কোনো চেক ব্যর্থ হয়নি, কোনো টাস্ক ব্লকড নয়।
+
+### পরবর্তী টাস্ক: **H3 — CSP**
+
+`src/middleware.ts` (L15–40):
+- `img-src` এ বেয়ার `https:` আছে (L26) → Blob হোস্ট + `data:` + `blob:` এ সীমিত করুন
+- `script-src` প্রোডাকশনেও `'unsafe-inline'` রাখে (L21) → nonce-ভিত্তিক CSP
+- ⚠️ nonce Next hydration ভাঙলে RUN.md বলছে: script-src অংশ ফিরিয়ে নিন,
+  `img-src` ফিক্স রাখুন, এখানে blocked লিখুন — `unsafe-inline` রেখে
+  "ঠিক হয়েছে" **বলবেন না**
+
+### এরপর, RUN.md-এর ক্রমে
+
+| গ্রুপ | বাকি |
+|---|---|
+| B | H3 · H4 (SSE) · M1 M2 M5 M6 |
+| C | লাইট থিম (CLAUDE.md §5, এক atomic পরিবর্তন) |
+| D | Vitest + টেস্ট Postgres — **E-এর আগেই**, RUN.md স্পষ্ট |
+| E | পেমেন্ট গেটওয়ে অবকাঠামো (credentials ছাড়া) |
+| F | রিসেলার টিয়ার (schema migration) |
+| G | অটো-ফুলফিলমেন্ট অ্যাডাপ্টার |
+| H | riskSignals · errorReporter sink · Redis |
+| I | ৭টি ফিচার |
+
+### পুনরায় শুরু করার নিয়ম
+
+1. এই ফাইল পড়ুন, প্রথম অসম্পূর্ণ লাইন থেকে ধরুন — **কোনো `[x]` আবার করবেন না**
+2. `npm run dev` চালু আছে কিনা দেখুন
+3. `scripts/verify/` এর সব স্ক্রিপ্ট একবার চালিয়ে বেসলাইন নিশ্চিত করুন
+
+### বর্তমান বেসলাইন (৭ আগস্ট, রান থামার সময়)
+
+```
+scripts/verify/ratelimit-failclosed.ts   22 পাস · ০ ব্যর্থ
+scripts/verify/route-guard-audit.ts      ৪৩ রুট · ০ অরক্ষিত
+scripts/verify/ban-revocation.ts         14 পাস · ০ ব্যর্থ
+scripts/verify/order-price-lock.ts       14 পাস · ০ ব্যর্থ
+scripts/verify/ip-spoofing.ts             8 পাস · ০ ব্যর্থ
+npm run test:money                       18 পাস · ০ ব্যর্থ
+prisma generate · typecheck · lint · build — চারটিই পরিষ্কার
+```
+
+### ⚠️ মালিকের জন্য — এই রানে যোগ হওয়া হাতে-করার কাজ
+
+- **`TRUSTED_PROXY`** (নতুন, H2) — Vercel-এ **খালি রাখুন**। প্রক্সি ছাড়া
+  স্থাপনায় `1` দেবেন না।
+- আগের রানের বাকি কাজ অপরিবর্তিত: GitHub Actions সিক্রেট
+  (`APP_BASE_URL`, `CRON_SECRET`) ও `SECRET_ROTATION_CHECKLIST.md`।
 
 ### C5 — রুট-গার্ড অডিটের ফল
 
