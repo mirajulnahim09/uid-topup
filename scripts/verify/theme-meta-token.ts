@@ -89,7 +89,15 @@ const READ = (theme: string) => `(function () {
      *   সেট করে **পাতা রিলোড** করি, যাতে ThemeProvider mount-এ নিজেই
      *   থিম প্রয়োগ করে। তখনই meta-র মান প্রকৃত।
      */
-    for (const [choice, expect] of [['dark', '#0a0b11'], ['light', '#f4f6fb']] as const) {
+    /**
+     * ⚠️ আগে এখানে প্রত্যাশিত হেক্স **হার্ডকোড** ছিল
+     *   (`['light', '#f4f6fb']`)। Group C-তে `--v-void` বদলে
+     *   `#f6f7f9` হতেই পরীক্ষা ভেঙে পড়ে — অথচ কোড ঠিকই ছিল।
+     *   এটি ঠিক সেই ভুল যা M5 সারাতে চেয়েছিল: একই মান দুই জায়গায়।
+     *   আসল দাবি হলো **meta = টোকেন**, মানটি যাই হোক।
+     */
+    const seen: Record<string, string> = {};
+    for (const choice of ['dark', 'light'] as const) {
       await page.evaluate(`localStorage.setItem('theme','${choice}')`);
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(1500);
@@ -102,9 +110,14 @@ const READ = (theme: string) => `(function () {
       ) as { meta: string | null; token: string; theme: string };
       console.log(`  reload(${choice}) → data-theme=${got.theme} token=${got.token} meta=${got.meta}`);
       check(`★ ${choice}: ThemeProvider meta = --v-void টোকেন`,
-        got.meta === got.token && got.token === expect,
+        Boolean(got.token) && got.meta === got.token,
         `meta=${got.meta} token=${got.token}`);
+      check(`${choice}: data-theme সঠিকভাবে প্রয়োগ হয়েছে`, got.theme === choice, got.theme);
+      seen[choice] = got.token;
     }
+    // দুই থিমে পৃষ্ঠতল আলাদা না হলে meta বদলানোর দাবিটাই অর্থহীন
+    check('dark ও light এর --v-void আলাদা', seen.dark !== seen.light,
+      `${seen.dark} vs ${seen.light}`);
     await page.evaluate(`localStorage.removeItem('theme')`);
   } finally {
     await ctx.close();
