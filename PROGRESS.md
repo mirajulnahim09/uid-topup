@@ -36,8 +36,49 @@ commit → এখানে এক লাইন।
 [x] M1 M2 M5 — মিথ্যা থিম-মন্তব্য, --gold ডকুমেন্টেশন, theme-color টোকেন থেকে (+ mount বাগ) — 2026-08-07 — prisma/tsc/lint/build ok — verify: theme-meta-token.ts 11/11
 [~] M6 — ISR — **ঘোষণা আগে থেকেই ছিল**; নিরাপত্তা-দাবি প্রমাণিত, কিন্তু ISR কার্যত নিষ্ক্রিয় — 2026-08-07 — verify: isr-no-user-leak.ts 9/9
 [x] H4 — লুকানো ট্যাবে পোলিং বন্ধ, ৬০s→১২০s, ঐচ্ছিক SSE (/api/stream) — 2026-08-07 — prisma/tsc/lint/build ok — verify: polling-load.ts 8/8
-[~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-07
+[x] GROUP C — লাইট থিম (CLAUDE.md §5 সম্পূর্ণ, এক atomic পরিবর্তন) — 2026-08-08 — prisma/tsc/lint/build ok — verify: theme-contrast.ts (২ থিম × ৫ প্রিসেট) সব পাস
+[~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-08
 ```
+
+### Group C — §5.5 গ্রহণযোগ্যতা: মাপা অনুপাত
+
+`scripts/verify/theme-contrast.ts` প্রতিটি জোড়া **computed টোকেন**
+থেকে মাপে (rgba হলে পৃষ্ঠতলের উপর composite করে), ২ থিম × ৫ প্রিসেট।
+
+| জোড়া | dark | light |
+|---|---|---|
+| প্রাথমিক বোতাম (accent-ink/accent) | 16.02 | **17.87** |
+| সেকেন্ডারি বোতাম (v-ink/v-steel) | 14.69 | 15.78 |
+| মূল লেখা (v-ink/v-pit) | 16.09 | 17.87 |
+| সহায়ক লেখা (v-mut/v-pit) | 7.39 | 6.50 |
+| লিংক (v-ice/v-pit) | 10.93 | **5.93** (আগে ৪.১ — ফেল) |
+| অ্যাকসেন্ট-লেখা (accent-text/v-void) | 15.04 | 4.66 |
+| সফল / সতর্কতা / ত্রুটি / তথ্য | 12.08 / 10.91 / 6.77 / 10.93 | 5.02 / 5.02 / 6.29 / 5.93 |
+| প্লেসহোল্ডার (v-dim/v-field) | 5.66 | **4.77** (আগে ২.৮২ — ফেল) |
+
+✅ ০টি JSX/TSX ফাইল বদলেছে · ✅ `!important` ৫৮ → ৫৮ (নতুন নেই)
+
+**যা টোকেন দিয়ে হয়নি:** `.btn-primary` কখনোই `--accent` ব্যবহার
+করত না — তার `--panel-fill` ছিল হার্ডকোড বেগুনি গ্রেডিয়েন্ট। তাই
+সাইটের প্রধান CTA থিম/প্রিসেট নির্বিশেষে বেগুনিই থাকত। light-এ
+এখন সেটি accent টোকেন থেকে রঙ নেয় (গভীর ইঙ্ক); dark অপরিবর্তিত।
+
+### ⚠️ পরবর্তী: দুটি পূর্ব-বিদ্যমান a11y ঘাটতি
+
+Group C **তৈরি করেনি**, মাপতে গিয়ে ধরা পড়েছে। checker সংখ্যাসহ
+ছাপে ও "আরও খারাপ হয়নি" assert করে — নীরবে মান নামানো হয়নি।
+
+1. **UI বর্ডার (`--v-edge2`)** — dark ১.৬২:১ · light ১.৪০:১,
+   WCAG 1.4.11 চায় **৩:১**। ইনপুটের বর্ডার এতে আঁকা।
+   ⚠️ দ্বন্দ্ব: §5.4 নিজেই light-এ edge2 **নরম** করতে বলেছে
+   (.20 → .16)। নকশা ও AA বিপরীত দিকে টানছে — সিদ্ধান্ত দরকার:
+   (ক) বর্ডার গাঢ় করা, না (খ) ইনপুটের জন্য আলাদা গাঢ়তর
+   `--v-edge-field` টোকেন (কার্ডের বর্ডার নরমই থাকবে)।
+2. **dark প্রিসেটে প্রাথমিক বোতাম** — purple ৪.২৩ · blue ৩.৬৮ ·
+   red ৩.৬৭ (সাদা লেখা মাঝারি পৃষ্ঠতলে; AA ৪.৫ দরকার)।
+   lime ও orange ঠিক আছে। §5 কেবল light-এর কাজ, তাই dark প্রিসেট
+   ছোঁয়া হয়নি। সমাধান: ওই তিনটির `--accent` গাঢ় করা, অথবা
+   `--accent-ink` গাঢ় করা — দুটোই ব্র্যান্ড-চেহারা বদলায়।
 
 ### H4 — SSE ডিফল্টে বন্ধ কেন (সৎ সীমাবদ্ধতা)
 
@@ -119,24 +160,30 @@ Neon-চাপ দুটোই কমবে (H4-এর সাথে সম্প
 **কারণ:** context ফুরিয়ে আসছে (RUN.md-এর ৩ নং বৈধ কারণ)।
 কোনো চেক ব্যর্থ হয়নি, কোনো টাস্ক ব্লকড নয়।
 
-### পরবর্তী টাস্ক: **GROUP C — লাইট থিম** (CLAUDE.md §5, এক atomic পরিবর্তন)
+### পরবর্তী টাস্ক: **GROUP D — টেস্ট** (RUN.md: "payments-এর আগে")
 
-§5.1 accent override (option A) · §5.2 elevation ramp · §5.3 60/30/10 ·
-§5.4 ছায়া, glow বাদ, ambient wash বন্ধ।
-গ্রহণযোগ্যতা (§5.5): **০টি JSX/TSX ফাইল** বদলাবে · প্রতিটি জোড়া
-≥ ৪.৫:১ (বড় লেখা/বর্ডার ≥ ৩:১), অনুপাত রিপোর্ট করতে হবে · নতুন
-`!important` নয় · দুই থিম × পাঁচটি accent প্রিসেট যাচাই।
-যাচাই: `scripts/verify/theme-contrast.ts` প্রতিটি জোড়া assert করবে।
+Vitest + আলাদা টেস্ট Postgres। ন্যূনতম কভারেজ:
+- **Order:** happy path · অপর্যাপ্ত ব্যালেন্স · স্টক শেষ · সমান্তরাল
+  double-spend · কুপন over-limit race
+- **Deposit:** approve · reject · ডুপ্লিকেট TrxID · double-approve
+- **Refund:** আংশিক · সম্পূর্ণ · over-refund প্রত্যাখ্যান
+- **খতিয়ান invariant:** ১০০টি এলোমেলো অপারেশনের পর প্রতিটি ইউজারে
+  `SUM(LedgerEntry.amount) === User.balance`
 
-⚠️ Group B-র অবশিষ্ট (M6-এর লেআউট ক্যাশযোগ্য করা) Group C-র পরেও
-করা যায় — RUN.md-এর ক্রম Group C কে আগে রাখে।
+`npm run test` যোগ করে `.github/workflows/ci.yml` এ যুক্ত করতে হবে।
+`playwright-core` হয় একটি e2e smoke টেস্টে ব্যবহার করুন, নয়তো
+নির্ভরতা সরান (M4)।
+
+⚠️ **প্রথম সিদ্ধান্ত: টেস্ট Postgres কোথায়?** লাইভ Neon-এ চালানো
+যাবে না (§2.1 — আসল গ্রাহক-তথ্য)। বিকল্প: ডকার `postgres:16`,
+অথবা Neon-এ একটি আলাদা `test` ব্রাঞ্চ।
 
 ### এরপর, RUN.md-এর ক্রমে
 
 | গ্রুপ | বাকি |
 |---|---|
 | B | ✅ শেষ (M6-এর অবশিষ্ট: লেআউট ক্যাশযোগ্য করা — বড় কাজ, স্থগিত) |
-| C | লাইট থিম (CLAUDE.md §5, এক atomic পরিবর্তন) |
+| C | ✅ শেষ (দুটি পূর্ব-বিদ্যমান a11y ঘাটতি রিপোর্ট করা — উপরে) |
 | D | Vitest + টেস্ট Postgres — **E-এর আগেই**, RUN.md স্পষ্ট |
 | E | পেমেন্ট গেটওয়ে অবকাঠামো (credentials ছাড়া) |
 | F | রিসেলার টিয়ার (schema migration) |
@@ -162,6 +209,7 @@ scripts/verify/csp-nonce.ts              15 পাস · ০ ব্যর্থ 
 scripts/verify/theme-meta-token.ts       11 পাস · ০ ব্যর্থ
 scripts/verify/isr-no-user-leak.ts        9 পাস · ০ ব্যর্থ (prod build)
 scripts/verify/polling-load.ts            8 পাস · ০ ব্যর্থ
+scripts/verify/theme-contrast.ts          ২ থিম × ৫ প্রিসেট · সব পাস
 scripts/audit-pages.ts                   ৩২ পাতা · ০ সমস্যা
 npm run test:money                       18 পাস · ০ ব্যর্থ
 prisma generate · typecheck · lint · build — চারটিই পরিষ্কার

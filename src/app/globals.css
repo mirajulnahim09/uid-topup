@@ -725,16 +725,43 @@ details > summary::-webkit-details-marker { display:none; }
   color-scheme: light;
 
   /* legacy aliases */
-  --bg:#f4f6fb; --bg2:#ffffff;
+  --bg:#f6f7f9; --bg2:#ffffff;
   --glass:rgba(15,23,41,.03); --hair:rgba(15,23,41,.09);
   --violet:#6d28d9; --ice:#0284c7; --gold:#5a8a00; --rose:#e11d48;
-  --ink:#0f1729; --mut:#5a6a82; --line:rgba(15,23,41,.10); --red:#e11d48;
+  --ink:#0f1729; --mut:#525f70; --line:rgba(15,23,41,.10); --red:#e11d48;
 
-  /* VOLT base */
-  --v-void:#f4f6fb; --v-pit:#ffffff; --v-steel:#fbfcfe;
-  --accent-text:#5a8a00;              /* light: টেক্সট-নিরাপদ লাইম */
+  /* ═══════ §5.1 — অ্যাকসেন্ট পৃষ্ঠতল (option A: premium) ═══════
+     ★★★ মূল কারণ: `:root` এ `--accent:#c8ff3d` (নিয়ন লাইম), আর light
+     ব্লক আগে কেবল `--accent-text` override করত। ফলে `--accent`,
+     `--accent-2`, `--accent-strong`, `--accent-ink` ও `--accent-glow`
+     সাদা পাতাতেও **নিয়ন** থেকে যেত, উপরে প্রায়-কালো লেখা। WCAG পাস
+     করত, দেখতে হাইলাইটার কলমের মতো — নিয়ন গাঢ় পটভূমিতে দামি লাগে,
+     সাদায় সস্তা।
+
+     এখন: সাদা পাতা + প্রায়-কালো প্রাথমিক বোতাম, আর লাইম কেবল ছোট
+     অ্যাকসেন্টে (ব্যাজ, লাইভ-ডট, সক্রিয় নির্দেশক) — Stripe/Linear/
+     Apple-এর ব্যাকরণ। */
+  --accent:#0f1729;                   /* গভীর ইঙ্ক — প্রাথমিক বোতামের পৃষ্ঠতল */
+  --accent-2:#1e2a44;                 /* গ্রেডিয়েন্ট হালকা স্টপ */
+  --accent-strong:#0a1120;            /* গ্রেডিয়েন্ট গাঢ় স্টপ */
+  --accent-ink:#ffffff;               /* অ্যাকসেন্ট পৃষ্ঠতলের উপর লেখা */
+  --accent-text:#4d7c0f;              /* পাতার উপর অ্যাকসেন্ট-লেখা */
+  --accent-glow:15,23,41;             /* §5.4 — আভা নয়, কেবল রিং */
+
+  /* ═══════ §5.2 — এলিভেশন র‍্যাম্প (light-এ যত উঁচু, তত সাদা) ═══════
+     আগে `--v-pit:#ffffff` ও `--v-steel:#fbfcfe` চোখে **অভিন্ন** ছিল
+     (০.৫% ব্যবধান), আর `--v-field:#ffffff` কার্ডের সাথে মিশে যেত —
+     ইনপুট কোথায় শেষ বোঝা যেত না। ধাপ এখন ২–৩%। */
+  --v-void:#f6f7f9;                   /* পাতা */
+  --v-pit:#ffffff;                    /* কার্ড — সর্বোচ্চ */
+  --v-steel:#eef1f5;                  /* thead, মেনু, নিচু পৃষ্ঠতল */
+
   --v-volt:var(--accent-text); --v-volt-surf:var(--accent);
-  --v-ice:#0284c7; --v-ice-surf:#7de3ff;
+  /* ★ §5.3 — light-এ `--v-ice` কেবল **লিংকের** রঙ। আগে ছিল #0284c7,
+     সাদার উপর মাপা ৪.১:১ — অর্থাৎ প্রতিটি লিংক WCAG AA **ফেল** করত।
+     #0369a1 এ ৫.৯:১, আর এটি `--sem-info`-র সমান, তাই "তথ্য" ভূমিকার
+     রঙ পুরো অ্যাপে একটাই থাকে। (surf টিন্ট সাজসজ্জার, অপরিবর্তিত।) */
+  --v-ice:#0369a1; --v-ice-surf:#7de3ff;
   --v-plasma:#7b2cff; --v-heat:#e11d48;
 
   /* ═══════ সেমান্টিক রঙ (C3) — LIGHT ═══════
@@ -744,17 +771,27 @@ details > summary::-webkit-details-marker { display:none; }
   --sem-warning:#b45309;
   --sem-danger:#be123c;
   --sem-info:#0369a1;
-  --v-ink:#0f1729; --v-mut:#5a6a82; --v-dim:#8a97a8;
-  --v-edge:rgba(15,23,41,.10); --v-edge2:rgba(15,23,41,.20);
+  /* §5.4 — `--v-mut` আগে #5a6a82 ছিল, একটু বেশি নীলচে; #525f70
+     নিরপেক্ষ ও সাদার উপর সামান্য গাঢ়। `--v-edge2` .20 → .16 —
+     ছায়া দুর্বল হলে বর্ডারই কাঠামো ধরে, কিন্তু .20 কঠিন লাগত। */
+  /* ★ `--v-dim` প্লেসহোল্ডারে ব্যবহৃত (`::placeholder`)। আগে #8a97a8,
+     নতুন `--v-field` (#f8f9fb) এর উপর মাপা মাত্র ২.৮:১ — প্লেসহোল্ডার
+     লেখা, তাই AA ৪.৫:১ প্রযোজ্য। #647082 এ ~৫:১। */
+  --v-ink:#0f1729; --v-mut:#525f70; --v-dim:#647082;
+  --v-edge:rgba(15,23,41,.10); --v-edge2:rgba(15,23,41,.16);
   --v-fill:rgba(15,23,41,.03); --v-fill2:rgba(15,23,41,.05);
 
-  /* light এলিভেশন — নরম ধূসর ছায়া (কালো ছায়া light-এ ময়লা লাগে) */
-  --v-shadow-1:0 1px 2px rgba(16,23,41,.05);
-  --v-shadow-2:0 1px 2px rgba(16,23,41,.04), 0 10px 30px -16px rgba(16,23,41,.16);
-  --v-shadow-3:0 4px 8px rgba(16,23,41,.06), 0 24px 60px -20px rgba(16,23,41,.22);
+  /* ═══════ §5.4 — দুই-স্তরের ছায়া ═══════
+     light-এ **ছায়াই একমাত্র গভীরতার ভাষা** (গাঢ় থিমে আলো ব্যবহার
+     করা যায়, সাদায় যায় না)। আগেরগুলো এত ম্লান ছিল যে কার্ড আর
+     পাতা একই সমতলে দেখাত। এখন সংস্পর্শ-ছায়া + বিস্তৃত নরম ছায়া। */
+  --v-shadow-1:0 1px 2px rgba(16,23,41,.06);
+  --v-shadow-2:0 1px 3px rgba(16,23,41,.06), 0 8px 24px -12px rgba(16,23,41,.14);
+  --v-shadow-3:0 2px 6px rgba(16,23,41,.07), 0 20px 48px -16px rgba(16,23,41,.20);
 
-  /* সেমান্টিক পৃষ্ঠতল */
-  --v-field:#ffffff; --v-field-focus:#ffffff;
+  /* সেমান্টিক পৃষ্ঠতল — §5.2: ইনপুট এখন "কুয়ো"র মতো, কার্ডের
+     চেয়ে সামান্য নিচু; ফোকাসে সাদা হয়ে উঠে আসে */
+  --v-field:#f8f9fb; --v-field-focus:#ffffff;
   --surface-nav:rgba(255,255,255,.9);
   --surface-bar:rgba(255,255,255,.96);
   --surface-adminnav:rgba(255,255,255,.85);
@@ -762,16 +799,18 @@ details > summary::-webkit-details-marker { display:none; }
   --hairline:rgba(15,23,41,.06);
   --tint-violet:rgba(109,40,217,.10);
   --tint-ice:rgba(2,132,199,.10);
-  --tint-volt:rgba(90,138,0,.12);
+  --tint-volt:rgba(77,124,15,.12);   /* নতুন --accent-text (#4d7c0f) এর সাথে মিলিয়ে */
 }
 
-/* ── light থিমে পরিবেশ-আলো নরম করা ──
-   গাঢ় থিমের নিচের কালো ভিনিয়েট light-এ ময়লা লাগে; শুধু উপরের
-   হালকা প্লাজমা-আভা রাখি। */
+/* ── §5.4 — পরিবেশ-ধোয়া (ambient wash) ──
+   আগে দুটি radial ছিল: বেগুনি (.06) + নীল (.04)। সাদা পাতায় দুটি
+   ভিন্ন রঙের আভা **দাগের মতো** দেখাত — বিশেষত বড় স্ক্রিনে উপরের
+   কোণে। §5.3 (৬০/৩০/১০) অনুযায়ী light-এ একসাথে দুটি সম্পৃক্ত রঙ
+   চলবে না। এখন **একটিমাত্র** নিরপেক্ষ-ঠান্ডা ধোয়া, .03 এর নিচে —
+   চোখে ধরা পড়ে না, কিন্তু পাতাটা সম্পূর্ণ সমতলও লাগে না। */
 :root[data-theme='light'] body::after {
   background:
-    radial-gradient(ellipse 90% 50% at 50% -12%, rgba(109,40,217,.06), transparent 60%),
-    radial-gradient(ellipse 60% 45% at 100% 0, rgba(2,132,199,.04), transparent 55%);
+    radial-gradient(ellipse 90% 50% at 50% -12%, rgba(15,23,41,.025), transparent 62%);
 }
 :root[data-theme='light'] body::before { background: none; }
 
@@ -785,21 +824,78 @@ details > summary::-webkit-details-marker { display:none; }
 /* ── light থিমে পরিবেশ-স্তর নরম করা ──
    গাঢ় mesh blob সাদা পটভূমিতে ময়লা ছোপ ফেলত; খুব ম্লান করলে সেটি
    একটি সূক্ষ্ম রঙিন aurora-র মতো থাকে। উজ্জ্বল কণা/স্পটলাইটও নরম। */
-:root[data-theme='light'] .site-bg-mesh { opacity: .14; filter: blur(120px) saturate(.65); }
+/* §5.4 — mesh .14 → .06: .14-এ রঙিন blob সাদার উপর ছোপ ফেলত */
+:root[data-theme='light'] .site-bg-mesh { opacity: .06; filter: blur(120px) saturate(.6); }
 :root[data-theme='light'] .site-bg { opacity: .8; }
+
+/* ═══════ §5.1 — প্রাথমিক বোতাম light-এ গভীর ইঙ্ক ═══════
+   ★★★ কেবল টোকেন বদলে এটি হয়নি, কারণ `.btn-primary` কখনোই
+   `--accent` ব্যবহার করত না — তার `--panel-fill` ছিল একটি
+   **হার্ডকোড বেগুনি গ্রেডিয়েন্ট** (`#a78bfa → #7c3aed`)। ফলে
+   accent প্রিসেট বদলালেও, থিম বদলালেও, সাইটের সবচেয়ে গুরুত্বপূর্ণ
+   বোতামটি সবসময় বেগুনিই থাকত — §5.1 এর মূল অভিযোগ ("নিয়ন/উজ্জ্বল
+   পৃষ্ঠতল সাদা পাতায় সস্তা লাগে") ঠিক এখানেই সবচেয়ে বেশি সত্য।
+   এখন light-এ সেটি accent টোকেন থেকে রঙ নেয় → গভীর ইঙ্ক বোতাম,
+   সাদা লেখা (মাপা ১৭.৮৭:১)।
+   ⚠️ dark থিম **অপরিবর্তিত** — সেখানে বেগুনি গ্রেডিয়েন্ট গাঢ়
+   পটভূমিতে ভালোই কাজ করে, আর §5 কেবল light-এর কাজ। */
+:root[data-theme='light'] .btn-primary {
+  color: var(--accent-ink);
+  --panel-fill: linear-gradient(135deg, var(--accent-2), var(--accent) 52%, var(--accent-strong));
+}
+
+/* ═══════ §5.4 — light-এ প্রতিটি **আভা** বন্ধ, বদলে রিং ═══════
+   গাঢ় থিমে drop-shadow আভা "শক্তি" বোঝায়; সাদায় সেটি ঝাপসা রঙিন
+   ছোপ হয়ে যায় (বোতামের চারপাশে সবুজ ধোঁয়ার মতো)। light-এ তাই
+   আভা সরিয়ে একটি পরিষ্কার ফোকাস/হোভার রিং — যা accent টোকেন
+   থেকেই রঙ নেয়, তাই প্রিসেট বদলালে রিংও বদলায়। */
+:root[data-theme='light'] .v-btn--volt:hover,
+:root[data-theme='light'] .btn-primary:hover,
+:root[data-theme='light'] .btn-danger:hover,
+:root[data-theme='light'] .btn-success:hover {
+  filter: none;
+  box-shadow: 0 0 0 3px rgba(var(--accent-glow), .12), var(--v-shadow-2);
+}
+:root[data-theme='light'] .nv-pulse > i {
+  filter: none;
+}
 
 /* ═══════════ ACCENT PRESETS — `data-accent` দিয়ে সক্রিয় ═══════════
    ডিফল্ট (lime) = :root। নিচেরগুলো শুধু অ্যাকসেন্ট টোকেন override করে,
    তাই একটিই attribute বদলালে পুরো ব্র্যান্ড-অ্যাকশন রঙ পাল্টে যায়।
    প্রতিটির dark মান (উজ্জ্বল) ও light-এ টেক্সট-নিরাপদ override দেওয়া। */
 :root[data-accent='purple'] { --accent:#8b5cf6; --accent-2:#a78bfa; --accent-strong:#7c3aed; --accent-ink:#ffffff; --accent-text:#a78bfa; --accent-glow:139,92,246; }
-:root[data-theme='light'][data-accent='purple'] { --accent-text:#6d28d9; }
+/* ═══════ §5.1 — light-এ প্রিসেটগুলোও একই ব্যাকরণ মানে ═══════
+   আগে light-এ প্রতিটি প্রিসেট কেবল `--accent-text` override করত,
+   ফলে বোতামের পৃষ্ঠতল থেকে যেত উজ্জ্বল বেগুনি/নীল/লাল/কমলা —
+   অর্থাৎ ডিফল্ট (ইঙ্ক) আর প্রিসেট দুই রকম ব্যাকরণে চলত।
+   এখন সব প্রিসেটে পৃষ্ঠতল **একই গভীর ইঙ্ক**, আর প্রিসেটের রঙ
+   কেবল *লেখা/লিংক/সক্রিয় নির্দেশকে* — ঠিক option A যা বলে।
+   ⚠️ `--accent-glow`-ও ইঙ্ক, কারণ §5.4 অনুযায়ী light-এ ওটি আভা নয়,
+   কেবল ফোকাস-রিং; রঙিন রিং সাদা পাতায় আবার সেই "নিয়ন" ফিরিয়ে আনত। */
+:root[data-theme='light'][data-accent='purple'] {
+  --accent:#0f1729; --accent-2:#1e2a44; --accent-strong:#0a1120;
+  --accent-ink:#ffffff; --accent-glow:15,23,41;
+  --accent-text:#6d28d9;
+}
 :root[data-accent='blue'] { --accent:#3b82f6; --accent-2:#60a5fa; --accent-strong:#2563eb; --accent-ink:#ffffff; --accent-text:#60a5fa; --accent-glow:59,130,246; }
-:root[data-theme='light'][data-accent='blue'] { --accent-text:#1d4ed8; }
+:root[data-theme='light'][data-accent='blue'] {
+  --accent:#0f1729; --accent-2:#1e2a44; --accent-strong:#0a1120;
+  --accent-ink:#ffffff; --accent-glow:15,23,41;
+  --accent-text:#1d4ed8;
+}
 :root[data-accent='red'] { --accent:#f43f5e; --accent-2:#fb7185; --accent-strong:#e11d48; --accent-ink:#ffffff; --accent-text:#fb7185; --accent-glow:244,63,94; }
-:root[data-theme='light'][data-accent='red'] { --accent-text:#be123c; }
+:root[data-theme='light'][data-accent='red'] {
+  --accent:#0f1729; --accent-2:#1e2a44; --accent-strong:#0a1120;
+  --accent-ink:#ffffff; --accent-glow:15,23,41;
+  --accent-text:#be123c;
+}
 :root[data-accent='orange'] { --accent:#fb923c; --accent-2:#fdba74; --accent-strong:#f97316; --accent-ink:#1a0500; --accent-text:#fb923c; --accent-glow:249,115,22; }
-:root[data-theme='light'][data-accent='orange'] { --accent-text:#c2410c; }
+:root[data-theme='light'][data-accent='orange'] {
+  --accent:#0f1729; --accent-2:#1e2a44; --accent-strong:#0a1120;
+  --accent-ink:#ffffff; --accent-glow:15,23,41;
+  --accent-text:#c2410c;
+}
 
 /* ── থিম-ট্রানজিশন: টগল চাপলে রঙগুলো মসৃণভাবে বদলায় ──
    শুধু বদলানোর মুহূর্তে `.theme-anim` ক্লাস `<html>` এ বসে, তারপর সরে যায়
