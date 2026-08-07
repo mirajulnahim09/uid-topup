@@ -35,8 +35,21 @@ commit → এখানে এক লাইন।
 [x] H3 — nonce+hash CSP; script-src থেকে unsafe-inline, img-src থেকে বেয়ার https: সরানো — 2026-08-07 — prisma/tsc/lint/build ok — verify: csp-nonce.ts 15/15 (dev **ও** prod), audit-pages 32 পাতা ০ ত্রুটি
 [x] M1 M2 M5 — মিথ্যা থিম-মন্তব্য, --gold ডকুমেন্টেশন, theme-color টোকেন থেকে (+ mount বাগ) — 2026-08-07 — prisma/tsc/lint/build ok — verify: theme-meta-token.ts 11/11
 [~] M6 — ISR — **ঘোষণা আগে থেকেই ছিল**; নিরাপত্তা-দাবি প্রমাণিত, কিন্তু ISR কার্যত নিষ্ক্রিয় — 2026-08-07 — verify: isr-no-user-leak.ts 9/9
+[x] H4 — লুকানো ট্যাবে পোলিং বন্ধ, ৬০s→১২০s, ঐচ্ছিক SSE (/api/stream) — 2026-08-07 — prisma/tsc/lint/build ok — verify: polling-load.ts 8/8
 [~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-07
 ```
+
+### H4 — SSE ডিফল্টে বন্ধ কেন (সৎ সীমাবদ্ধতা)
+
+`/api/stream` লেখা ও কাজ করছে, কিন্তু `STREAM_ENABLED` ছাড়া **বন্ধ**।
+SSE-র জন্য দীর্ঘ-জীবী সংযোগ লাগে; serverless-এ ফাংশনের আয়ু-সীমা
+থাকায় সংযোগ বারবার কাটত ও `EventSource` লুপে পুনঃসংযোগ করত —
+তখন এটি পোলিং-এর **চেয়েও বেশি** লোড দিত। এই প্রকল্প Vercel Hobby-তে,
+তাই ডিফল্ট পথ = দৃশ্যমানতা-সচেতন ১২০s পোলিং। VPS/`next start`-এ
+`STREAM_ENABLED=1` দিলে প্রকৃত পুশ চালু।
+
+**মাপা ফল:** ৭৫s লুকানো ট্যাবে **০টি** অনুরোধ (আগে মিনিটে ১ জোড়া),
+ফিরে এলে সাথে সাথে ২টি।
 
 ### M6 (ISR) — CLAUDE.md-এর দাবিটি **বাসি**, এবং আসল সমস্যা ভিন্ন
 
@@ -106,20 +119,23 @@ Neon-চাপ দুটোই কমবে (H4-এর সাথে সম্প
 **কারণ:** context ফুরিয়ে আসছে (RUN.md-এর ৩ নং বৈধ কারণ)।
 কোনো চেক ব্যর্থ হয়নি, কোনো টাস্ক ব্লকড নয়।
 
-### পরবর্তী টাস্ক: **H4 — polling load**
+### পরবর্তী টাস্ক: **GROUP C — লাইট থিম** (CLAUDE.md §5, এক atomic পরিবর্তন)
 
-`src/components/Navbar.tsx` ৬০s আর `src/components/AutoRefresh.tsx` ৩০s
-অন্তর পোল করে; Neon-এ সংযোগ-সীমা ও auto-suspend আছে।
-- `/api/stream` — SSE, notification-count ও order-status পুশ করবে
-- `EventSource` না থাকলে ১২০s পোলিং-এ fallback
-- `visibilitychange` — ব্যাকগ্রাউন্ড ট্যাব সম্পূর্ণ থামবে
-- যাচাই: ২ মিনিটে DB কোয়েরি গুনুন — আগে ও পরে
+§5.1 accent override (option A) · §5.2 elevation ramp · §5.3 60/30/10 ·
+§5.4 ছায়া, glow বাদ, ambient wash বন্ধ।
+গ্রহণযোগ্যতা (§5.5): **০টি JSX/TSX ফাইল** বদলাবে · প্রতিটি জোড়া
+≥ ৪.৫:১ (বড় লেখা/বর্ডার ≥ ৩:১), অনুপাত রিপোর্ট করতে হবে · নতুন
+`!important` নয় · দুই থিম × পাঁচটি accent প্রিসেট যাচাই।
+যাচাই: `scripts/verify/theme-contrast.ts` প্রতিটি জোড়া assert করবে।
+
+⚠️ Group B-র অবশিষ্ট (M6-এর লেআউট ক্যাশযোগ্য করা) Group C-র পরেও
+করা যায় — RUN.md-এর ক্রম Group C কে আগে রাখে।
 
 ### এরপর, RUN.md-এর ক্রমে
 
 | গ্রুপ | বাকি |
 |---|---|
-| B | H4 (SSE) · M6-এর অবশিষ্ট (লেআউট ক্যাশযোগ্য করা — বড় কাজ) |
+| B | ✅ শেষ (M6-এর অবশিষ্ট: লেআউট ক্যাশযোগ্য করা — বড় কাজ, স্থগিত) |
 | C | লাইট থিম (CLAUDE.md §5, এক atomic পরিবর্তন) |
 | D | Vitest + টেস্ট Postgres — **E-এর আগেই**, RUN.md স্পষ্ট |
 | E | পেমেন্ট গেটওয়ে অবকাঠামো (credentials ছাড়া) |
@@ -145,6 +161,7 @@ scripts/verify/ip-spoofing.ts             8 পাস · ০ ব্যর্থ
 scripts/verify/csp-nonce.ts              15 পাস · ০ ব্যর্থ (dev ও prod)
 scripts/verify/theme-meta-token.ts       11 পাস · ০ ব্যর্থ
 scripts/verify/isr-no-user-leak.ts        9 পাস · ০ ব্যর্থ (prod build)
+scripts/verify/polling-load.ts            8 পাস · ০ ব্যর্থ
 scripts/audit-pages.ts                   ৩২ পাতা · ০ সমস্যা
 npm run test:money                       18 পাস · ০ ব্যর্থ
 prisma generate · typecheck · lint · build — চারটিই পরিষ্কার
@@ -154,6 +171,8 @@ prisma generate · typecheck · lint · build — চারটিই পরি�
 
 - **`TRUSTED_PROXY`** (নতুন, H2) — Vercel-এ **খালি রাখুন**। প্রক্সি ছাড়া
   স্থাপনায় `1` দেবেন না।
+- **`STREAM_ENABLED`** (নতুন, H4) — Vercel Hobby-তে **খালি রাখুন**।
+  কেবল VPS/দীর্ঘ-চলমান সার্ভারে `1` দিন।
 - আগের রানের বাকি কাজ অপরিবর্তিত: GitHub Actions সিক্রেট
   (`APP_BASE_URL`, `CRON_SECRET`) ও `SECRET_ROTATION_CHECKLIST.md`।
 

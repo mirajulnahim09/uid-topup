@@ -6,6 +6,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fmtShort } from '@/lib/date';
 import { fetchMe, fetchNotifications, invalidateNotifications } from '@/lib/clientFetch';
+import { useVisibleInterval } from '@/lib/useVisibleInterval';
 import VoltMark from '@/components/fx/VoltMark';
 import { useT } from '@/components/i18n/I18nProvider';
 import LanguageToggle from '@/components/i18n/LanguageToggle';
@@ -101,11 +102,18 @@ export default function Navbar({
 
   useEffect(() => { load(); }, [path, load]);
 
-  useEffect(() => {
-    if (status !== 'authenticated') return;
-    const t = setInterval(load, 60_000);
-    return () => clearInterval(t);
-  }, [status, load]);
+  /**
+   * ★★★ H4 — পোলিং এখন দৃশ্যমানতা-সচেতন, আর ব্যবধান ৬০s → ১২০s।
+   *
+   *   আগে: প্রতি ৬০ সেকেন্ডে `/api/me` + `/api/notifications`, ট্যাব
+   *   দেখা যাচ্ছে কিনা **না দেখেই**। কয়েকটি ট্যাব খোলা থাকলে তার
+   *   প্রায় সবটাই অদৃশ্য ট্যাবের জন্য নষ্ট DB-কল হতো।
+   *
+   *   এখন: লুকানো ট্যাবে টাইমার **বন্ধ**; ট্যাব ফিরলেই সাথে সাথে
+   *   একবার লোড। তাই ব্যবধান দ্বিগুণ করেও তথ্য **আগের চেয়ে টাটকা**
+   *   মনে হয় — ব্যবহারকারী ফিরে তাকানোর মুহূর্তেই হালনাগাদ পান।
+   */
+  useVisibleInterval(load, 120_000, status === 'authenticated');
 
   useEffect(() => {
     if (!bell) return;
