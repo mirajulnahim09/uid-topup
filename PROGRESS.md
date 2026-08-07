@@ -34,31 +34,55 @@ commit → এখানে এক লাইন।
 [x] H2 — getIp() ignores client x-forwarded-for unless TRUSTED_PROXY — 2026-08-07 — prisma/tsc/lint/build ok — verify: ip-spoofing.ts 8/8
 [x] H3 — nonce+hash CSP; script-src থেকে unsafe-inline, img-src থেকে বেয়ার https: সরানো — 2026-08-07 — prisma/tsc/lint/build ok — verify: csp-nonce.ts 15/15 (dev **ও** prod), audit-pages 32 পাতা ০ ত্রুটি
 [x] M1 M2 M5 — মিথ্যা থিম-মন্তব্য, --gold ডকুমেন্টেশন, theme-color টোকেন থেকে (+ mount বাগ) — 2026-08-07 — prisma/tsc/lint/build ok — verify: theme-meta-token.ts 11/11
-[ ] M6 — ISR — শুরু করা হয়নি (পরবর্তী; নিচে কারণ ও তথ্য)
+[~] M6 — ISR — **ঘোষণা আগে থেকেই ছিল**; নিরাপত্তা-দাবি প্রমাণিত, কিন্তু ISR কার্যত নিষ্ক্রিয় — 2026-08-07 — verify: isr-no-user-leak.ts 9/9
 [~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-07
 ```
 
-### M6 (ISR) কেন এই commit-এ নেই
+### M6 (ISR) — CLAUDE.md-এর দাবিটি **বাসি**, এবং আসল সমস্যা ভিন্ন
 
-তাড়াহুড়ো করে ক্যাশিং বদলানো হয়নি — ভুল করলে **এক ব্যবহারকারীর
-পাতা আরেকজনকে** পরিবেশন হতে পারে, যা এই প্রকল্পে সবচেয়ে খারাপ
-শ্রেণির বাগ। যা জানা গেছে (build আউটপুট থেকে):
+CLAUDE.md §3.3 M6 বলে: *"Almost every page is force-dynamic. Catalog/
+product pages should use ISR (revalidate: 300)."* — **এটি আর সত্য নয়।**
+সোর্স অডিট (৩৩টি `page.tsx`):
 
-- `/product/[id]/[slug]` **ইতিমধ্যে SSG** (`●`, ১১টি পাথ prerendered) —
-  অর্থাৎ এটি এখনই স্ট্যাটিক, তবে redeploy ছাড়া কখনো রিফ্রেশ হয় না।
-  `revalidate: 300` যোগ করলে দাম/স্টক ৫ মিনিটে আপনা-আপনি হালনাগাদ হবে।
-- বাকি প্রায় সব রুট `ƒ (Dynamic)`।
-- `src/app/layout.tsx` `cookies()` পড়ে (ভাষা) — ISR-এর সাথে এর
-  মিথস্ক্রিয়া **যাচাই করা হয়নি**। ভাষা-কুকি ক্যাশে ঢুকে গেলে ভুল
-  ভাষায় পাতা পরিবেশন হতে পারে।
+| পাতা | ঘোষণা |
+|---|---|
+| `/` (হোম) | `revalidate = 60` ✅ |
+| `/product/[id]/[slug]` | `revalidate = 60` ✅ (৩০০ নয় — **আরও ভালো**) |
+| faq · terms · refund · privacy | `revalidate = 3600` ✅ |
+| contact | `revalidate = 300` ✅ |
+| প্রতিটি `force-dynamic` | কেবল `/admin/*` ও `/account/*` — **সঠিকভাবেই** |
 
-**পরের সেশনে করণীয় (এই ক্রমে):**
-1. `/product/[id]/[slug]/page.tsx` পড়ুন — কোনো session/user-নির্দিষ্ট
-   ডেটা রেন্ডার হয় কিনা **প্রমাণ** করুন (RUN.md এটাই চায়)
-2. locale + ISR এর মিথস্ক্রিয়া যাচাই করুন
-3. তবেই `export const revalidate = 300`
-4. যাচাই: দাম বদলে ৫ মিনিট পর পাতায় প্রতিফলিত হয় কিনা; দুই ভিন্ন
-   ভাষা-কুকিতে ভিন্ন HTML আসে কিনা
+অর্থাৎ ঘোষণামূলক কাজটি আগেই হয়ে গেছে; `300` বসালে বরং **খারাপ** হতো
+(দাম ৫ মিনিট বাসি থাকত, এখন ১ মিনিট)।
+
+**RUN.md যা চেয়েছিল — "first prove no user-specific data leaks" — সেটি
+এখন প্রকৃতপক্ষে প্রমাণিত** (`scripts/verify/isr-no-user-leak.ts`,
+প্রোডাকশন বিল্ডে):
+
+- দুই ভিন্ন ব্যবহারকারীর (ভিন্ন নাম/ইমেইল/ব্যালেন্স) রেন্ডার করা
+  **মার্কআপ byte-for-byte অভিন্ন** → পরিচয় ক্যাশে যায় না
+- কারো নাম, ইমেইল বা ব্যালেন্স HTML-এ নেই (স্ক্রিপ্টসহ সম্পূর্ণ
+  HTML স্ক্যান করা)
+- locale বদলালে HTML বদলায় → এক ভাষার ক্যাশ অন্য ভাষাকে দেওয়া হচ্ছে না
+
+কোডের মন্তব্যে দাবি ছিল "ব্যালেন্স ক্লায়েন্ট-সাইডে আসে, তাই ক্যাশ
+নিরাপদ" — দাবিটি এতদিন **অপরীক্ষিত** ছিল; এখন মাপা।
+
+#### ⚠️ আসল অসম্পূর্ণতা: ISR ঘোষিত কিন্তু **কার্যকর নয়**
+
+প্রোডাকশন বিল্ডে মাপা — `/` ও product পাতা দুটোতেই
+`x-nextjs-cache` হেডার **অনুপস্থিত**, অর্থাৎ পাতা প্রতি-অনুরোধে
+রেন্ডার হচ্ছে; `revalidate = 60` কার্যত নিষ্ক্রিয়।
+
+কারণ: রুট `layout.tsx` → navbar সেশন পড়ে (guest বনাম লগ-ইন HTML
+আলাদা — যাচাইয়েই দেখা গেছে), আর `cookies()` দিয়ে locale পড়ে।
+যেকোনো একটিই পুরো রুটকে dynamic করে দেয়।
+
+**সারানোর পথ (পরের সেশন, বড় কাজ):** navbar-এর auth-অবস্থা ও locale
+সার্ভার-রেন্ডার থেকে সরিয়ে ক্লায়েন্ট কম্পোনেন্টে নিতে হবে, যাতে
+শেল ক্যাশযোগ্য হয়। এটি লেআউট-স্তরের স্থাপত্য পরিবর্তন — "ছোট ফিক্স"
+নয়, তাই এই রানে করা হয়নি। উপকার: হোম ও প্রোডাক্ট পাতার TTFB ও
+Neon-চাপ দুটোই কমবে (H4-এর সাথে সম্পর্কিত)।
 
 ### H3 — আংশিক: `style-src` এখনো `'unsafe-inline'`
 
@@ -82,9 +106,7 @@ commit → এখানে এক লাইন।
 **কারণ:** context ফুরিয়ে আসছে (RUN.md-এর ৩ নং বৈধ কারণ)।
 কোনো চেক ব্যর্থ হয়নি, কোনো টাস্ক ব্লকড নয়।
 
-### পরবর্তী টাস্ক: **M6 (ISR — উপরে বিস্তারিত), তারপর H4**
-
-### H4 — polling load
+### পরবর্তী টাস্ক: **H4 — polling load**
 
 `src/components/Navbar.tsx` ৬০s আর `src/components/AutoRefresh.tsx` ৩০s
 অন্তর পোল করে; Neon-এ সংযোগ-সীমা ও auto-suspend আছে।
@@ -97,7 +119,7 @@ commit → এখানে এক লাইন।
 
 | গ্রুপ | বাকি |
 |---|---|
-| B | M6 (ISR) · H4 (SSE) |
+| B | H4 (SSE) · M6-এর অবশিষ্ট (লেআউট ক্যাশযোগ্য করা — বড় কাজ) |
 | C | লাইট থিম (CLAUDE.md §5, এক atomic পরিবর্তন) |
 | D | Vitest + টেস্ট Postgres — **E-এর আগেই**, RUN.md স্পষ্ট |
 | E | পেমেন্ট গেটওয়ে অবকাঠামো (credentials ছাড়া) |
@@ -122,6 +144,7 @@ scripts/verify/order-price-lock.ts       14 পাস · ০ ব্যর্থ
 scripts/verify/ip-spoofing.ts             8 পাস · ০ ব্যর্থ
 scripts/verify/csp-nonce.ts              15 পাস · ০ ব্যর্থ (dev ও prod)
 scripts/verify/theme-meta-token.ts       11 পাস · ০ ব্যর্থ
+scripts/verify/isr-no-user-leak.ts        9 পাস · ০ ব্যর্থ (prod build)
 scripts/audit-pages.ts                   ৩২ পাতা · ০ সমস্যা
 npm run test:money                       18 পাস · ০ ব্যর্থ
 prisma generate · typecheck · lint · build — চারটিই পরিষ্কার
