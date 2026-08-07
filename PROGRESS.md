@@ -32,8 +32,24 @@ commit → এখানে এক লাইন।
 [x] C5 — ban/epoch revalidation throttled to 5 min + null session when revoked — 2026-08-07 — prisma/tsc/lint/build ok — verify: ban-revocation.ts 14/14, route-guard-audit.ts 0 gaps
 [x] H1 — order price/costPrice from the locked row (+ coupon lock on /order/direct) — 2026-08-07 — prisma/tsc/lint/build ok — verify: order-price-lock.ts 13/13, test:money 18/18
 [x] H2 — getIp() ignores client x-forwarded-for unless TRUSTED_PROXY — 2026-08-07 — prisma/tsc/lint/build ok — verify: ip-spoofing.ts 8/8
+[x] H3 — nonce+hash CSP; script-src থেকে unsafe-inline, img-src থেকে বেয়ার https: সরানো — 2026-08-07 — prisma/tsc/lint/build ok — verify: csp-nonce.ts 15/15 (dev **ও** prod), audit-pages 32 পাতা ০ ত্রুটি
 [~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-07
 ```
+
+### H3 — আংশিক: `style-src` এখনো `'unsafe-inline'`
+
+**ঠিক হয়েছে বলা হচ্ছে না।** Next/Tailwind ও framer-motion রানটাইমে
+ইনলাইন `style` বসায় (অ্যানিমেশনের প্রতিটি ফ্রেমে), nonce দিয়ে সেগুলো
+ঢাকা যায় না। স্টাইল-ইনজেকশন স্ক্রিপ্টের তুলনায় অনেক কম বিপজ্জনক,
+তবু এটি খোলা। সারাতে হলে framer-motion সরানো বা CSS-in-JS নীতি বদলানো
+লাগবে — আলাদা কাজ।
+
+**যা মাপা হয়েছে (অনুমান নয়):** nonce প্রথমে ইনলাইন থিম-স্ক্রিপ্টেও
+বসানো হয়েছিল → React `Prop nonce did not match` hydration mismatch দেয়
+(প্রতি-অনুরোধে nonce আলাদা, কিন্তু layout RSC পে-লোডেও যায়)। তাই ওই
+স্ক্রিপ্ট এখন **SHA-256 হ্যাশ** দিয়ে অনুমোদিত। RUN.md-এর fallback
+(script-src ফিরিয়ে নেওয়া) **লাগেনি** — hydration অক্ষত, dev ও prod
+দুটিতেই ০ CSP লঙ্ঘন।
 
 ---
 
@@ -42,20 +58,20 @@ commit → এখানে এক লাইন।
 **কারণ:** context ফুরিয়ে আসছে (RUN.md-এর ৩ নং বৈধ কারণ)।
 কোনো চেক ব্যর্থ হয়নি, কোনো টাস্ক ব্লকড নয়।
 
-### পরবর্তী টাস্ক: **H3 — CSP**
+### পরবর্তী টাস্ক: **H4 — polling load**
 
-`src/middleware.ts` (L15–40):
-- `img-src` এ বেয়ার `https:` আছে (L26) → Blob হোস্ট + `data:` + `blob:` এ সীমিত করুন
-- `script-src` প্রোডাকশনেও `'unsafe-inline'` রাখে (L21) → nonce-ভিত্তিক CSP
-- ⚠️ nonce Next hydration ভাঙলে RUN.md বলছে: script-src অংশ ফিরিয়ে নিন,
-  `img-src` ফিক্স রাখুন, এখানে blocked লিখুন — `unsafe-inline` রেখে
-  "ঠিক হয়েছে" **বলবেন না**
+`src/components/Navbar.tsx` ৬০s আর `src/components/AutoRefresh.tsx` ৩০s
+অন্তর পোল করে; Neon-এ সংযোগ-সীমা ও auto-suspend আছে।
+- `/api/stream` — SSE, notification-count ও order-status পুশ করবে
+- `EventSource` না থাকলে ১২০s পোলিং-এ fallback
+- `visibilitychange` — ব্যাকগ্রাউন্ড ট্যাব সম্পূর্ণ থামবে
+- যাচাই: ২ মিনিটে DB কোয়েরি গুনুন — আগে ও পরে
 
 ### এরপর, RUN.md-এর ক্রমে
 
 | গ্রুপ | বাকি |
 |---|---|
-| B | H3 · H4 (SSE) · M1 M2 M5 M6 |
+| B | H4 (SSE) · M1 M2 M5 M6 |
 | C | লাইট থিম (CLAUDE.md §5, এক atomic পরিবর্তন) |
 | D | Vitest + টেস্ট Postgres — **E-এর আগেই**, RUN.md স্পষ্ট |
 | E | পেমেন্ট গেটওয়ে অবকাঠামো (credentials ছাড়া) |
@@ -78,6 +94,8 @@ scripts/verify/route-guard-audit.ts      ৪৩ রুট · ০ অরক্ষ
 scripts/verify/ban-revocation.ts         14 পাস · ০ ব্যর্থ
 scripts/verify/order-price-lock.ts       14 পাস · ০ ব্যর্থ
 scripts/verify/ip-spoofing.ts             8 পাস · ০ ব্যর্থ
+scripts/verify/csp-nonce.ts              15 পাস · ০ ব্যর্থ (dev ও prod)
+scripts/audit-pages.ts                   ৩২ পাতা · ০ সমস্যা
 npm run test:money                       18 পাস · ০ ব্যর্থ
 prisma generate · typecheck · lint · build — চারটিই পরিষ্কার
 ```

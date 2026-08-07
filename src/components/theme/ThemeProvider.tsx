@@ -22,8 +22,12 @@ export type Resolved = 'light' | 'dark';
 export type AccentChoice = 'lime' | 'purple' | 'blue' | 'red' | 'orange';
 export const ACCENTS: AccentChoice[] = ['lime', 'purple', 'blue', 'red', 'orange'];
 
-export const THEME_KEY = 'theme';
-export const ACCENT_KEY = 'accent';
+// ★ H3 — ধ্রুবক ও init-স্ক্রিপ্ট এখন `@/lib/themeScript` এ, কারণ
+//   middleware (edge) কেও স্ক্রিপ্টটির হ্যাশ লাগে আর এই ফাইলটি
+//   `'use client'`। এখান থেকে পুনঃরপ্তানি করা হয় যাতে বিদ্যমান
+//   import পথগুলো অক্ষত থাকে।
+export { THEME_KEY, ACCENT_KEY, THEME_INIT_SCRIPT } from '@/lib/themeScript';
+import { THEME_KEY, ACCENT_KEY } from '@/lib/themeScript';
 
 type Ctx = {
   theme: ThemeChoice;      // ইউজারের পছন্দ (system সহ)
@@ -128,4 +132,4 @@ export function useTheme(): Ctx {
  *   paint এর আগেই `data-theme` সেট করে। এই স্ট্রিং সরাসরি dangerouslySet
  *   করা হয় (কোনো ইউজার-ইনপুট নেই, তাই নিরাপদ)।
  */
-export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('${THEME_KEY}')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';document.documentElement.dataset.accent=localStorage.getItem('${ACCENT_KEY}')||'lime';}catch(e){document.documentElement.dataset.theme='dark';document.documentElement.dataset.accent='lime';}})();`;
+// ★ THEME_INIT_SCRIPT উপরে `@/lib/themeScript` থেকে পুনঃরপ্তানি করা হয়েছে।

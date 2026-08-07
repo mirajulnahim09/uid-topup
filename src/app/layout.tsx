@@ -68,6 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // ★ ফিচার ১০ — কুকি থেকে ভাষা পড়ি (ডিফল্ট বাংলা)
   const locale = normalizeLocale(cookies().get(LOCALE_COOKIE)?.value);
 
+
   // ★ বুট-পর্দার লোগো — সার্ভারেই রেজলভ করা হয়, কারণ এই মার্কআপ
   //   JS চালু হওয়ার **আগে** দেখা যায়; ক্লায়েন্টে আনলে দেরি হতো।
   //   DB না পেলেও পাতা ভাঙবে না (getBranding নিজে গার্ডেড)।
@@ -92,7 +93,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body>
-        {/* ★ flash-প্রতিরোধ: প্রথম paint এর আগেই সংরক্ষিত থিম বসায় */}
+        {/* ★ flash-প্রতিরোধ: প্রথম paint এর আগেই সংরক্ষিত থিম বসায়।
+            ★★★ H3 — এখানে ইচ্ছাকৃতভাবে `nonce` **বসানো হয় না**।
+            প্রথমে nonce বসানো হয়েছিল, কিন্তু nonce প্রতি-অনুরোধে
+            আলাদা হওয়ায় প্রাথমিক HTML ও পরবর্তী RSC রেন্ডারের মান
+            মিলত না — React "Prop `nonce` did not match" hydration
+            mismatch দিত (dev-এ মাপা)। স্ক্রিপ্টটি **স্থির**, তাই
+            middleware তার SHA-256 হ্যাশ CSP-তে বসায়; হ্যাশ প্রতি
+            অনুরোধে এক, ফলে mismatch নেই আর নীতিও কড়া থাকে। */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 
         {/* ★★★ বুট-পর্দা — পূর্ণ পৃষ্ঠা লোড/রিলোডের জন্য।
