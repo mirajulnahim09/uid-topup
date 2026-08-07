@@ -31,6 +31,7 @@ commit → এখানে এক লাইন।
 [x] C4 — rate limiter fail-closed on auth — 2026-08-07 — prisma/tsc/lint/build ok — verify: scripts/verify/ratelimit-failclosed.ts 20/20
 [x] C5 — ban/epoch revalidation throttled to 5 min + null session when revoked — 2026-08-07 — prisma/tsc/lint/build ok — verify: ban-revocation.ts 14/14, route-guard-audit.ts 0 gaps
 [x] H1 — order price/costPrice from the locked row (+ coupon lock on /order/direct) — 2026-08-07 — prisma/tsc/lint/build ok — verify: order-price-lock.ts 13/13, test:money 18/18
+[x] H2 — getIp() ignores client x-forwarded-for unless TRUSTED_PROXY — 2026-08-07 — prisma/tsc/lint/build ok — verify: ip-spoofing.ts 8/8
 ```
 
 ### C5 — রুট-গার্ড অডিটের ফল

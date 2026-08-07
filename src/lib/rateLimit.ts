@@ -194,14 +194,59 @@ export async function resetRateLimit(key: string): Promise<void> {
   }
 }
 
-export function getIp(req: Request): string {
-  const h = req.headers;
-  return (
-    h.get('x-real-ip') ||
-    h.get('cf-connecting-ip') ||
-    h.get('x-forwarded-for')?.split(',')[0].trim() ||
-    'unknown'
+/**
+ * ═══════════════════════════════════════════════════════════
+ * ★★★ H2 — ক্লায়েন্টের পাঠানো হেডার বিশ্বাস করা যাবে না
+ *
+ *   আগে সবার আগে `x-real-ip`, তারপর `x-forwarded-for` পড়া হতো —
+ *   কোনো শর্ত ছাড়াই। Vercel/Cloudflare-এর পেছনে এটি নিরাপদ, কারণ
+ *   প্ল্যাটফর্ম ওই হেডারগুলো **নিজে বসায় ও ওভাররাইট করে**।
+ *
+ *   কিন্তু সরাসরি (VPS, ডকার, `next start`) চালালে যে কেউ
+ *   `X-Forwarded-For: 1.2.3.4` পাঠিয়ে প্রতিটি অনুরোধে **নতুন IP**
+ *   দাবি করতে পারত। ফল: IP-ভিত্তিক প্রতিটি সীমা অর্থহীন —
+ *   `login:ip:*` ব্রুট-ফোর্স গার্ড, `forgot:*`, `track:*`, `reg:*`
+ *   সবই হেডার বদলে বাইপাস করা যেত। C4-এ যে ফাঁক বন্ধ করলাম,
+ *   এটি ছিল সেটিরই আরেকটি দরজা।
+ *
+ *   ── এখনকার নিয়ম ──
+ *   `TRUSTED_PROXY` সেট থাকলে (অর্থাৎ অপারেটর নিশ্চিত করেছেন সামনে
+ *   একটি বিশ্বস্ত প্রক্সি আছে যা হেডার পুনর্লিখন করে) → `x-forwarded-for`
+ *   এর বাঁ-দিকের মান ব্যবহার হয়।
+ *
+ *   সেট না থাকলে → কেবল **প্ল্যাটফর্ম-নির্ধারিত** হেডার
+ *   (`x-real-ip`, `cf-connecting-ip`); ব্যবহারকারী-নিয়ন্ত্রিত
+ *   `x-forwarded-for` **সম্পূর্ণ উপেক্ষা** করা হয়।
+ *
+ *   ⚠️ স্বীকৃত সীমাবদ্ধতা: Next.js route handler-এ কাঁচা socket ঠিকানা
+ *   পাওয়া যায় না, তাই প্রক্সি-বিহীন স্থাপনায় `x-real-ip`-ও তাত্ত্বিকভাবে
+ *   জাল হতে পারে। সেই ক্ষেত্রে সামনে একটি প্রক্সি রাখা এবং
+ *   `TRUSTED_PROXY=1` দেওয়াই সঠিক স্থাপনা। Vercel-এ (এই প্রকল্পের
+ *   লক্ষ্য) প্ল্যাটফর্মই হেডার বসায়, তাই ডিফল্ট নিরাপদ।
+ * ═══════════════════════════════════════════════════════════
+ */
+/**
+ * ★ হেডার-উৎস নিরপেক্ষ রূপ।
+ *   `authorize()` (NextAuth) একটি সাধারণ অবজেক্ট দেয়, `Request` নয় —
+ *   তাই দুই জায়গায় যুক্তি নকল না করে একটিই ফাংশন। আগে লগইন-পথে
+ *   আলাদা কপি ছিল, আর সেখানেই `x-forwarded-for` নিঃশর্তে পড়া হতো —
+ *   অর্থাৎ সবচেয়ে গুরুত্বপূর্ণ সীমাটিই সবচেয়ে সহজে বাইপাসযোগ্য ছিল।
+ */
+export function pickIp(get: (name: string) => string | null | undefined): string {
+  const trustProxy = ['1', 'true', 'yes'].includes(
+    (process.env.TRUSTED_PROXY || '').trim().toLowerCase(),
   );
+
+  if (trustProxy) {
+    const fwd = get('x-forwarded-for')?.split(',')[0]?.trim();
+    if (fwd) return fwd;
+  }
+
+  return get('x-real-ip')?.trim() || get('cf-connecting-ip')?.trim() || 'unknown';
+}
+
+export function getIp(req: Request): string {
+  return pickIp((n) => req.headers.get(n));
 }
 
 export const LIMITS = {

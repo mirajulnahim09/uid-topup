@@ -4,7 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
-import { rateLimit, resetRateLimit, LOGIN_LIMITS } from './rateLimit';
+import { rateLimit, resetRateLimit, pickIp, LOGIN_LIMITS } from './rateLimit';
 import { uniqueReferralCode } from './referral';
 import { logActivity } from './adminLog';
 import { notifyAdmins } from './notify';
@@ -171,11 +171,11 @@ export const authOptions: NextAuthOptions = {
         // ★★★ BRUTE-FORCE গার্ড
         //     একই IP থেকে ১০ মিনিটে সর্বোচ্চ ১০ বার লগইন চেষ্টা।
         //     একই ইমেইলে ১৫ মিনিটে সর্বোচ্চ ৫ বার।
-        const ip =
-          (req?.headers?.['x-real-ip'] as string) ||
-          (req?.headers?.['cf-connecting-ip'] as string) ||
-          (req?.headers?.['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-          'unknown';
+        // ★★★ H2 — শেয়ার্ড `pickIp()`। আগে এখানে আলাদা কপি ছিল যা
+        //   `x-forwarded-for` নিঃশর্তে পড়ত, অর্থাৎ যে কেউ প্রতিটি
+        //   চেষ্টায় নতুন IP দাবি করে `login:ip:*` সীমা বাইপাস করতে
+        //   পারত। এখন `TRUSTED_PROXY` না থাকলে ওই হেডার উপেক্ষিত।
+        const ip = pickIp((n) => req?.headers?.[n] as string | undefined);
 
         // ★★★ C4 — অথ-পথে fail-closed। লিমিটারের DB কল ব্যর্থ হলে
         //   আগে `ok: true` ফিরত, অর্থাৎ ডাটাবেস চাপে পড়লেই ব্রুট-ফোর্স
