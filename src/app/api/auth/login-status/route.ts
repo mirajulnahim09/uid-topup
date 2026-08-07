@@ -51,9 +51,16 @@ export async function POST(req: Request) {
       byIp.limited ? byIp.retryAfter : 0,
     );
 
+    // ★ C4 — বাকেট পড়াই যায়নি (DB সমস্যা)। তখন `authorize()`-ও
+    //   fail-closed হয়ে লগইন আটকে দিয়েছে। এখানে সেটি না জানালে UI
+    //   "ইমেইল বা পাসওয়ার্ড ভুল" দেখাত — অর্থাৎ ডাটাবেস ডাউন থাকলে
+    //   ব্যবহারকারী নিজের পাসওয়ার্ড বদলাতে ছুটতেন।
+    const serverIssue = Boolean(byEmail.failed || byIp.failed);
+
     return Response.json({
       limited,
       retryAfter,
+      serverIssue,
       scope: byEmail.limited ? 'email' : byIp.limited ? 'ip' : null,
     });
   } catch (e) {

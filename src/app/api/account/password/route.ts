@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { requireUser, apiError, ApiError, readJson } from '@/lib/guard';
-import { rateLimit } from '@/lib/rateLimit';
+import { rateLimit, RATE_LIMIT_UNAVAILABLE_MSG } from '@/lib/rateLimit';
 import { passwordSchema } from '@/lib/validation';
 import { notify } from '@/lib/notify';
 import { z } from 'zod';
@@ -18,8 +18,13 @@ export async function POST(req: Request) {
     const user = await requireUser();
 
     // ★ পাসওয়ার্ড অনুমান করার চেষ্টা আটকায়
-    const rl = await rateLimit(`pw:${user.id}`, 5, 900);
+    //   C4: RUN.md-এ `pw:` তালিকাভুক্ত ছিল না, তবু fail-closed করা হলো —
+    //   এই endpoint **বর্তমান পাসওয়ার্ড** যাচাই করে, অর্থাৎ ঠিক একই
+    //   ব্রুট-ফোর্স ঝুঁকি যা `login:`-এ। ছেড়ে গেলে C4-এর ফাঁকটাই
+    //   অন্য দরজা দিয়ে খোলা থাকত।
+    const rl = await rateLimit(`pw:${user.id}`, 5, 900, { failClosed: true });
     if (!rl.ok) {
+      if (rl.failed) throw new ApiError(RATE_LIMIT_UNAVAILABLE_MSG, 503);
       throw new ApiError('অনেক বেশি চেষ্টা। ১৫ মিনিট পর করুন।', 429);
     }
 

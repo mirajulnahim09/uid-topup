@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { requireUser, apiError, ApiError, readJson } from '@/lib/guard';
-import { rateLimit } from '@/lib/rateLimit';
+import { rateLimit, RATE_LIMIT_UNAVAILABLE_MSG } from '@/lib/rateLimit';
 import { notify } from '@/lib/notify';
 import { adminLog } from '@/lib/adminLog';
 import { getIp } from '@/lib/rateLimit';
@@ -43,8 +43,12 @@ export async function POST(req: Request) {
     const user = await requireUser();
 
     // ★ কোড অনুমান/ব্রুট-ফোর্স ঠেকাতে সীমা
-    const rl = await rateLimit(`2fa:${user.id}`, 10, 600);
-    if (!rl.ok) throw new ApiError('অনেক বেশি চেষ্টা। কিছুক্ষণ পর করুন।', 429);
+    //   C4: fail-closed — ৬-অঙ্কের TOTP সীমা ছাড়া অনুমানযোগ্য।
+    const rl = await rateLimit(`2fa:${user.id}`, 10, 600, { failClosed: true });
+    if (!rl.ok) {
+      if (rl.failed) throw new ApiError(RATE_LIMIT_UNAVAILABLE_MSG, 503);
+      throw new ApiError('অনেক বেশি চেষ্টা। কিছুক্ষণ পর করুন।', 429);
+    }
 
     const parsed = schema.safeParse(await readJson(req));
     if (!parsed.success) throw new ApiError(parsed.error.errors[0].message, 400);

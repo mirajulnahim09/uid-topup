@@ -170,15 +170,22 @@ export const authOptions: NextAuthOptions = {
           (req?.headers?.['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
           'unknown';
 
-        const ipLimit = await rateLimit(`login:ip:${ip}`, LOGIN_LIMITS.ip.limit, LOGIN_LIMITS.ip.window);
+        // ★★★ C4 — অথ-পথে fail-closed। লিমিটারের DB কল ব্যর্থ হলে
+        //   আগে `ok: true` ফিরত, অর্থাৎ ডাটাবেস চাপে পড়লেই ব্রুট-ফোর্স
+        //   গার্ড উধাও হয়ে যেত। এখন ব্যর্থ হলে লগইন আটকে যায়।
+        const ipLimit = await rateLimit(
+          `login:ip:${ip}`, LOGIN_LIMITS.ip.limit, LOGIN_LIMITS.ip.window, { failClosed: true },
+        );
         if (!ipLimit.ok) {
-          logger.warn('auth', 'rate limited IP', { ip });
+          logger.warn('auth', ipLimit.failed ? 'limiter unavailable — blocking (IP)' : 'rate limited IP', { ip });
           return null;
         }
 
-        const emailLimit = await rateLimit(`login:email:${email}`, LOGIN_LIMITS.email.limit, LOGIN_LIMITS.email.window);
+        const emailLimit = await rateLimit(
+          `login:email:${email}`, LOGIN_LIMITS.email.limit, LOGIN_LIMITS.email.window, { failClosed: true },
+        );
         if (!emailLimit.ok) {
-          logger.warn('auth', 'rate limited email', { email });
+          logger.warn('auth', emailLimit.failed ? 'limiter unavailable — blocking (email)' : 'rate limited email', { email });
           return null;
         }
 

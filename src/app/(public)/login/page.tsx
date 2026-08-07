@@ -93,8 +93,14 @@ function LoginForm() {
             body: JSON.stringify({ email: email.trim().toLowerCase() }),
           });
           if (st.ok) {
-            const { limited, retryAfter } = await st.json();
-            if (limited) {
+            const { limited, retryAfter, serverIssue } = await st.json();
+            // ★ C4 — লিমিটার নিজেই পড়া যায়নি: লগইন আটকেছে সার্ভার
+            //   সমস্যার কারণে, পাসওয়ার্ড ভুল বলে নয়। ⚠️ বার্তায় কখনো
+            //   বলা হয় না ঠিক কী ভেঙেছে।
+            if (serverIssue) {
+              throttled = true;
+              msg = 'সার্ভারে সাময়িক সমস্যা হচ্ছে, একটু পরে আবার চেষ্টা করুন';
+            } else if (limited) {
               throttled = true;
               const mins = Math.max(1, Math.ceil((retryAfter || 0) / 60));
               // বাকি অ্যাপের মতো বাংলা অঙ্ক

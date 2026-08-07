@@ -12,15 +12,48 @@ import { logger } from './logger';
  *   `INSERT … ON CONFLICT … RETURNING` দিয়ে — সব ইনস্ট্যান্স একই
  *   কাউন্টার দেখে, race-free।
  *
- *   ⚠️ fail-open: রেট-লিমিট DB কল ব্যর্থ হলে বৈধ ইউজারকে **আটকাবো না**
- *   (নিরাপত্তার চেয়ে প্রাপ্যতা এখানে অগ্রাধিকার — লিমিটার নিজেই যেন
- *   ডস না বানায়)। ব্যর্থতা লগ হয়।
+ *   ⚠️ ডিফল্ট fail-**open**: রেট-লিমিট DB কল ব্যর্থ হলে সাধারণ ট্রাফিক
+ *   আটকাবো না (লিমিটার নিজেই যেন ডস না বানায়)। ব্যর্থতা লগ হয়।
  *
- *   ⚠️ signature অপরিবর্তিত (এখন async): সব কল-সাইট শুধু `await` যোগ করে।
+ *   ★★★ C4 — কিন্তু **অথ-পথে fail-open অগ্রহণযোগ্য**।
+ *   Postgres চাপে পড়লে (বা কেউ ইচ্ছে করে চাপ দিলে) লগইন ব্রুট-ফোর্স
+ *   গার্ড সম্পূর্ণ উধাও হয়ে যেত — অর্থাৎ যে মুহূর্তে ডাটাবেস দুর্বল,
+ *   ঠিক সেই মুহূর্তে পাসওয়ার্ড অনুমান **সীমাহীন** হয়ে পড়ত। আক্রমণকারীর
+ *   জন্য এটি একটি সরাসরি রেসিপি: আগে DB-তে চাপ দাও, তারপর ব্রুট-ফোর্স।
+ *   তাই `login:*` / `forgot:*` / `reset:*` / `2fa:*` (ও `pw:*`) কল-সাইট
+ *   `{ failClosed: true }` পাঠায় — ব্যর্থ হলে অনুরোধ **আটকে যায়**।
+ *
+ *   ⚠️ signature পিছন-সঙ্গতিপূর্ণ: চতুর্থ প্যারামিটার ঐচ্ছিক, তাই
+ *   পুরনো কোনো কল-সাইট বদলাতে হয়নি।
  * ═══════════════════════════════════════════════════════════
  */
 
-export type RateLimitResult = { ok: boolean; remaining: number; retryAfter: number };
+export type RateLimitResult = {
+  ok: boolean;
+  remaining: number;
+  retryAfter: number;
+  /**
+   * ★ লিমিটার **নিজে** ব্যর্থ হয়েছে (DB ত্রুটি) — সীমা ছাড়ায়নি।
+   *   কল-সাইট এটি দেখে ভিন্ন বার্তা দেখায়: "অনেক বেশি চেষ্টা" নয়,
+   *   বরং সার্ভার-সমস্যার বার্তা। ⚠️ বার্তায় কখনো বলা হয় না যে
+   *   রেট-লিমিটার ভেঙেছে — সেটি আক্রমণকারীকে জানিয়ে দিত কখন
+   *   গার্ড দুর্বল।
+   */
+  failed?: boolean;
+};
+
+export type RateLimitOptions = {
+  /** ব্যর্থ হলে অনুরোধ আটকাবে? অথ-পথে সবসময় `true`। ডিফল্ট `false`। */
+  failClosed?: boolean;
+};
+
+/**
+ * ★ লিমিটার ব্যর্থ হলে ব্যবহারকারী যা দেখবেন।
+ *   ইচ্ছাকৃতভাবে নিরাকার — "রেট-লিমিট ডাটাবেস ডাউন" বলা মানে
+ *   আক্রমণকারীকে সময় বলে দেওয়া।
+ */
+export const RATE_LIMIT_UNAVAILABLE_MSG =
+  'সার্ভারে সাময়িক সমস্যা হচ্ছে, একটু পরে আবার চেষ্টা করুন';
 
 /**
  * ★ লগইন-সীমা এক জায়গায়।
@@ -36,9 +69,11 @@ export const LOGIN_LIMITS = {
 export async function rateLimit(
   key: string,
   limit: number,
-  windowSec: number
+  windowSec: number,
+  opts: RateLimitOptions = {}
 ): Promise<RateLimitResult> {
   const now = Date.now();
+  const failClosed = opts.failClosed === true;
 
   try {
     // ★ একটিমাত্র atomic স্টেটমেন্ট: নতুন key হলে count=1; বিদ্যমান হলে —
@@ -73,9 +108,21 @@ export async function rateLimit(
     }
     return { ok: true, remaining: Math.max(0, limit - count), retryAfter: 0 };
   } catch (e) {
-    // ★ fail-open — লিমিটার DB সমস্যা হলে বৈধ ট্রাফিক আটকানো যাবে না
-    logger.error('rateLimit', 'db error, failing open', { err: e });
-    return { ok: true, remaining: limit, retryAfter: 0 };
+    // ★ দুই ক্ষেত্রেই `error` লেভেলে লগ — নীরব অবনতি যেন না ঘটে।
+    //   `failClosed` লগে রাখা হয় যাতে অপারেটর বুঝতে পারেন কোন
+    //   ট্রাফিক আসলে আটকে গেছে।
+    logger.error('rateLimit', failClosed ? 'db error, failing CLOSED' : 'db error, failing open', {
+      key: key.split(':').slice(0, 2).join(':'), // ⚠️ পুরো key নয় — এতে ইমেইল/IP থাকে
+      failClosed,
+      err: e,
+    });
+
+    if (failClosed) {
+      // ★ ৩০s — যথেষ্ট যেন স্বয়ংক্রিয় ব্রুট-ফোর্স কার্যত থেমে যায়,
+      //   অথচ ক্ষণস্থায়ী DB হেঁচকিতে বৈধ ব্যবহারকারী দীর্ঘক্ষণ আটকে না থাকেন।
+      return { ok: false, remaining: 0, retryAfter: 30, failed: true };
+    }
+    return { ok: true, remaining: limit, retryAfter: 0, failed: true };
   }
 }
 
@@ -109,7 +156,7 @@ export async function cleanupRateLimitBuckets(): Promise<number> {
 export async function peekRateLimit(
   key: string,
   limit: number
-): Promise<{ limited: boolean; retryAfter: number }> {
+): Promise<{ limited: boolean; retryAfter: number; failed?: boolean }> {
   try {
     const rows = await prisma.$queryRaw<Array<{ count: number; resetAt: Date }>>`
       SELECT "count", "resetAt" FROM "RateLimitBucket"
@@ -120,9 +167,12 @@ export async function peekRateLimit(
     const retryAfter = Math.max(0, Math.ceil((new Date(row.resetAt).getTime() - Date.now()) / 1000));
     return { limited: Number(row.count) > limit, retryAfter };
   } catch (e) {
-    // ★ fail-open — পড়তে না পারলে "আটকানো হয়নি" ধরে নিই
+    // ★ peek কেবল **তথ্য** — এটি কাউকে ঢুকতে দেয় না, তাই এখানে
+    //   fail-closed করার কিছু নেই। কিন্তু `failed` ফেরত দিই যাতে
+    //   কল-সাইট "সীমা নেই" আর "জানা যায়নি" আলাদা করতে পারে —
+    //   নাহলে লগইন পাতা DB-ডাউন অবস্থাতেও "পাসওয়ার্ড ভুল" বলত।
     logger.error('rateLimit', 'peek failed', { err: e });
-    return { limited: false, retryAfter: 0 };
+    return { limited: false, retryAfter: 0, failed: true };
   }
 }
 

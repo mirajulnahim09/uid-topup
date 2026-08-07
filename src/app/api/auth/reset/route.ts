@@ -2,15 +2,18 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { resetSchema } from '@/lib/validation';
 import { apiError, ApiError, readJson } from '@/lib/guard';
-import { rateLimit, getIp } from '@/lib/rateLimit';
+import { rateLimit, getIp, RATE_LIMIT_UNAVAILABLE_MSG } from '@/lib/rateLimit';
 import { verifyResetToken } from '@/lib/passwordReset';
 import { notify } from '@/lib/notify';
 
 export async function POST(req: Request) {
   try {
     // ★ Rate limit — এক IP থেকে ১৫ মিনিটে ১০ বার
-    const rl = await rateLimit(`reset:${getIp(req)}`, 10, 900);
+    //   C4: fail-closed — এই endpoint রিসেট-টোকেন যাচাই করে, অর্থাৎ
+    //   সীমা না থাকলে টোকেন brute-force করা যেত।
+    const rl = await rateLimit(`reset:${getIp(req)}`, 10, 900, { failClosed: true });
     if (!rl.ok) {
+      if (rl.failed) throw new ApiError(RATE_LIMIT_UNAVAILABLE_MSG, 503);
       throw new ApiError(
         `অনেক বেশি চেষ্টা। ${Math.ceil(rl.retryAfter / 60)} মিনিট পর আবার চেষ্টা করুন।`,
         429

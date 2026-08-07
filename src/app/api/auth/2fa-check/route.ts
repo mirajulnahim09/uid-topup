@@ -43,9 +43,15 @@ export async function POST(req: Request) {
     const ip = getIp(req);
 
     // ★ login route-এর সমান rate limit — oracle অপব্যবহার ঠেকায়
-    const ipLimit = await rateLimit(`2fa-precheck:ip:${ip}`, 10, 600);
+    //   C4: fail-closed। এই endpoint **পাসওয়ার্ড যাচাই করে**, তাই সীমা
+    //   ছাড়া এটি একটি নিখুঁত ব্রুট-ফোর্স oracle হয়ে যেত।
+    //   ⚠️ ব্যর্থ হলেও `needsTotp: false` ফেরত যায় (৫০৩ নয়) — এই
+    //   endpoint কেবল UI-কে বলে কী দেখাতে হবে; আসল গেট `authorize()`,
+    //   যা নিজেও fail-closed। এখানে ত্রুটি ছুঁড়লে DB হেঁচকিতে লগইন
+    //   ফর্মই ভেঙে যেত, অথচ নিরাপত্তা কিছুই বাড়ত না।
+    const ipLimit = await rateLimit(`2fa-precheck:ip:${ip}`, 10, 600, { failClosed: true });
     if (!ipLimit.ok) return Response.json({ needsTotp: false });
-    const emailLimit = await rateLimit(`2fa-precheck:email:${email}`, 5, 900);
+    const emailLimit = await rateLimit(`2fa-precheck:email:${email}`, 5, 900, { failClosed: true });
     if (!emailLimit.ok) return Response.json({ needsTotp: false });
 
     const user = await prisma.user.findUnique({
