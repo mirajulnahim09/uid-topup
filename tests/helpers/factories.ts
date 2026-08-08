@@ -73,7 +73,11 @@ export async function createAdmin(db: PrismaClient, opts: { balance?: number } =
  */
 export async function createVariant(
   db: PrismaClient,
-  opts: { price?: number; stock?: number; costPrice?: number; isActive?: boolean } = {},
+  opts: {
+    price?: number; stock?: number; costPrice?: number; isActive?: boolean;
+    /** ★ Group F — `undefined` = ছাড় নেই (null), `0` = সত্যিই ফ্রি */
+    resellerPrice?: number;
+  } = {},
 ) {
   const tag = uniq();
   const category = await db.category.create({
@@ -93,6 +97,7 @@ export async function createVariant(
       label: `Variant ${tag}`,
       price: opts.price ?? 100,
       costPrice: opts.costPrice ?? 60,
+      resellerPrice: opts.resellerPrice ?? null,
       // ★ ডিফল্ট -1 = সীমাহীন স্টক (স্কিমার নিজস্ব ডিফল্ট)
       stock: opts.stock ?? -1,
       isActive: opts.isActive ?? true,

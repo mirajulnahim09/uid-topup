@@ -63,8 +63,10 @@ export async function POST(req: Request) {
           Array<{
             id: number; stock: number; price: string;
             costPrice: string; isActive: boolean;
+            // ★ Group F — রিসেলার দামও money-মান, তাই একই লক করা রো থেকে
+            resellerPrice: string | null;
           }>
-        >`SELECT id, stock, price, "costPrice", "isActive"
+        >`SELECT id, stock, price, "costPrice", "isActive", "resellerPrice"
             FROM "Variant" WHERE id = ${variantId} FOR UPDATE`;
 
         const lockedRow = lockedVariant[0];
@@ -90,8 +92,72 @@ export async function POST(req: Request) {
         const liveStock = lockedRow.stock;
         if (liveStock === 0) throw new ApiError('স্টক শেষ হয়ে গেছে', 400);
 
-        // ★ দাম লক করা রো থেকে — client এর পাঠানো price কখনো trust করি না
-        const subtotal = round2(Number(lockedRow.price));
+        // ★★★ কুপন রো লক — **লক ক্রম অপরিবর্তিত**: variant → coupon → user।
+        //
+        //     ⚠️ Group F-এ যা বদলেছে: লক নেওয়া আর কুপন *যাচাই* করা এখন
+        //     আলাদা দুই ধাপ। কারণ যাচাইয়ের জন্য `subtotal` লাগে, আর
+        //     subtotal এখন ব্যবহারকারীর **tier**-এর উপর নির্ভরশীল, যা
+        //     জানা যায় কেবল User রো লক করার পর।
+        //
+        //     লক **নেওয়ার** ক্রম তবু হুবহু আগের মতোই (coupon তারপর user),
+        //     তাই deadlock-নিরাপত্তা অক্ষত। কেবল সিদ্ধান্তটি পরে নেওয়া হয় —
+        //     আর ততক্ষণে কুপন রো লক করা আছে, তাই গণনা স্থিতিশীল।
+        //
+        //     কোড না মিললে ০ রো লক হয়, validateCoupon নিজেই "কুপন সঠিক নয়" দেয়।
+        if (couponCode) {
+          await tx.$queryRaw`SELECT id FROM "Coupon" WHERE code = ${couponCode.trim().toUpperCase()} FOR UPDATE`;
+        }
+
+        // ★ Row lock — দুই ট্যাব থেকে একসাথে অর্ডার এলে দ্বিতীয়টা অপেক্ষা করবে
+        // ★ Group F — `tier`-ও **লক করা রো থেকেই** আসে। tier দাম নির্ধারণ
+        //   করে, অর্থাৎ এটি একটি money-সিদ্ধান্ত; CLAUDE.md §2.1(৩) অনুযায়ী
+        //   সেই মান লক-বহির্ভূত পাঠ থেকে নেওয়া চলবে না।
+        const locked = await tx.$queryRaw<
+          Array<{ id: string; balance: string; isBanned: boolean; tier: string }>
+        >`SELECT id, balance, "isBanned", tier FROM "User" WHERE id = ${user.id} FOR UPDATE`;
+
+        const row = locked[0];
+        if (!row) throw new ApiError('ইউজার পাওয়া যায়নি', 401);
+        if (row.isBanned) throw new ApiError('আপনার অ্যাকাউন্ট বন্ধ করা হয়েছে', 403);
+
+        // ★★★ Group F — রিসেলার দাম।
+        //
+        //   নিয়ম: **কেবল** tier=RESELLER **এবং** ঐ ভ্যারিয়েন্টে
+        //   `resellerPrice` স্পষ্টভাবে বসানো থাকলে। `null` = ছাড় নেই →
+        //   সাধারণ দাম। ফলে সাধারণ গ্রাহক কখনোই রিসেলার দাম পান না,
+        //   আর রিসেলারও এমন প্যাকেজে ছাড় পান না যেখানে সেটি দেওয়া হয়নি।
+        //
+        //   ⚠️ দুটি মানই **লক করা variant রো** থেকে (H1)।
+        const isReseller = row.tier === 'RESELLER';
+        const rawReseller = lockedRow.resellerPrice;
+        const resellerPrice = rawReseller === null ? null : Number(rawReseller);
+
+        // ★ শেষ রক্ষাকবচ — অবৈধ রিসেলার দাম হলে সেটি **উপেক্ষা** করে
+        //   সাধারণ দামে ফিরে যাই।
+        //
+        //   ⚠️ শূন্যও অবৈধ, এবং এটি একটি **মাপা** সীমাবদ্ধতা: এই
+        //   সিস্টেমে "ফ্রি অর্ডার" বলে কিছু নেই, কারণ প্রতিটি অর্ডার
+        //   একটি ধনাত্মক খতিয়ান-এন্ট্রি লেখে (`debitWallet` শূন্য বা
+        //   ঋণাত্মক অঙ্ক প্রত্যাখ্যান করে)। `resellerPrice = 0` রাখলে
+        //   অর্ডার "অঙ্ক শূন্যের বেশি হতে হবে" বলে ব্যর্থ হতো — অ্যাডমিনের
+        //   কাছে সম্পূর্ণ দুর্বোধ্য একটি বার্তা।
+        //
+        //   ঋণাত্মক দাম আরও বিপজ্জনক: তাতে ব্যালেন্স *বেড়ে* যেত, অর্থাৎ
+        //   অর্ডার দিয়ে টাকা তৈরি করা যেত।
+        //
+        //   দুটো ক্ষেত্রেই সাধারণ দামে ফিরে যাওয়া নিরাপদ ও পূর্বানুমেয়:
+        //   গ্রাহকের অর্ডার আটকায় না, আর ভুল কনফিগ লগে ধরা পড়ে।
+        const useReseller =
+          isReseller && resellerPrice !== null &&
+          Number.isFinite(resellerPrice) && resellerPrice > 0;
+
+        if (isReseller && resellerPrice !== null && !useReseller) {
+          logger.error('order', 'invalid resellerPrice — falling back to price', {
+            variantId: lockedRow.id,
+          });
+        }
+
+        const subtotal = round2(useReseller ? resellerPrice! : Number(lockedRow.price));
 
         // ★★★ DEFENSE IN DEPTH — দাম কখনো negative হতে পারে না।
         //     অ্যাডমিন API তে guard আছে, কিন্তু যদি কোনোভাবে DB তে
@@ -102,22 +168,12 @@ export async function POST(req: Request) {
           throw new ApiError('এই প্যাকেজের দামে সমস্যা আছে — অ্যাডমিনকে জানান', 400);
         }
 
-        // ── কুপন (ঐচ্ছিক) ──
+        // ── কুপন যাচাই (ঐচ্ছিক) — রো ইতিমধ্যে লক করা ──
         let discount = 0;
         let couponId: number | null = null;
         let couponLabel: string | null = null;
 
         if (couponCode) {
-          // ★★★ H1 fix — কুপন রো লক (Variant/User এর মতোই FOR UPDATE)।
-          //     আগে validateCoupon কুপন ও per-user গণনা **লক ছাড়া** পড়ত,
-          //     তাই দুটি সমান্তরাল অর্ডার (আলাদা variant/user, ফলে ঐ লকগুলো
-          //     ক্রমিক করত না) দুজনেই usageCount = limit−1 দেখে পাস করে
-          //     ফেলত — usageLimit / perUserLimit পেরিয়ে যেত। কুপন রো লক
-          //     নেওয়ায় একই কুপন ব্যবহারকারী সব লেনদেন ক্রমিক হয়; পরেরটি
-          //     সদ্য-হালনাগাদ গণনা দেখে। lock ক্রম variant → coupon → user,
-          //     সর্বত্র অভিন্ন — deadlock হয় না। কোড না মিললে ০ রো লক হয়,
-          //     validateCoupon নিজেই "কুপন সঠিক নয়" দেয়।
-          await tx.$queryRaw`SELECT id FROM "Coupon" WHERE code = ${couponCode.trim().toUpperCase()} FOR UPDATE`;
           const c = await validateCoupon(tx, couponCode, user.id, subtotal);
           discount = c.discount;
           couponId = c.couponId;
@@ -130,15 +186,6 @@ export async function POST(req: Request) {
         if (!Number.isFinite(finalPrice) || finalPrice < 0) {
           throw new ApiError('মূল্য হিসাবে সমস্যা হয়েছে', 400);
         }
-
-        // ★ Row lock — দুই ট্যাব থেকে একসাথে অর্ডার এলে দ্বিতীয়টা অপেক্ষা করবে
-        const locked = await tx.$queryRaw<
-          Array<{ id: string; balance: string; isBanned: boolean }>
-        >`SELECT id, balance, "isBanned" FROM "User" WHERE id = ${user.id} FOR UPDATE`;
-
-        const row = locked[0];
-        if (!row) throw new ApiError('ইউজার পাওয়া যায়নি', 401);
-        if (row.isBanned) throw new ApiError('আপনার অ্যাকাউন্ট বন্ধ করা হয়েছে', 403);
 
         const balance = Number(row.balance);
         if (balance < finalPrice) {
@@ -210,7 +257,12 @@ export async function POST(req: Request) {
           amount: finalPrice,
           type: 'ORDER',
           refId: order.id,
+          // ★ Group F — রিসেলার অর্ডার খতিয়ানে **আলাদাভাবে চেনা যায়**।
+          //   RUN.md এর দাবি; বাস্তব কারণ: রিসেলার ও খুচরা বিক্রির
+          //   মুনাফা আলাদা, তাই পরে খতিয়ান মিলাতে গিয়ে কোনটি কোন দামে
+          //   গিয়েছিল তা বোঝা যেতেই হবে।
           note:
+            (useReseller ? '[রিসেলার] ' : '') +
             `${variant.product.name} — ${variant.label}` +
             (couponLabel ? ` (কুপন: ${couponLabel}, −৳${discount.toFixed(2)})` : ''),
         });

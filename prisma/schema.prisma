@@ -19,6 +19,10 @@ model User {
   isBanned Boolean    @default(false)
   status   UserStatus @default(ACTIVE) // ★ 3-state: ACTIVE/SUSPENDED/BLOCKED
 
+  /// ★ Group F — রিসেলার স্তর। ডিফল্ট NORMAL, তাই বিদ্যমান সব
+  ///   ব্যবহারকারীর দাম অপরিবর্তিত।
+  tier UserTier @default(NORMAL)
+
   // ★ ইমেইল-মালিকানা যাচাই (C3)। credentials রেজিস্ট্রেশন false দিয়ে শুরু
   //   হয়; Google সাইন-ইন (Google নিজেই ইনবক্স যাচাই করে) true করে দেয়।
   //   একটি unverified credentials-অ্যাকাউন্টে পরে আসল মালিক Google দিয়ে
@@ -81,6 +85,20 @@ enum UserStatus {
   ACTIVE
   SUSPENDED
   BLOCKED
+}
+
+/// ★★★ গ্রাহক-স্তর (Group F — রিসেলার)
+///
+///   `NORMAL` ডিফল্ট, তাই বিদ্যমান প্রতিটি ইউজার অপরিবর্তিত থাকে ও
+///   আগের দামই দেখে। কেবল `RESELLER` স্তরে, এবং কেবল যে ভ্যারিয়েন্টে
+///   `resellerPrice` **স্পষ্টভাবে বসানো আছে**, সেখানে ছাড়ের দাম চলে।
+///
+///   ⚠️ ইচ্ছাকৃতভাবে একটি enum, boolean নয় — ভবিষ্যতে স্তর বাড়লে
+///   (SILVER/GOLD) schema বদলাতে হবে না, আর "isReseller" নামের একটি
+///   boolean তখন বিভ্রান্তিকর হয়ে যেত।
+enum UserTier {
+  NORMAL
+  RESELLER
 }
 
 /// ★ ভূমিকা — ইচ্ছাকৃতভাবে **দুটিই**: গ্রাহক ও মালিক।
@@ -192,6 +210,19 @@ model Variant {
   price           Decimal  @db.Decimal(12, 2)
   costPrice       Decimal  @default(0) @db.Decimal(12, 2)
   oldPrice        Decimal? @db.Decimal(12, 2)
+  /// ★★★ Group F — রিসেলার দাম। `null` = এই প্যাকেজে রিসেলার ছাড় নেই,
+  ///   তখন রিসেলারও সাধারণ `price` দেয়।
+  ///
+  ///   ⚠️ ইচ্ছাকৃতভাবে nullable, ডিফল্ট `0` নয় — `0` দিলে এই কলাম
+  ///   যোগ করামাত্র প্রতিটি রিসেলার অর্ডারের দাম শূন্য হয়ে যেত।
+  ///
+  ///   ⚠️ **শূন্য বা ঋণাত্মক মান অবৈধ** এবং অর্ডার-পথে উপেক্ষিত হয়
+  ///   (সাধারণ দাম প্রযোজ্য হয়, লগে ত্রুটি লেখা হয়)। কারণ এই
+  ///   সিস্টেমে "ফ্রি অর্ডার" বলে কিছু নেই: প্রতিটি অর্ডার একটি
+  ///   ধনাত্মক খতিয়ান-এন্ট্রি লেখে, আর `debitWallet` শূন্য/ঋণাত্মক
+  ///   অঙ্ক প্রত্যাখ্যান করে। মাপা হয়েছে — `0` বসালে অর্ডার
+  ///   "অঙ্ক শূন্যের বেশি হতে হবে" বলে ব্যর্থ হতো।
+  resellerPrice   Decimal? @db.Decimal(12, 2)
   stock           Int      @default(-1)
   sortOrder       Int      @default(0)
   isActive        Boolean  @default(true)
