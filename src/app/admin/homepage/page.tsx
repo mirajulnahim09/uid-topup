@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { getSettings } from '@/lib/settings';
+import { getSettings, toClientSettings } from '@/lib/settings';
 import { isBlobConfigured } from '@/lib/upload';
 import CampaignManager, { type CampaignRow } from '@/components/admin/CampaignManager';
 import HomeConfigForm from '@/components/admin/HomeConfigForm';
@@ -37,7 +37,12 @@ export default async function AdminHomepage() {
       startsAt: c.startsAt ? c.startsAt.toISOString() : null,
       endsAt: c.endsAt ? c.endsAt.toISOString() : null,
     }));
-    settings = s;
+    // ★★★ `HomeConfigForm` একটি ক্লায়েন্ট কম্পোনেন্ট — এর props
+    //   RSC payload-এ ব্রাউজারে যায়। আগে এখানে **কোনো** redaction
+    //   ছিল না, ফলে `telegram_bot_token` হুবহু HTML-এ চলে যেত
+    //   (মাপা হয়েছে; tests/settings-leak.test.ts ধরেছে)।
+    //   allowlist ছাড়া কিছুই পাঠানো হয় না।
+    settings = toClientSettings(s);
   } catch {
     /* DB fail হলেও পেজ খোলে — খালি ফর্ম দেখাবে */
   }

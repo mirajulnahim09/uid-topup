@@ -86,6 +86,62 @@ export async function getSettings(): Promise<Record<string, string>> {
   return inFlight;
 }
 
+/**
+ * ═══════════════════════════════════════════════════════════
+ * ★★★ ক্লায়েন্টে পাঠানোর অনুমতিপ্রাপ্ত সেটিংস — **allowlist**
+ *
+ *   ── কেন allowlist, denylist নয় ──
+ *   আগে অ্যাডমিন পাতাগুলো পুরো settings মানচিত্র ক্লায়েন্ট কম্পোনেন্টে
+ *   props হিসেবে পাঠাত আর গোপন কী হাতে বাদ দিত। সেটি **denylist**,
+ *   এবং denylist-এর ত্রুটি নীরব: নতুন গোপন সেটিং যোগ হলে সে
+ *   ডিফল্টভাবে **ফাঁস হয়**, যতক্ষণ না কেউ মনে করে বাদ দেয়।
+ *
+ *   বাস্তবেই তাই ঘটেছিল — মাপা হয়েছে: `/admin/site` দুটি টেলিগ্রাম কী
+ *   বাদ দিত, কিন্তু `/admin/homepage` **কিছুই** বাদ দিত না, ফলে
+ *   `telegram_bot_token` হুবহু HTML-এ চলে যেত
+ *   (`tests/settings-leak.test.ts` ফিক্সের আগে fail করেছে)।
+ *
+ *   allowlist-এ ভুলের দিকটা উল্টো ও নিরাপদ: নতুন কী ডিফল্টে
+ *   **যায় না**। কেউ ভুলে গেলে ফিচার কাজ করে না — যা সাথে সাথে চোখে
+ *   পড়ে; সিক্রেট নীরবে ব্রাউজারে চলে যায় না।
+ *
+ *   ⚠️ এখানে কেবল সেই কী যোগ করুন যা ক্লায়েন্টে **দৃশ্যমান হওয়া
+ *   নিরাপদ**। কোনো টোকেন, পাসওয়ার্ড, API-কী বা সিক্রেট নয়।
+ * ═══════════════════════════════════════════════════════════
+ */
+export const CLIENT_SETTING_KEYS = [
+  // ── SiteManager (/admin/site) ──
+  'site_name', 'site_url', 'site_notice',
+  'hero_title', 'hero_subtitle',
+  'min_deposit', 'max_deposit',
+  'referral_bonus', 'referral_min_deposit',
+  'support_email', 'support_phone', 'support_hours',
+  // ★ Tawk.to উইজেট আইডি — এগুলো এমনিতেই পাবলিক পেজের HTML-এ বসে,
+  //   সিক্রেট নয় (কেবল উইজেট শনাক্তকারী)
+  'tawk_property_id', 'tawk_widget_id',
+
+  // ── HomeConfigForm (/admin/homepage) ──
+  'home_live_activity', 'home_live_activity_count',
+  'home_trust_stats', 'home_trust_strip',
+  'float_contact_type', 'float_contact_value',
+] as const;
+
+const CLIENT_KEY_SET: ReadonlySet<string> = new Set(CLIENT_SETTING_KEYS);
+
+/**
+ * ★ ক্লায়েন্ট কম্পোনেন্টে settings পাঠানোর **একমাত্র** বৈধ পথ।
+ *
+ *   ⚠️ কোনো সার্ভার কম্পোনেন্ট থেকে কাঁচা `getSettings()` ফল সরাসরি
+ *   ক্লায়েন্ট-props-এ দেবেন না — RSC payload ব্রাউজারে যায়।
+ */
+export function toClientSettings(all: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(all)) {
+    if (CLIENT_KEY_SET.has(k)) out[k] = v;
+  }
+  return out;
+}
+
 export async function getSetting(key: string, fallback = ''): Promise<string> {
   try {
     // ★ একই ক্যাশ ব্যবহার — আলাদা কোয়েরি করলে ক্যাশের মানেই থাকত না

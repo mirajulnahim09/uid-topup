@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
-import { getSettings } from '@/lib/settings';
+import { getSettings, toClientSettings } from '@/lib/settings';
 import SiteManager from '@/components/admin/SiteManager';
 import { isEmailConfigured } from '@/lib/email';
 
@@ -18,14 +18,13 @@ export default async function AdminSite() {
   //
   //   `SiteManager` একটি ক্লায়েন্ট কম্পোনেন্ট, তাই এর props
   //   RSC payload-এ সিরিয়ালাইজ হয়ে **ব্রাউজারে চলে যায়** —
-  //   view-source/devtools-এ প্লেইনটেক্সট। বট টোকেন সেখানে
-  //   যাওয়ার কোনো কারণ নেই।
+  //   view-source/devtools-এ প্লেইনটেক্সট।
   //
-  //   ⚠️ টেলিগ্রাম কনফিগ এখন সম্পূর্ণভাবে `/admin/telegram`-এ —
-  //   দুই জায়গায় একই জিনিস সম্পাদনা করা গেলে কোনটা জিতবে তা
-  //   অস্পষ্ট হতো, আর এখানকার পুরনো ফিল্ডগুলো নতুন এনক্রিপ্টেড
-  //   স্টোর ব্যবহার করত না।
-  const { telegram_bot_token: _redacted, telegram_chat_id: _redacted2, ...settings } = rawSettings;
+  //   ⚠️ আগে এখানে দুটি টেলিগ্রাম কী **হাতে** বাদ দেওয়া হতো
+  //   (denylist)। সেটি ভঙ্গুর ছিল: নতুন গোপন সেটিং ডিফল্টে ফাঁস হতো,
+  //   আর `/admin/homepage`-এ ঠিক তাই ঘটছিল। এখন `toClientSettings()`
+  //   একটি **allowlist** — অনুমোদিত কী ছাড়া কিছুই যায় না।
+  const settings = toClientSettings(rawSettings);
 
   return (
     <div className="space-y-5">
