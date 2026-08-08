@@ -12,11 +12,17 @@ import { createUser, createAdmin, DEFAULT_PASSWORD } from './factories';
 declare module 'vitest' {
   export interface ProvidedContext {
     baseUrl: string;
+    /** SSLCommerz mock গেটওয়ে যে পোর্টে চলবে (Next-ও এটিই জানে) */
+    sslczMockPort: number;
   }
 }
 
 export function baseUrl(): string {
   return inject('baseUrl');
+}
+
+export function sslczMockPort(): number {
+  return inject('sslczMockPort');
 }
 
 export function client(): Client {

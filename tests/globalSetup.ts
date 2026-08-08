@@ -150,6 +150,18 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
   const port = await freePort();
   const baseUrl = `http://127.0.0.1:${port}`;
 
+  /**
+   * ★ SSLCommerz mock গেটওয়ের পোর্ট এখানেই ঠিক করি।
+   *
+   *   ⚠️ কেন globalSetup-এ: mock সার্ভারটি **টেস্ট প্রসেসে** চলে,
+   *   কিন্তু webhook হ্যান্ডলার চলে **Next প্রসেসে**। Next-এর env
+   *   একবারই সেট হয় (spawn-এর সময়), তাই পরে `process.env` বদলালে
+   *   সার্ভার তা দেখত না — receiver টেস্ট আসল SSLCommerz-এ কল করার
+   *   চেষ্টা করত। পোর্ট আগে থেকে ঠিক করে দুই প্রসেসকেই জানিয়ে দিলে
+   *   সমস্যাটি থাকে না।
+   */
+  const sslczMockPort = await freePort();
+
   // ★ প্রোডাকশন DATABASE_URL সাব-প্রসেসে **পাঠানো হয় না**।
   //   বাইরের নেটওয়ার্ক-কল করা কী-গুলো ফাঁকা — টেস্ট কখনো আসল
   //   ইমেইল/টেলিগ্রাম/ব্লব-এ পৌঁছাবে না (email.ts ও telegram/store.ts
@@ -170,6 +182,9 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
     // ★ TRUSTED_PROXY ফাঁকা — তাই `pickIp()` ক্লায়েন্টের
     //   x-forwarded-for উপেক্ষা করে (H2 এর আচরণ, যেমন প্রোডাকশনে)
     TRUSTED_PROXY: '',
+    // ★ SSLCommerz ড্রাইভার আসল গেটওয়ের বদলে mock-এ কল করবে।
+    //   ⚠️ টেস্ট কখনো sandbox.sslcommerz.com-এ পৌঁছাবে না।
+    SSLCZ_BASE_URL: `http://127.0.0.1:${sslczMockPort}`,
   };
 
   server = spawn(process.execPath, [NEXT_BIN, 'dev', '-p', String(port)], {
@@ -196,6 +211,7 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
   console.log('  ✓ প্রমাণিত: সার্ভার টেস্ট ডাটাবেস পড়ছে');
 
   provide('baseUrl', baseUrl);
+  provide('sslczMockPort', sslczMockPort);
 }
 
 export async function teardown() {

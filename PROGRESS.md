@@ -42,6 +42,7 @@ commit → এখানে এক লাইন।
 [x] GROUP D — HTTP ইন্টিগ্রেশন টেস্ট + ব্রাউজার smoke (M4 সহ) — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 41/41
 [x] GROUP E (১) — গেটওয়ে-কী ফাঁস বন্ধ + at-rest এনক্রিপশন — 2026-08-08 — prisma/tsc/lint/build ok
 [x] GROUP E (২) — PaymentGatewayConfig মডেল + Test connection ফল সংরক্ষণ — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 53/53, migrate diff "No difference detected"
+[x] GROUP E (৩) — SSLCommerz ড্রাইভার (ভ্যালিডেশন-API ভিত্তিক, mock সার্ভারে পরীক্ষিত) — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 64/64
 [~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-08
 ```
 
@@ -118,10 +119,54 @@ approve → ব্যালেন্স ও খতিয়ান হুবহ�
 ⚠️ সততা: এটি এখনো **কাঠামোগত** পরীক্ষা (সব কী আছে কি না), বাস্তব
 নেটওয়ার্ক কল নয় — কারণ কোনো লাইভ ড্রাইভার এখনো নেই।
 
-**⬜ Group E-র বাকি:** SSLCommerz → Stripe → PayPal → Razorpay
-ড্রাইভার (signature যাচাই · webhook idempotency · replay protection ·
-`Deposit` সারির সাথে amount assertion)। authoritative API
-ডকুমেন্টেশন লাগবে (RUN.md §STOP নং ২)।
+### GROUP E (৩) — SSLCommerz ড্রাইভার
+
+**পঠিত সূত্র** (অনুমান নয় — CLAUDE.md §6):
+· `developer.sslcommerz.com/doc/v4/` — সেশন, IPN, ভ্যালিডেশন API
+· `github.com/sslcommerz/SSLCommerz-Woocommerce` — অফিসিয়াল রেফারেন্স
+
+**🔑 মূল আবিষ্কার — `verify_sign` ব্যবহার করা হয়নি, ইচ্ছাকৃতভাবে।**
+IPN-এ `verify_sign`/`verify_key` ক্ষেত্র আছে, কিন্তু তার হ্যাশ-
+অ্যালগরিদম **অফিসিয়াল ডকে বর্ণিত নেই** (কেবল ক্ষেত্রের নাম আছে)।
+আর SSLCommerz-এর **নিজের** WooCommerce প্লাগইন ঐ স্বাক্ষর যাচাই
+করেই না — সে সরাসরি ভ্যালিডেশন API-তে ফিরে জিজ্ঞেস করে। ব্লগ/
+তৃতীয় পক্ষ থেকে পাওয়া MD5 রেসিপি বসালে সেটি হতো **অনুমান**, আর
+ভুল হলে একটি *মিথ্যা নিরাপত্তা* তৈরি হতো।
+
+**তাই সত্যের একমাত্র উৎস server-to-server ভ্যালিডেশন API:**
+IPN থেকে শুধু `val_id` (একটি অস্বচ্ছ handle) নেওয়া হয়, তারপর store
+credentials দিয়ে SSLCommerz-কে জিজ্ঞেস করা হয় লেনদেনটি আসলে কী।
+**অঙ্ক, মুদ্রা, tran_id — সব ঐ উত্তর থেকে**, IPN থেকে নয়।
+
+| টেস্ট | দাবি |
+|---|---|
+| জাল অঙ্ক | IPN-এ ৳৯৯,৯৯৯ দাবি, গেটওয়ে বলে ৳৫০০ → **৫০০ জেতে** |
+| val_id ছাড়া `status=VALID` | ৪০১, গেটওয়েকে ডাকাই হয় না |
+| tran_id অমিল | ৪০১ |
+| ভ্যালিডেশন INVALID | PAYMENT_FAILED, কখনো সফল নয় |
+| ভ্যালিডেশন API ডাউন | সফল ধরা হয় না; retry-যোগ্য ব্যর্থতা |
+| ক্রেডেনশিয়াল নেই | যাচাই হয় না, সফল নয় |
+| একই IPN দুবার | দ্বিতীয়টি `duplicate` — marker ঠিক ১টি |
+| প্রোভাইডার বন্ধ | ৪০৩ |
+
+টেস্টে একটি **আসল HTTP mock সার্ভার** SSLCommerz নকল করে (পোর্ট
+globalSetup ঠিক করে ও Next প্রসেসকেও জানায়), তাই fetch/টাইমআউট/
+JSON-পার্সিং — পুরো নেটওয়ার্ক পথ পরীক্ষিত, ফাংশন stub করে নয়।
+
+⚠️ **যা এখনো হয় না — স্পষ্ট করে বলছি:** webhook এখনো **ওয়ালেটে টাকা
+জমা করে না**। receiver ইভেন্ট যাচাই করে, idempotency মেনে রেকর্ড ও
+লগ করে — ব্যস। অটো-ক্রেডিট একটি **নতুন money path**, আর সেটি বসানোর
+আগে আসল sandbox ক্রেডেনশিয়ালে end-to-end চালিয়ে দেখা দরকার
+(CLAUDE.md §2.5(১৫) — শুধু compile করে "কাজ করে" বলা যাবে না)।
+`Deposit` সারির সাথে amount assertion ঐ ধাপেরই অংশ।
+
+⚠️ `refund()` → `MANUAL`। SSLCommerz রিফান্ড API-র চুক্তি পড়া হয়নি,
+তাই অনুমান না করে বিদ্যমান ম্যানুয়াল ফেরত প্রবাহ অক্ষত রাখা হয়েছে।
+
+**⬜ বাকি:** Stripe → PayPal → Razorpay ড্রাইভার · SSLCommerz সেশন
+তৈরি (checkout redirect) · অটো-ক্রেডিট money path (মালিকের সিদ্ধান্ত +
+sandbox ক্রেডেনশিয়াল দরকার)। bKash/Nagad/Rocket-এর ডকস merchant
+অ্যাকাউন্ট ছাড়া পাবলিক নয় (RUN.md §STOP নং ২)।
 
 ### GROUP D — টেস্ট (২০২৬-০৮-০৮, Docker চালু হওয়ার পর)
 

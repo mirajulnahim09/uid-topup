@@ -1,6 +1,7 @@
 import type { PaymentProvider, ProviderId } from './types';
 import { manualProvider } from './providers/manual';
 import { gatewayStub } from './providers/gatewayStub';
+import { sslcommerzProvider } from './providers/sslcommerz';
 import { getSetting } from '../settings';
 import { prisma } from '../prisma';
 
@@ -19,7 +20,9 @@ const PROVIDERS: PaymentProvider[] = [
   gatewayStub({ id: 'bkash', label: 'bKash API', caps: { autoVerify: true, autoRefund: true, hostedCheckout: true }, envKeys: ['BKASH_APP_KEY', 'BKASH_APP_SECRET', 'BKASH_USERNAME', 'BKASH_PASSWORD'] }),
   gatewayStub({ id: 'nagad', label: 'Nagad API', caps: { autoVerify: true, autoRefund: false, hostedCheckout: true }, envKeys: ['NAGAD_MERCHANT_ID', 'NAGAD_PRIVATE_KEY'] }),
   gatewayStub({ id: 'rocket', label: 'Rocket API', caps: { autoVerify: true, autoRefund: false, hostedCheckout: true }, envKeys: ['ROCKET_MERCHANT_ID', 'ROCKET_API_KEY'] }),
-  gatewayStub({ id: 'sslcommerz', label: 'SSLCommerz', caps: { autoVerify: true, autoRefund: true, hostedCheckout: true }, envKeys: ['SSLCZ_STORE_ID', 'SSLCZ_STORE_PASSWD'] }),
+  // ★ SSLCommerz — একমাত্র বাস্তব ড্রাইভার (stub নয়)। ভ্যালিডেশন
+  //   API-ভিত্তিক যাচাই; বিস্তারিত `providers/sslcommerz.ts`-এ।
+  sslcommerzProvider(),
   gatewayStub({ id: 'stripe', label: 'Stripe', caps: { autoVerify: true, autoRefund: true, hostedCheckout: true }, envKeys: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'] }),
   gatewayStub({ id: 'paypal', label: 'PayPal', caps: { autoVerify: true, autoRefund: true, hostedCheckout: true }, envKeys: ['PAYPAL_CLIENT_ID', 'PAYPAL_SECRET'] }),
   gatewayStub({ id: 'razorpay', label: 'Razorpay', caps: { autoVerify: true, autoRefund: true, hostedCheckout: true }, envKeys: ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET'] }),
