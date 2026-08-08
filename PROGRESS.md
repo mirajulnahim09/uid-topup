@@ -38,9 +38,39 @@ commit → এখানে এক লাইন।
 [x] H4 — লুকানো ট্যাবে পোলিং বন্ধ, ৬০s→১২০s, ঐচ্ছিক SSE (/api/stream) — 2026-08-07 — prisma/tsc/lint/build ok — verify: polling-load.ts 8/8
 [x] GROUP C — লাইট থিম (CLAUDE.md §5 সম্পূর্ণ, এক atomic পরিবর্তন) — 2026-08-08 — prisma/tsc/lint/build ok — verify: theme-contrast.ts (২ থিম × ৫ প্রিসেট) সব পাস
 [x] a11y সিদ্ধান্ত (মালিক) — বর্ডার/ফোকাস-রিং কৌশল + dark প্রিসেট ≥৪.৫:১ — 2026-08-08 — verify: theme-contrast.ts সব পাস
-[~] GROUP D — অবকাঠামো সম্পূর্ণ, খতিয়ান-টেস্ট লেখা; **এই মেশিনে চালানো যায়নি (Docker নেই)** — 2026-08-08
+[x] হারনেস বাগ — `spawnSync('npx.cmd')` Node 24-এ EINVAL, নীরবে exit 1; এখন node দিয়ে সরাসরি — 2026-08-08 — prisma/tsc/lint/build ok
+[x] GROUP D — HTTP ইন্টিগ্রেশন টেস্ট (order/deposit/refund/ledger/auth) — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 40/40
 [~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-08
 ```
+
+### GROUP D — টেস্ট (২০২৬-০৮-০৮, Docker চালু হওয়ার পর)
+
+**শৈলী (মালিকের সিদ্ধান্ত):** রুট-হ্যান্ডলার সরাসরি না ডেকে **HTTP**,
+টেস্ট DB-তে চলা আসল অ্যাপের বিরুদ্ধে। double-spend ও coupon-race
+টেস্টের উদ্দেশ্যই middleware + NextAuth + লক — হ্যান্ডলার সরাসরি
+ডাকলে ঠিক সেই স্তরগুলোই বাদ পড়ত।
+
+| ফাইল | টেস্ট | কী প্রমাণ করে |
+|---|---|---|
+| `tests/auth-boundary.test.ts` | ৬ | লগইন ছাড়া টাকার রুট ৪০১ · ইউজার→অ্যাডমিন রুট ৪০৩ · ব্যান তাৎক্ষণিক |
+| `tests/order.test.ts` | ১০ | happy · অপর্যাপ্ত ব্যালেন্স · স্টক শেষ · double-spend · কুপন race · **H1 লক-প্রমাণ** |
+| `tests/deposit.test.ts` | ১০ | approve · reject · ডুপ্লিকেট TrxID · double-approve (২ ও ৫ সমান্তরাল) |
+| `tests/refund.test.ts` | ৯ | আংশিক · পূর্ণ · over-refund · সমান্তরাল ফেরত দাম ছাড়ায় না |
+| `tests/ledger-invariant.test.ts` | ৫ | ১০০ এলোমেলো অপারেশনের পর `SUM == balance` |
+
+**দুটি নিরাপত্তা-গার্ড, কারণ টেস্ট প্রতিটি টেবিল truncate করে:**
+1. `tests/helpers/testEnv.ts` — হোস্ট localhost **ও** নাম `_test` (একটিই উৎস)
+2. `tests/globalSetup.ts` — canary ইউজার কেবল টেস্ট DB-তে বানিয়ে HTTP লগইন;
+   সফল না হলে **একটি টেস্টও চলে না**। "মেপে দেখেছি" নয়, প্রমাণ।
+
+⚠️ **অপসারিত গার্ড:** "টেস্ট URL ≠ `DATABASE_URL`" শর্তটি বাদ — আমাদের
+নিজেদের হারনেস ইচ্ছাকৃতভাবে `DATABASE_URL` কে টেস্ট URL বানায়, তাই
+শর্তটি সবসময় সত্য হতো। পুরনো কোডে এটি ধরা পড়েনি কারণ `catch` নিজের
+throw করা Error-টিই গিলে ফেলত — গার্ডটি লেখা ছিল, কার্যত নিষ্ক্রিয়।
+
+⚠️ `next dev`, `next start` নয় — প্রোডাকশন বিল্ডে কুকি
+`__Secure-next-auth.session-token` + `secure:true`, তাই http://127.0.0.1-এ
+সেশন কুকি টিকত না ও প্রতিটি অথ-টেস্ট **মিথ্যা** ফেল করত।
 
 ### a11y সিদ্ধান্ত (মালিকের নির্দেশ, 8 আগস্ট)
 

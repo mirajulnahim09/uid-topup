@@ -17,41 +17,14 @@
  */
 import { beforeAll, afterAll, beforeEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
+import { TEST_DATABASE_URL, assertSafeTestUrl } from './tests/helpers/testEnv';
 
-const TEST_URL =
-  process.env.TEST_DATABASE_URL ||
-  'postgresql://test:test@localhost:5433/uidtopup_test';
+// ★ গার্ডটি এখন `tests/helpers/testEnv.ts`-এ — একটিই উৎস।
+//   আগে এখানে হাতে-লেখা একটি কপি ছিল; কপি থাকা মানে একদিন একটিতে
+//   শর্ত শিথিল হবে আর কেউ টের পাবে না।
+assertSafeTestUrl();
 
-function assertSafe(url: string): void {
-  let u: URL;
-  try { u = new URL(url); } catch { throw new Error(`TEST_DATABASE_URL পার্স হয়নি: ${url}`); }
-
-  const host = u.hostname;
-  const name = u.pathname.replace(/^\//, '');
-
-  if (!['localhost', '127.0.0.1', '::1', 'test-db'].includes(host)) {
-    throw new Error(
-      `\n✗ থামানো হলো — টেস্ট ডাটাবেসের হোস্ট "${host}", localhost নয়।\n` +
-      `  টেস্ট প্রতিটি টেবিল truncate করে। রিমোট (Neon) ডাটাবেসে\n` +
-      `  চালানো সম্পূর্ণ নিষিদ্ধ — CLAUDE.md §2.1।\n` +
-      `  ডকার চালু করুন: npm run test:db:up\n`,
-    );
-  }
-  if (!name.endsWith('_test')) {
-    throw new Error(`\n✗ থামানো হলো — ডাটাবেসের নাম "${name}" "_test" দিয়ে শেষ হয় না।\n`);
-  }
-  const prod = process.env.DATABASE_URL;
-  if (prod) {
-    try {
-      const p = new URL(prod);
-      if (p.hostname === host && p.pathname === u.pathname) {
-        throw new Error('\n✗ থামানো হলো — টেস্ট ও প্রোডাকশন ডাটাবেস একই।\n');
-      }
-    } catch { /* prod URL পার্স না হলে উপেক্ষা — উপরের গার্ডই যথেষ্ট */ }
-  }
-}
-
-assertSafe(TEST_URL);
+const TEST_URL = TEST_DATABASE_URL;
 
 export const db = new PrismaClient({ datasources: { db: { url: TEST_URL } } });
 

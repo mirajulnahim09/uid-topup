@@ -16,11 +16,16 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
+    // ★ একবারই `next dev` চালু হয় ও সব টেস্ট ফাইল সেটি ভাগ করে।
+    //   প্রতি ফাইলে সার্ভার চালু করলে রান কয়েক মিনিট দীর্ঘ হতো।
+    globalSetup: ['./tests/globalSetup.ts'],
     pool: 'forks',
     poolOptions: { forks: { singleFork: true } },
     fileParallelism: false,
-    testTimeout: 30_000,
-    hookTimeout: 30_000,
+    // ★ HTTP পথ + `next dev`-এর চাহিদামতো compile — প্রথম হিট ধীর,
+    //   তাই in-process টেস্টের চেয়ে অনেক উদার timeout।
+    testTimeout: 60_000,
+    hookTimeout: 120_000,
     reporters: 'verbose',
   },
   resolve: {
