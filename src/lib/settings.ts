@@ -45,8 +45,28 @@ export async function getSettings(): Promise<Record<string, string>> {
       //   ফুলিয়ে দিত (webhook বাড়লে প্রতি refresh এ বড় ডেটা লোড)।
       //   ⚠️ startsWith ফিল্টার নয় — DB-লেভেলে `not contains ':'` দিয়ে
       //      কমানো হয়; আসল সেটিংস-কী-তে কোলন থাকে না (flag_/home_/pay_/…)।
+      //
+      // ★★★ Group E — `pp_*` (পেমেন্ট-গেটওয়ে ক্রেডেনশিয়াল) **এখানেই**
+      //   বাদ, প্রতিটি কল-সাইটে নয়।
+      //
+      //   ⚠️ কেন এটি জরুরি: `/admin/site` ও `/admin/homepage` পুরো
+      //   settings মানচিত্র একটি **ক্লায়েন্ট** কম্পোনেন্টে props হিসেবে
+      //   পাঠায়। ক্লায়েন্ট-props RSC payload-এ সিরিয়ালাইজ হয়ে ব্রাউজারে
+      //   যায়, অর্থাৎ view-source-এ প্লেইনটেক্সট। `site/page.tsx` কেবল
+      //   দুটি টেলিগ্রাম কী redact করত — পেমেন্ট-কী নয়। মাপা হয়েছে:
+      //   একটি ডামি SSLCommerz পাসওয়ার্ড বসিয়ে অ্যাডমিন পাতার HTML-এ
+      //   হুবহু খুঁজে পাওয়া গেছে (tests/payment-config.test.ts)।
+      //
+      //   কল-সাইটে redact করা যেত, কিন্তু তাতে প্রতিটি নতুন কল-সাইটে
+      //   একই কথা মনে রাখতে হতো — একবার ভুললেই আবার ফাঁস। এখানে বাদ
+      //   দিলে গোপন মান settings-এ **ঢোকেই না**, তাই ভোলার সুযোগ নেই।
       const rows = await prisma.setting.findMany({
-        where: { NOT: { key: { contains: ':' } } },
+        where: {
+          AND: [
+            { NOT: { key: { contains: ':' } } },
+            { NOT: { key: { startsWith: 'pp_' } } },
+          ],
+        },
       });
       if (!Array.isArray(rows)) return {};
       const data = Object.fromEntries(

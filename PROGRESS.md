@@ -40,8 +40,57 @@ commit → এখানে এক লাইন।
 [x] a11y সিদ্ধান্ত (মালিক) — বর্ডার/ফোকাস-রিং কৌশল + dark প্রিসেট ≥৪.৫:১ — 2026-08-08 — verify: theme-contrast.ts সব পাস
 [x] হারনেস বাগ — `spawnSync('npx.cmd')` Node 24-এ EINVAL, নীরবে exit 1; এখন node দিয়ে সরাসরি — 2026-08-08 — prisma/tsc/lint/build ok
 [x] GROUP D — HTTP ইন্টিগ্রেশন টেস্ট + ব্রাউজার smoke (M4 সহ) — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 41/41
+[x] GROUP E (১/n) — গেটওয়ে-কী ফাঁস বন্ধ + at-rest এনক্রিপশন — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 48/48
 [~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-08
 ```
+
+### GROUP E — প্রথম কাজ: ক্রেডেনশিয়াল ফাঁস (২০২৬-০৮-০৮)
+
+**🔴 পাওয়া গেছে ও সারানো হয়েছে — গেটওয়ে-কী ব্রাউজারে যেত।**
+
+`/admin/site` ও `/admin/homepage` পুরো settings মানচিত্র একটি
+**ক্লায়েন্ট** কম্পোনেন্টে (`'use client'`) props হিসেবে পাঠায়।
+ক্লায়েন্ট-props RSC payload-এ সিরিয়ালাইজ হয়ে ব্রাউজারে যায় —
+view-source-এ প্লেইনটেক্সট। `site/page.tsx` কেবল দুটি টেলিগ্রাম কী
+redact করত; `pp_*` (পেমেন্ট-কী) করত না, আর `pp_<id>_keys`-এ কোলন
+না থাকায় `getSettings()`-এর namespaced-ফিল্টারও ধরত না।
+
+**প্রমাণ, পাঠ নয়:** একটি ডামি SSLCommerz পাসওয়ার্ড DB-তে বসিয়ে
+অ্যাডমিন পাতার HTML fetch করা হয়েছে — মানটি **হুবহু** পাওয়া গেছে
+(`tests/payment-config.test.ts` প্রথমে fail করেছে, ফিক্সের পর pass)।
+
+আজ কোনো গেটওয়ে কনফিগার করা নেই বলে বাস্তবে কিছু ফাঁস হয়নি — কিন্তু
+Group E-র মূল ফিচারটিই "অ্যাডমিন প্যানেল থেকে কী বসানো", অর্থাৎ
+মালিক প্রথম কী বসানোর মুহূর্তেই ফাঁস হতো। CLAUDE.md §2.3(১১) নিষেধ।
+
+**তিন স্তরের সমাধান:**
+1. `settings.ts` — `pp_*` DB-কোয়েরি স্তরেই বাদ। কল-সাইটে redact করলে
+   প্রতিটি নতুন কল-সাইটে মনে রাখতে হতো; এখানে বাদ দিলে গোপন মান
+   settings-এ **ঢোকেই না**।
+2. `payments/config.ts` — সংরক্ষণ কোলন-namespaced (`pp:<id>:keys`),
+   তাই namespaced-ফিল্টারও এটিকে বাদ দেয় (দ্বিতীয় স্তর)।
+3. মান **এনক্রিপ্টেড at rest** — বিদ্যমান `secretbox.ts`
+   (AES-256-GCM + HKDF)। RUN.md: "No new key, no new scheme"।
+   এনক্রিপশন অসম্ভব হলে সেভ **ব্যর্থ হয়** — প্লেইনটেক্সটে fallback
+   করা মানে নীরবে একই দুর্বলতা ফিরিয়ে আনা।
+
+**পিছন-সঙ্গতি:** পুরনো প্লেইনটেক্সট সারি এখনো পড়া যায়; সেভ করলে
+এনক্রিপ্ট হয়ে namespaced সারিতে যায় ও পুরনোটি **একই transaction-এ**
+মোছে। প্রোডাকশনের বিদ্যমান সারির জন্য
+`npx tsx scripts/migrate-payment-keys.ts` (`--dry-run` আছে)।
+
+**fail safe:** ডিক্রিপ্ট ব্যর্থ হলে (কী রোটেট/সারি বিকৃত) throw নয় —
+"কী নেই" ধরা হয়, `configuredAsync()` false। একটি নষ্ট সারি যেন পুরো
+অ্যাডমিন প্যানেল বা চেকআউট ৫০০ না করে।
+
+**HARD CONSTRAINT যাচাই করা হয়েছে:** কী বসানো + `mode: live` +
+`enabled: false` অবস্থায় ম্যানুয়াল bKash ডিপোজিট → PENDING → অ্যাডমিন
+approve → ব্যালেন্স ও খতিয়ান হুবহু আগের মতো। অটো-অনুমোদন হয় না।
+
+**⬜ Group E-র বাকি:** `PaymentGatewayConfig` মডেল (এখন `Setting`-এ,
+RUN.md আলাদা মডেল চায়) · "Test connection" বোতাম · SSLCommerz →
+Stripe → PayPal → Razorpay ড্রাইভার। প্রোভাইডার ড্রাইভারগুলোর জন্য
+authoritative API ডকুমেন্টেশন লাগবে (RUN.md §STOP নং ২)।
 
 ### GROUP D — টেস্ট (২০২৬-০৮-০৮, Docker চালু হওয়ার পর)
 

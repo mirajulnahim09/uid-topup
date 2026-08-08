@@ -1,5 +1,7 @@
 import { prisma } from '../prisma';
-import { getSettings, invalidateSettings } from '../settings';
+import { logger } from '../logger';
+import { invalidateSettings } from '../settings';
+import { encryptSecret, decryptSecret, isEncrypted } from '../secretbox';
 import { getProvider, allProviders, isProviderEnabled } from './registry';
 import type { ProviderId, ProviderMode, ProviderHealth, ProviderInfo } from './types';
 
@@ -36,8 +38,22 @@ export type ProviderConfig = {
   keys: Record<string, string>;
 };
 
-const keysKey = (id: string) => `pp_${id}_keys`;
-const modeKey = (id: string) => `pp_${id}_mode`;
+/**
+ * ★★★ সংরক্ষণের কী — ইচ্ছাকৃতভাবে **কোলন-namespaced**।
+ *
+ *   `getSettings()` কোলনযুক্ত কী বাদ দেয়, তাই এই দুটি সারি সাধারণ
+ *   সেটিংস-ক্যাশে **ঢোকেই না** — অর্থাৎ যে পাতাগুলো পুরো settings
+ *   ক্লায়েন্টে পাঠায়, তাদের হাতে গোপন মান কখনো পৌঁছায় না।
+ *
+ *   ⚠️ পুরনো রূপ `pp_<id>_keys` **প্লেইনটেক্সট** ছিল এবং settings-এ
+ *   ঢুকত (কোলন নেই)। সেটিই ফাঁসের পথ ছিল। legacy সারি এখনো পড়া হয়
+ *   (পিছন-সঙ্গতি), কিন্তু `settings.ts` এখন `pp_*`-ও বাদ দেয়, তাই
+ *   মাইগ্রেশনের আগেও আর ফাঁস হয় না।
+ */
+const keysKey = (id: string) => `pp:${id}:keys`;
+const modeKey = (id: string) => `pp:${id}:mode`;
+const legacyKeysKey = (id: string) => `pp_${id}_keys`;
+const legacyModeKey = (id: string) => `pp_${id}_mode`;
 
 function parseKeys(raw: string | undefined): Record<string, string> {
   if (!raw) return {};
@@ -55,11 +71,39 @@ function parseKeys(raw: string | undefined): Record<string, string> {
   return {};
 }
 
+/**
+ * ★ সংরক্ষিত কী-বান্ডিল খুলি। নতুন সারি এনক্রিপ্টেড (`v1.…`),
+ *   পুরনো সারি প্লেইন JSON — দুটোই সামলাই।
+ *
+ *   ⚠️ ডিক্রিপ্ট ব্যর্থ হলে (কী বদলেছে/সারি বিকৃত) খালি ফেরত যায়,
+ *   throw নয়: একটি নষ্ট সারির কারণে পুরো অ্যাডমিন প্যানেল বা চেকআউট
+ *   ৫০০ হয়ে যাওয়া অগ্রহণযোগ্য। প্রোভাইডার তখন "কী নেই" দেখাবে,
+ *   অর্থাৎ নিরাপদ দিকে ভেঙে পড়ে (fail safe)।
+ */
+function openKeyBundle(raw: string | undefined): Record<string, string> {
+  if (!raw) return {};
+  if (!isEncrypted(raw)) return parseKeys(raw); // legacy প্লেইনটেক্সট
+  try {
+    return parseKeys(decryptSecret(raw));
+  } catch {
+    logger.error('payments', 'gateway keys decrypt failed (key rotated?)');
+    return {};
+  }
+}
+
 /** একটি প্রোভাইডারের DB কনফিগ পড়ি (সার্ভার-only; সিক্রেট মান সহ) */
 export async function getProviderConfig(id: ProviderId | string): Promise<ProviderConfig> {
-  const s = await getSettings();
-  const mode = s[modeKey(id)] === 'live' ? 'live' : 'test';
-  return { mode, keys: parseKeys(s[keysKey(id)]) };
+  // ★ সরাসরি DB — `getSettings()` ইচ্ছাকৃতভাবে এই কী-গুলো বাদ দেয়,
+  //   তাই ক্যাশ থেকে পড়া সম্ভব নয় (এবং সেটাই কাম্য)।
+  const rows = await prisma.setting.findMany({
+    where: { key: { in: [keysKey(id), modeKey(id), legacyKeysKey(id), legacyModeKey(id)] } },
+  });
+  const byKey = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+
+  const rawMode = byKey[modeKey(id)] ?? byKey[legacyModeKey(id)];
+  const rawKeys = byKey[keysKey(id)] ?? byKey[legacyKeysKey(id)];
+
+  return { mode: rawMode === 'live' ? 'live' : 'test', keys: openKeyBundle(rawKeys) };
 }
 
 /**
@@ -161,6 +205,8 @@ export async function saveProviderConfig(
   if (!provider) throw new Error('unknown provider');
 
   const writes: { key: string; value: string }[] = [];
+  /** ★ মাইগ্রেট হয়ে যাওয়া legacy প্লেইনটেক্সট সারি — মুছে ফেলি */
+  const deletes: string[] = [];
 
   if (patch.keys && provider.keyFields.length > 0) {
     const current = (await getProviderConfig(id)).keys;
@@ -172,11 +218,21 @@ export async function saveProviderConfig(
       if (val === '') delete next[field];
       else next[field] = val;
     }
-    writes.push({ key: keysKey(id), value: JSON.stringify(next) });
+
+    // ★★★ at-rest এনক্রিপশন — বিদ্যমান secretbox (AES-256-GCM, HKDF)।
+    //   RUN.md: "No new key, no new scheme"। কী আসে NEXTAUTH_SECRET
+    //   থেকে, যা env.ts এমনিতেই আবশ্যক করে।
+    //
+    //   ⚠️ এনক্রিপশন অসম্ভব হলে **সেভ ব্যর্থ হয়** — প্লেইনটেক্সটে
+    //   fallback করা মানে নীরবে ঠিক সেই দুর্বলতাই ফিরিয়ে আনা যেটা
+    //   এই পরিবর্তন বন্ধ করছে। জোরে ব্যর্থ হওয়াই সঠিক।
+    writes.push({ key: keysKey(id), value: encryptSecret(JSON.stringify(next)) });
+    deletes.push(legacyKeysKey(id));
   }
 
   if (patch.mode) {
     writes.push({ key: modeKey(id), value: patch.mode === 'live' ? 'live' : 'test' });
+    deletes.push(legacyModeKey(id));
   }
   if (typeof patch.enabled === 'boolean') {
     writes.push({ key: `provider_${id}_enabled`, value: patch.enabled ? '1' : '0' });
@@ -184,15 +240,18 @@ export async function saveProviderConfig(
 
   if (writes.length === 0) return;
 
-  await prisma.$transaction(
-    writes.map((w) =>
+  await prisma.$transaction([
+    ...writes.map((w) =>
       prisma.setting.upsert({
         where: { key: w.key },
         update: { value: w.value },
         create: { key: w.key, value: w.value },
       })
-    )
-  );
+    ),
+    // ★ একই transaction — নতুন এনক্রিপ্টেড সারি বসল অথচ পুরনো
+    //   প্লেইনটেক্সট সারি রয়ে গেল, এমন মাঝপথের অবস্থা হতে পারবে না
+    ...(deletes.length ? [prisma.setting.deleteMany({ where: { key: { in: deletes } } })] : []),
+  ]);
   invalidateSettings();
 }
 
