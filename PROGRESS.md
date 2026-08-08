@@ -43,6 +43,8 @@ commit → এখানে এক লাইন।
 [x] GROUP E (১) — গেটওয়ে-কী ফাঁস বন্ধ + at-rest এনক্রিপশন — 2026-08-08 — prisma/tsc/lint/build ok
 [x] GROUP E (২) — PaymentGatewayConfig মডেল + Test connection ফল সংরক্ষণ — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 53/53, migrate diff "No difference detected"
 [x] GROUP E (৩) — SSLCommerz ড্রাইভার (ভ্যালিডেশন-API ভিত্তিক, mock সার্ভারে পরীক্ষিত) — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 64/64
+[x] সেটিংস allowlist — টেলিগ্রাম টোকেন /admin/homepage-এ ফাঁস হচ্ছিল, বন্ধ — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 65/65
+[x] GROUP E (৪) — Stripe ড্রাইভার (স্বাক্ষর যাচাই, v0 প্রত্যাখ্যান, replay) — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 80/80
 [~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-08
 ```
 
@@ -163,7 +165,26 @@ JSON-পার্সিং — পুরো নেটওয়ার্ক প�
 ⚠️ `refund()` → `MANUAL`। SSLCommerz রিফান্ড API-র চুক্তি পড়া হয়নি,
 তাই অনুমান না করে বিদ্যমান ম্যানুয়াল ফেরত প্রবাহ অক্ষত রাখা হয়েছে।
 
-**⬜ বাকি:** Stripe → PayPal → Razorpay ড্রাইভার · SSLCommerz সেশন
+### GROUP E (৪) — Stripe ড্রাইভার
+
+**পঠিত সূত্র:** `docs.stripe.com/webhooks#verify-manually` (সম্পূর্ণ
+স্কিম ডকুমেন্টেড — তাই এখানে অনুমানের দরকার নেই, SSLCommerz-এর
+বিপরীত অবস্থা)।
+
+`Stripe-Signature: t=<ts>,v1=<sig>` · payload `${t}.${rawBody}` ·
+HMAC-SHA256(hex) · timing-safe তুলনা · সহনশীলতা ৩০০s।
+
+| টেস্ট | কেন গুরুত্বপূর্ণ |
+|---|---|
+| শুধু `v0` → প্রত্যাখ্যান | Stripe টেস্ট-ইভেন্টে **জাল** v0 পাঠায়; "যেকোনো স্কিম" মানলে downgrade-আক্রমণ |
+| একাধিক `v1` | secret roll করার ২৪ ঘণ্টায় দুটি স্বাক্ষর আসে — একটিও না মানলে বৈধ ইভেন্ট হারাত |
+| ৪০০s পুরনো | স্বাক্ষর নিখুঁত, তবু replay → বাতিল |
+| বডিতে ১ অক্ষর বদল | স্বাক্ষর ভাঙে |
+| অঙ্ক ৫০০০০ → ৳৫০০ | Stripe **পয়সায়** দেয়; ভাগ না করলে ১০০ গুণ বেশি ক্রেডিট |
+| reference নেই | প্রত্যাখ্যান — কোন ডিপোজিট তা না জানলে ক্রেডিট অসম্ভব |
+| secret নেই | কখনো গ্রহণ নয় |
+
+**⬜ বাকি:** PayPal → Razorpay ড্রাইভার · SSLCommerz সেশন
 তৈরি (checkout redirect) · অটো-ক্রেডিট money path (মালিকের সিদ্ধান্ত +
 sandbox ক্রেডেনশিয়াল দরকার)। bKash/Nagad/Rocket-এর ডকস merchant
 অ্যাকাউন্ট ছাড়া পাবলিক নয় (RUN.md §STOP নং ২)।

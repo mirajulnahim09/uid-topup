@@ -2,6 +2,7 @@ import type { PaymentProvider, ProviderId } from './types';
 import { manualProvider } from './providers/manual';
 import { gatewayStub } from './providers/gatewayStub';
 import { sslcommerzProvider } from './providers/sslcommerz';
+import { stripeProvider } from './providers/stripe';
 import { getSetting } from '../settings';
 import { prisma } from '../prisma';
 
@@ -11,8 +12,14 @@ import { prisma } from '../prisma';
  *   তালিকাভুক্ত হয়। নতুন গেটওয়ে যোগ করা = এখানে এক লাইন (Open/Closed);
  *   অ্যাডমিন থেকে চালু/বন্ধ করা যায় (`provider_<id>_enabled` সেটিং)।
  *
- *   ⚠️ ম্যানুয়াল ছাড়া সব গেটওয়ে এখন স্টাব — configured=false (env নেই),
- *   তাই enable করলেও fulfillment policy এগুলোকে অটো-পথে বেছে নেবে না।
+ *   ⚠️ অবস্থা (২০২৬-০৮-০৮): `sslcommerz` ও `stripe` **বাস্তব ড্রাইভার** —
+ *   webhook যাচাই সহ। বাকিগুলো (bkash/nagad/rocket/paypal/razorpay)
+ *   এখনো স্টাব।
+ *
+ *   ⚠️ তবু কোনো গেটওয়ে **নিজে থেকে টাকা জমা করে না**: webhook receiver
+ *   ইভেন্ট যাচাই করে ও রেকর্ড করে, কিন্তু ওয়ালেটে ক্রেডিট করে না।
+ *   অটো-ক্রেডিট একটি নতুন money path — আসল sandbox ক্রেডেনশিয়ালে
+ *   end-to-end যাচাইয়ের আগে সেটি যোগ করা হবে না।
  * ═══════════════════════════════════════════════════════════
  */
 const PROVIDERS: PaymentProvider[] = [
@@ -23,7 +30,8 @@ const PROVIDERS: PaymentProvider[] = [
   // ★ SSLCommerz — একমাত্র বাস্তব ড্রাইভার (stub নয়)। ভ্যালিডেশন
   //   API-ভিত্তিক যাচাই; বিস্তারিত `providers/sslcommerz.ts`-এ।
   sslcommerzProvider(),
-  gatewayStub({ id: 'stripe', label: 'Stripe', caps: { autoVerify: true, autoRefund: true, hostedCheckout: true }, envKeys: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'] }),
+  // ★ Stripe — স্বাক্ষর-যাচাই সহ বাস্তব ড্রাইভার (providers/stripe.ts)
+  stripeProvider(),
   gatewayStub({ id: 'paypal', label: 'PayPal', caps: { autoVerify: true, autoRefund: true, hostedCheckout: true }, envKeys: ['PAYPAL_CLIENT_ID', 'PAYPAL_SECRET'] }),
   gatewayStub({ id: 'razorpay', label: 'Razorpay', caps: { autoVerify: true, autoRefund: true, hostedCheckout: true }, envKeys: ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET'] }),
 ];
