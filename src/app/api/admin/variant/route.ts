@@ -94,6 +94,29 @@ export async function PATCH(req: Request) {
       }
     }
 
+    // ★★★ Group F — রিসেলার দাম। `oldPrice` এর মতোই null-যোগ্য:
+    //   খালি/null পাঠালে ছাড় **তুলে নেওয়া** হয়।
+    if (body.resellerPrice !== undefined) {
+      if (body.resellerPrice === null || body.resellerPrice === '') {
+        data.resellerPrice = null;
+      } else {
+        const rp = Number(body.resellerPrice);
+        // ⚠️ শূন্য ইচ্ছাকৃতভাবে **প্রত্যাখ্যাত**, শুধু ঋণাত্মক নয়।
+        //   এই সিস্টেমে ফ্রি অর্ডার সম্ভব নয় (প্রতিটি অর্ডার একটি
+        //   ধনাত্মক খতিয়ান-এন্ট্রি লেখে)। ০ বসাতে দিলে অ্যাডমিন ভাবতেন
+        //   "রিসেলারদের জন্য ফ্রি করলাম", অথচ অর্ডার-পথ সেটি উপেক্ষা
+        //   করে পুরো দাম নিত — নীরব ও ব্যয়বহুল বিভ্রান্তি।
+        //   ছাড় তুলতে হলে খালি রাখুন।
+        if (isNaN(rp) || rp <= 0) {
+          throw new ApiError(
+            'রিসেলার দাম ০ এর বেশি হতে হবে। ছাড় তুলে নিতে ঘরটি খালি রাখুন।',
+            400,
+          );
+        }
+        data.resellerPrice = rp;
+      }
+    }
+
     if (body.stock !== undefined) {
       const st = Number(body.stock);
       if (isNaN(st)) throw new ApiError('সঠিক স্টক দিন', 400);

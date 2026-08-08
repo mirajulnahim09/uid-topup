@@ -19,6 +19,9 @@ export type AdminAction =
   | 'BALANCE_ADJUST'
   | 'USER_BAN'
   | 'USER_UNBAN'
+  /** ★ Group F — গ্রাহক-স্তর বদল। দামের সিদ্ধান্ত, তাই আলাদা অ্যাকশন:
+   *  "কে কাকে কখন রিসেলার বানাল" খুঁজে বের করা যেতেই হবে। */
+  | 'USER_TIER_CHANGE'
   | 'PRICE_CHANGE'
   | 'PRODUCT_CREATE'
   | 'PRODUCT_DELETE'

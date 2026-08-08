@@ -46,6 +46,7 @@ commit → এখানে এক লাইন।
 [x] সেটিংস allowlist — টেলিগ্রাম টোকেন /admin/homepage-এ ফাঁস হচ্ছিল, বন্ধ — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 65/65
 [x] GROUP E (৪) — Stripe ড্রাইভার (স্বাক্ষর যাচাই, v0 প্রত্যাখ্যান, replay) — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 80/80
 [x] GROUP F (১) — রিসেলার স্তর: schema + অর্ডার-পথে রিসেলার দাম — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 89/89, migrate diff "No difference detected"
+[x] GROUP F (২) — tier ও resellerPrice এর অ্যাডমিন API — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 98/98
 [~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-08
 ```
 
@@ -221,8 +222,29 @@ sandbox ক্রেডেনশিয়াল দরকার)। bKash/Nagad/
 | কুপন `minOrder` | রিসেলার দামের বিপরীতে যাচাই |
 | tier বদল | পরের অর্ডার থেকেই কার্যকর |
 
-**⬜ Group F-এর বাকি:** API-key bulk order endpoint (নিজস্ব rate limit) ·
-tier ব্যবস্থাপনার অ্যাডমিন UI।
+**অ্যাডমিন API (Group F ২):** `PATCH /api/admin/user/tier` (নতুন) ও
+`PATCH /api/admin/variant` এ `resellerPrice` (বিদ্যমান `oldPrice`-এর
+হুবহু প্যাটার্নে — খালি পাঠালে ছাড় তুলে নেওয়া হয়)। এর আগে tier ও
+resellerPrice কেবল কাঁচা SQL দিয়ে বসানো যেত, অর্থাৎ ফিচারটি মালিকের
+কাছে **অব্যবহার্য** ছিল।
+
+⚠️ `resellerPrice = 0` অ্যাডমিন API-তে **প্রত্যাখ্যাত**, পরিষ্কার
+বার্তাসহ ("ছাড় তুলে নিতে ঘরটি খালি রাখুন")। কারণ অর্ডার-পথ ০ উপেক্ষা
+করে পুরো দাম নেয় — অ্যাডমিন ভাবতেন ছাড় দিয়েছেন, অথচ গ্রাহক পুরো দাম
+দিতেন। নীরব ও ব্যয়বহুল বিভ্রান্তি, তাই উৎসেই আটকানো।
+
+`USER_TIER_CHANGE` একটি **আলাদা** অডিট-অ্যাকশন (typecheck ধরিয়ে দিয়েছিল
+যে এটি `AdminAction` union-এ ছিল না) — "কে কাকে কখন রিসেলার বানাল"
+পরে খুঁজে বের করা যেতেই হবে।
+
+**⬜ Group F-এর বাকি:** API-key bulk order endpoint (নিজস্ব rate limit)।
+
+⚠️ **পরের সেশনের জন্য নোট:** bulk endpoint-এর জন্য অর্ডার-যুক্তি
+`/api/order/route.ts` থেকে একটি শেয়ার্ড সার্ভিসে **extract** করতে হবে
+(নাহলে money-যুক্তি দুই জায়গায় নকল হবে ও একদিন সরে যাবে)। সেটি একটি
+প্রমাণিত money-পথের refactor — নিজস্ব সেশন ও মালিকের সম্মতি প্রাপ্য
+(CLAUDE.md §2.2(৬))। ভালো খবর: `tests/order.test.ts` + `reseller.test.ts`
+মিলিয়ে ১৯টি টেস্ট ঐ পথ ঘিরে আছে, তাই refactor যাচাই করা সম্ভব।
 
 ### GROUP D — টেস্ট (২০২৬-০৮-০৮, Docker চালু হওয়ার পর)
 
