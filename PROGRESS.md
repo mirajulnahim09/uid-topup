@@ -39,7 +39,7 @@ commit → এখানে এক লাইন।
 [x] GROUP C — লাইট থিম (CLAUDE.md §5 সম্পূর্ণ, এক atomic পরিবর্তন) — 2026-08-08 — prisma/tsc/lint/build ok — verify: theme-contrast.ts (২ থিম × ৫ প্রিসেট) সব পাস
 [x] a11y সিদ্ধান্ত (মালিক) — বর্ডার/ফোকাস-রিং কৌশল + dark প্রিসেট ≥৪.৫:১ — 2026-08-08 — verify: theme-contrast.ts সব পাস
 [x] হারনেস বাগ — `spawnSync('npx.cmd')` Node 24-এ EINVAL, নীরবে exit 1; এখন node দিয়ে সরাসরি — 2026-08-08 — prisma/tsc/lint/build ok
-[x] GROUP D — HTTP ইন্টিগ্রেশন টেস্ট (order/deposit/refund/ledger/auth) — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 40/40
+[x] GROUP D — HTTP ইন্টিগ্রেশন টেস্ট + ব্রাউজার smoke (M4 সহ) — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 41/41
 [~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-08
 ```
 
@@ -57,6 +57,14 @@ commit → এখানে এক লাইন।
 | `tests/deposit.test.ts` | ১০ | approve · reject · ডুপ্লিকেট TrxID · double-approve (২ ও ৫ সমান্তরাল) |
 | `tests/refund.test.ts` | ৯ | আংশিক · পূর্ণ · over-refund · সমান্তরাল ফেরত দাম ছাড়ায় না |
 | `tests/ledger-invariant.test.ts` | ৫ | ১০০ এলোমেলো অপারেশনের পর `SUM == balance` |
+| `tests/e2e-smoke.test.ts` | ১ | আসল ব্রাউজারে CSP লঙ্ঘন নেই, hydration ঠিক, ফর্ম-লগইন কাজ করে |
+
+**M4 নিষ্পত্তি — CLAUDE.md §3.3 এর দাবিটি ভুল ছিল।** `playwright-core`
+কে "devDependency with zero test files" বলা হয়েছিল; বাস্তবে `scripts/`
+এর **২৩টি** ফাইল এটি ব্যবহার করে (audit-pages, auth-ui-test, …)। সরালে
+ঐ স্ক্রিপ্টগুলো ভেঙে যেত, তাই **রাখা হয়েছে** এবং টেস্ট-স্যুটেও একটি
+বাস্তব ব্যবহার যোগ করা হলো। ব্রাউজার না থাকলে টেস্টটি **সরবে** skip
+হয় (কারণ ছাপে) — নীরব skip নয়।
 
 **দুটি নিরাপত্তা-গার্ড, কারণ টেস্ট প্রতিটি টেবিল truncate করে:**
 1. `tests/helpers/testEnv.ts` — হোস্ট localhost **ও** নাম `_test` (একটিই উৎস)
@@ -113,22 +121,18 @@ checker এখন রিং ও ইনপুট-বর্ডার **enforce** �
 - `tests/ledger-invariant.test.ts` — ৫টি টেস্ট, RUN.md-এর ১০০-অপারেশন
   invariant সহ
 
-**⚠️⚠️ চালানো যায়নি — এই মেশিনে Docker নেই** (`docker: unavailable`)।
-`npm test` চালিয়ে দেখা গেছে গার্ড ঠিকমতো **থামায়** ও পরিষ্কার
-নির্দেশনা দেয়; লাইভ Neon-এ fallback করে না। কিন্তু টেস্টগুলো
-**একবারও চলেনি** — তাই "টেস্ট পাস করে" বলা যাবে না। tsc/lint/build
-পরিষ্কার, অর্থাৎ কেবল compile-প্রমাণ।
+**✅ নিষ্পত্তি হয়েছে (৮ আগস্ট) — Docker ইনস্টল হওয়ার পর।**
+উপরের "GROUP D — টেস্ট" অংশটিই এখন সঠিক অবস্থা: **৪১/৪১ পাস**।
+এই অনুচ্ছেদটি কেবল ইতিহাস হিসেবে রাখা।
 
-**পরের সেশনে প্রথম কাজ:** Docker Desktop চালু করে
-`npm run test:db:up && npm test` — তারপর বাকি কভারেজ লিখুন:
-- Order: happy path · অপর্যাপ্ত ব্যালেন্স · স্টক শেষ · সমান্তরাল
-  double-spend · কুপন over-limit race
-- Deposit: approve · reject · ডুপ্লিকেট TrxID · double-approve
-- Refund: আংশিক · সম্পূর্ণ · over-refund প্রত্যাখ্যান
+⚠️ তখনকার একটি অনুমান **ভুল প্রমাণিত** হয়েছে: ধরা হয়েছিল টেস্ট
+"একবারও চলেনি" কারণ Docker নেই। আসল কারণ ছিল আলাদা ও গুরুতর —
+`scripts/test-run.mjs` এর `spawnSync('npx.cmd', …)` Node 24-এ
+**EINVAL** দিয়ে ব্যর্থ হতো, stdout/stderr দুটোই ফাঁকা। অর্থাৎ Docker
+থাকলেও টেস্ট চলত না, আর কারণটাও ছাপা হতো না। সেটি আলাদা commit-এ
+সারানো হয়েছে (`fix(test): run prisma/vitest via node…`)।
 
-⚠️ এগুলোর যুক্তি API রুটে (`/api/order` ইত্যাদি), আলাদা সার্ভিসে নয় —
-তাই হয় রুট-হ্যান্ডলার সরাসরি ডাকতে হবে, নয়তো টেস্ট-DB-র বিপরীতে
-অ্যাপ চালিয়ে HTTP দিয়ে। এই সিদ্ধান্তটি আগে নিতে হবে।
+**শৈলীর সিদ্ধান্ত (মালিক, ৮ আগস্ট):** HTTP — রুট-হ্যান্ডলার সরাসরি নয়।
 
 ### Group C — §5.5 গ্রহণযোগ্যতা: মাপা অনুপাত
 
