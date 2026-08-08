@@ -2,6 +2,7 @@ import type { PaymentProvider, ProviderId } from './types';
 import { manualProvider } from './providers/manual';
 import { gatewayStub } from './providers/gatewayStub';
 import { getSetting } from '../settings';
+import { prisma } from '../prisma';
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -34,8 +35,22 @@ export function getProvider(id: ProviderId | string | undefined): PaymentProvide
   return PROVIDERS.find((p) => p.id === id);
 }
 
-/** manual ডিফল্টে চালু; বাকিরা ডিফল্টে বন্ধ */
+/**
+ * ★ manual ডিফল্টে চালু; বাকিরা ডিফল্টে বন্ধ।
+ *
+ *   উৎস: `PaymentGatewayConfig` → না থাকলে পুরনো
+ *   `provider_<id>_enabled` সেটিং (পিছন-সঙ্গতি)।
+ *
+ *   ⚠️ `config.ts` ইচ্ছাকৃতভাবে import করা হয়নি — `config.ts` নিজে
+ *   এই ফাইল থেকে import করে, তাই circular হতো। টেবিলটি সরাসরি পড়া
+ *   সস্তা ও নির্ভরতাটি একমুখী রাখে।
+ */
 async function isEnabled(id: ProviderId): Promise<boolean> {
+  const row = await prisma.paymentGatewayConfig.findUnique({
+    where: { provider: id },
+    select: { isEnabled: true },
+  });
+  if (row) return row.isEnabled;
   return (await getSetting(`provider_${id}_enabled`, id === 'manual' ? '1' : '0')) === '1';
 }
 
@@ -45,7 +60,15 @@ export async function isProviderEnabled(id: ProviderId | string): Promise<boolea
 
 /** অ্যাডমিন-চালু প্রোভাইডারগুলো */
 export async function enabledProviders(): Promise<PaymentProvider[]> {
-  const flags = await Promise.all(PROVIDERS.map((p) => isEnabled(p.id)));
+  // ★ এক কোয়েরিতে সব সারি — আগে প্রোভাইডার-প্রতি একটি করে যেত
+  const rows = await prisma.paymentGatewayConfig.findMany({
+    select: { provider: true, isEnabled: true },
+  });
+  const byId = new Map(rows.map((r) => [r.provider, r.isEnabled]));
+
+  const flags = await Promise.all(
+    PROVIDERS.map(async (p) => (byId.has(p.id) ? byId.get(p.id)! : isEnabled(p.id))),
+  );
   return PROVIDERS.filter((_, i) => flags[i]);
 }
 

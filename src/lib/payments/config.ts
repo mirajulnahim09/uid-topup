@@ -36,6 +36,10 @@ export type ProviderConfig = {
   mode: ProviderMode;
   /** DB-তে সংরক্ষিত কী (সার্ভার-only) */
   keys: Record<string, string>;
+  /** শেষ "Test connection" — কখনো চলেনি হলে null */
+  lastTestedAt: Date | null;
+  lastError: string | null;
+  updatedByName: string | null;
 };
 
 /**
@@ -91,8 +95,27 @@ function openKeyBundle(raw: string | undefined): Record<string, string> {
   }
 }
 
-/** একটি প্রোভাইডারের DB কনফিগ পড়ি (সার্ভার-only; সিক্রেট মান সহ) */
+/**
+ * একটি প্রোভাইডারের DB কনফিগ পড়ি (সার্ভার-only; সিক্রেট মান সহ)।
+ *
+ * ★ উৎসের অগ্রাধিকার: `PaymentGatewayConfig` টেবিল → পুরনো `Setting`
+ *   সারি (namespaced → legacy প্লেইনটেক্সট)। মাইগ্রেশন না চালালেও
+ *   পুরনো কনফিগ কাজ করতেই থাকে — অর্থাৎ এই পরিবর্তন কারও চলমান
+ *   সেটআপ ভাঙে না।
+ */
 export async function getProviderConfig(id: ProviderId | string): Promise<ProviderConfig> {
+  const row = await prisma.paymentGatewayConfig.findUnique({ where: { provider: String(id) } });
+  if (row) {
+    return {
+      mode: row.mode === 'live' ? 'live' : 'test',
+      keys: openKeyBundle(row.credentials),
+      lastTestedAt: row.lastTestedAt,
+      lastError: row.lastError,
+      updatedByName: row.updatedByName,
+    };
+  }
+
+  // ── পিছন-সঙ্গতি: পুরনো `Setting`-ভিত্তিক কনফিগ ──
   // ★ সরাসরি DB — `getSettings()` ইচ্ছাকৃতভাবে এই কী-গুলো বাদ দেয়,
   //   তাই ক্যাশ থেকে পড়া সম্ভব নয় (এবং সেটাই কাম্য)।
   const rows = await prisma.setting.findMany({
@@ -103,7 +126,46 @@ export async function getProviderConfig(id: ProviderId | string): Promise<Provid
   const rawMode = byKey[modeKey(id)] ?? byKey[legacyModeKey(id)];
   const rawKeys = byKey[keysKey(id)] ?? byKey[legacyKeysKey(id)];
 
-  return { mode: rawMode === 'live' ? 'live' : 'test', keys: openKeyBundle(rawKeys) };
+  return {
+    mode: rawMode === 'live' ? 'live' : 'test',
+    keys: openKeyBundle(rawKeys),
+    lastTestedAt: null,
+    lastError: null,
+    updatedByName: null,
+  };
+}
+
+/**
+ * ★ "Test connection" এর ফল সংরক্ষণ।
+ *
+ *   ⚠️ ব্যর্থতার বার্তা ছাঁটা হয় ও **কখনো** ক্রেডেনশিয়াল ধারণ করতে
+ *   পারে না — গেটওয়ের ত্রুটি-বার্তায় মাঝে মাঝে পাঠানো payload
+ *   প্রতিধ্বনিত হয়, আর সেটি অ্যাডমিন UI-তে দেখানো মানে আবার সেই
+ *   সিক্রেট ব্রাউজারে ফেরত পাঠানো।
+ */
+export async function recordTestResult(
+  id: ProviderId | string,
+  result: { ok: boolean; error?: string },
+): Promise<void> {
+  const cfg = await getProviderConfig(id);
+  const secrets = Object.values(cfg.keys).filter((v) => v.length >= 4);
+
+  let message = result.ok ? null : (result.error || 'অজানা ত্রুটি').slice(0, 300);
+  if (message) {
+    for (const s of secrets) message = message.split(s).join('***');
+  }
+
+  await prisma.paymentGatewayConfig.upsert({
+    where: { provider: String(id) },
+    update: { lastTestedAt: new Date(), lastError: message },
+    create: {
+      provider: String(id),
+      lastTestedAt: new Date(),
+      lastError: message,
+      mode: cfg.mode,
+      credentials: Object.keys(cfg.keys).length ? encryptSecret(JSON.stringify(cfg.keys)) : '',
+    },
+  });
 }
 
 /**
@@ -199,18 +261,19 @@ export async function providerHealth(id: ProviderId | string): Promise<ProviderH
  */
 export async function saveProviderConfig(
   id: ProviderId | string,
-  patch: { keys?: Record<string, string>; mode?: ProviderMode; enabled?: boolean }
+  patch: { keys?: Record<string, string>; mode?: ProviderMode; enabled?: boolean },
+  actor?: { id: string; name: string },
 ): Promise<void> {
   const provider = getProvider(id);
   if (!provider) throw new Error('unknown provider');
 
-  const writes: { key: string; value: string }[] = [];
-  /** ★ মাইগ্রেট হয়ে যাওয়া legacy প্লেইনটেক্সট সারি — মুছে ফেলি */
-  const deletes: string[] = [];
+  const current = await getProviderConfig(id);
 
+  // ★ কী-বান্ডিল merge — অনুপস্থিত ফিল্ড অপরিবর্তিত থাকে, তাই
+  //   অ্যাডমিন একটিমাত্র কী বদলাতে গিয়ে বাকিগুলো হারায় না।
+  let credentials: string | undefined;
   if (patch.keys && provider.keyFields.length > 0) {
-    const current = (await getProviderConfig(id)).keys;
-    const next: Record<string, string> = { ...current };
+    const next: Record<string, string> = { ...current.keys };
     for (const field of provider.keyFields) {
       if (!(field in patch.keys)) continue;
       if (process.env[field]) continue; // env জেতে — DB-তে রাখি না
@@ -226,31 +289,39 @@ export async function saveProviderConfig(
     //   ⚠️ এনক্রিপশন অসম্ভব হলে **সেভ ব্যর্থ হয়** — প্লেইনটেক্সটে
     //   fallback করা মানে নীরবে ঠিক সেই দুর্বলতাই ফিরিয়ে আনা যেটা
     //   এই পরিবর্তন বন্ধ করছে। জোরে ব্যর্থ হওয়াই সঠিক।
-    writes.push({ key: keysKey(id), value: encryptSecret(JSON.stringify(next)) });
-    deletes.push(legacyKeysKey(id));
+    credentials = Object.keys(next).length ? encryptSecret(JSON.stringify(next)) : '';
   }
 
-  if (patch.mode) {
-    writes.push({ key: modeKey(id), value: patch.mode === 'live' ? 'live' : 'test' });
-    deletes.push(legacyModeKey(id));
-  }
-  if (typeof patch.enabled === 'boolean') {
-    writes.push({ key: `provider_${id}_enabled`, value: patch.enabled ? '1' : '0' });
-  }
-
-  if (writes.length === 0) return;
+  const mode = patch.mode ? (patch.mode === 'live' ? 'live' : 'test') : undefined;
 
   await prisma.$transaction([
-    ...writes.map((w) =>
-      prisma.setting.upsert({
-        where: { key: w.key },
-        update: { value: w.value },
-        create: { key: w.key, value: w.value },
-      })
-    ),
-    // ★ একই transaction — নতুন এনক্রিপ্টেড সারি বসল অথচ পুরনো
-    //   প্লেইনটেক্সট সারি রয়ে গেল, এমন মাঝপথের অবস্থা হতে পারবে না
-    ...(deletes.length ? [prisma.setting.deleteMany({ where: { key: { in: deletes } } })] : []),
+    prisma.paymentGatewayConfig.upsert({
+      where: { provider: String(id) },
+      update: {
+        ...(credentials !== undefined ? { credentials } : {}),
+        ...(mode ? { mode } : {}),
+        ...(typeof patch.enabled === 'boolean' ? { isEnabled: patch.enabled } : {}),
+        ...(actor ? { updatedById: actor.id, updatedByName: actor.name } : {}),
+      },
+      create: {
+        provider: String(id),
+        credentials: credentials ?? '',
+        mode: mode ?? current.mode,
+        isEnabled: patch.enabled ?? false,
+        updatedById: actor?.id ?? null,
+        updatedByName: actor?.name ?? null,
+      },
+    }),
+    // ★ পুরনো `Setting`-ভিত্তিক সারি একই transaction-এ বিদায় —
+    //   দুই জায়গায় একই কনফিগ থাকলে কোনটা জিতবে তা অস্পষ্ট হতো,
+    //   আর প্লেইনটেক্সট সারিটি DB ডাম্পে পড়া যেত।
+    prisma.setting.deleteMany({
+      where: {
+        key: {
+          in: [keysKey(id), modeKey(id), legacyKeysKey(id), legacyModeKey(id), `provider_${id}_enabled`],
+        },
+      },
+    }),
   ]);
   invalidateSettings();
 }
@@ -284,6 +355,10 @@ export async function providerInfos(): Promise<ProviderInfo[]> {
         keysSet,
         envKeys: envProvidedKeys(p.id),
         health,
+        // ★ Date সরাসরি ক্লায়েন্টে পাঠানো যায় না — ISO string
+        lastTestedAt: cfg.lastTestedAt ? cfg.lastTestedAt.toISOString() : null,
+        lastError: cfg.lastError,
+        updatedByName: cfg.updatedByName,
       } satisfies ProviderInfo;
     })
   );

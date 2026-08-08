@@ -717,3 +717,44 @@ model TelegramTemplate {
   enabled   Boolean  @default(true)
   updatedAt DateTime @updatedAt
 }
+
+/// ═══════════════════════════════════════════════════════════
+/// ★★★ পেমেন্ট গেটওয়ে কনফিগ (Group E)
+///
+///   ── কেন `Setting` টেবিল ছেড়ে আলাদা মডেল ──
+///   কনফিগ আগে `Setting`-এ key/value হিসেবে থাকত। সেটি কাজ করত,
+///   কিন্তু তিনটি জিনিস রাখার জায়গা ছিল না যা অপারেটরের আসলে দরকার:
+///   সংযোগ-পরীক্ষা কখন হয়েছিল, শেষ ত্রুটি কী ছিল, আর কে বদলেছে।
+///   টাকার পথের কনফিগে "কে কখন বদলাল" না থাকাটা অডিটের ফাঁক।
+///
+///   ⚠️ `credentials` **এনক্রিপ্টেড** JSON (secretbox — AES-256-GCM,
+///   HKDF কী NEXTAUTH_SECRET থেকে)। কলামে কখনো প্লেইনটেক্সট নয়,
+///   তাই DB ডাম্প/ব্যাকআপ থেকে কী পড়া যায় না। মান কখনো ক্লায়েন্টে
+///   যায় না — অ্যাডমিন UI কেবল "সেট আছে কি না" (masked) দেখে।
+///
+///   ⚠️ additive টেবিল — বিদ্যমান কোনো ডেটা স্পর্শ করে না।
+model PaymentGatewayConfig {
+  /// প্রোভাইডার আইডি — registry-র `ProviderId` (sslcommerz/stripe/…)
+  provider    String   @id
+  isEnabled   Boolean  @default(false)
+  /// 'test' | 'live' — কোন পরিবেশে কল যাবে।
+  /// ⚠️ RUN.md এখানে `sandbox|live` লিখেছিল, কিন্তু কোডবেসের
+  /// `ProviderMode` টাইপ ইতিমধ্যেই `test|live`। দুটো শব্দভাণ্ডার
+  /// পাশাপাশি রাখলে একদিন কেউ 'sandbox' লিখে 'test' আশা করত —
+  /// নীরব বাগ। তাই বিদ্যমান শব্দভাণ্ডারই রাখা হলো।
+  mode        String   @default("test")
+  /// এনক্রিপ্টেড JSON: { [keyField]: value }। খালি স্ট্রিং = কিছু সেট নেই।
+  credentials String   @default("")
+
+  /// শেষ "Test connection" কখন চলেছিল ও ফল কী
+  lastTestedAt DateTime?
+  lastError    String?
+
+  /// কে শেষবার বদলেছে (AdminLog-এর মতোই id + name snapshot —
+  /// অ্যাডমিন ডিলিট হলেও "কে বদলেছিল" পড়া যায়, তাই relation নয়)
+  updatedById   String?
+  updatedByName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -148,4 +148,10 @@ export type ProviderInfo = {
   /** env থেকে আসা কী (DB-তে ওভাররাইড করা যায় না, শুধু তথ্য) */
   envKeys: string[];
   health: ProviderHealth;
+  /** শেষ "Test connection" — ISO string (serializable), কখনো না চললে null */
+  lastTestedAt: string | null;
+  /** শেষ ত্রুটি — ক্রেডেনশিয়াল মুছে (masked) সংরক্ষিত */
+  lastError: string | null;
+  /** কে শেষবার কনফিগ বদলেছে (অডিট) */
+  updatedByName: string | null;
 };

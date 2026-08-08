@@ -40,7 +40,8 @@ commit → এখানে এক লাইন।
 [x] a11y সিদ্ধান্ত (মালিক) — বর্ডার/ফোকাস-রিং কৌশল + dark প্রিসেট ≥৪.৫:১ — 2026-08-08 — verify: theme-contrast.ts সব পাস
 [x] হারনেস বাগ — `spawnSync('npx.cmd')` Node 24-এ EINVAL, নীরবে exit 1; এখন node দিয়ে সরাসরি — 2026-08-08 — prisma/tsc/lint/build ok
 [x] GROUP D — HTTP ইন্টিগ্রেশন টেস্ট + ব্রাউজার smoke (M4 সহ) — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 41/41
-[x] GROUP E (১/n) — গেটওয়ে-কী ফাঁস বন্ধ + at-rest এনক্রিপশন — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 48/48
+[x] GROUP E (১) — গেটওয়ে-কী ফাঁস বন্ধ + at-rest এনক্রিপশন — 2026-08-08 — prisma/tsc/lint/build ok
+[x] GROUP E (২) — PaymentGatewayConfig মডেল + Test connection ফল সংরক্ষণ — 2026-08-08 — prisma/tsc/lint/build ok — verify: npm test 53/53, migrate diff "No difference detected"
 [~] RUN PAUSED — context সীমা (RUN.md §"THE ONLY THREE REASONS TO STOP" নং ৩) — 2026-08-08
 ```
 
@@ -87,10 +88,40 @@ Group E-র মূল ফিচারটিই "অ্যাডমিন প্�
 `enabled: false` অবস্থায় ম্যানুয়াল bKash ডিপোজিট → PENDING → অ্যাডমিন
 approve → ব্যালেন্স ও খতিয়ান হুবহু আগের মতো। অটো-অনুমোদন হয় না।
 
-**⬜ Group E-র বাকি:** `PaymentGatewayConfig` মডেল (এখন `Setting`-এ,
-RUN.md আলাদা মডেল চায়) · "Test connection" বোতাম · SSLCommerz →
-Stripe → PayPal → Razorpay ড্রাইভার। প্রোভাইডার ড্রাইভারগুলোর জন্য
-authoritative API ডকুমেন্টেশন লাগবে (RUN.md §STOP নং ২)।
+### GROUP E (২) — `PaymentGatewayConfig` মডেল
+
+মাইগ্রেশন `20260808120000_payment_gateway_config` — **সম্পূর্ণ additive**
+(শুধু নতুন টেবিল, কোনো বিদ্যমান টেবিল/কলাম/সারি স্পর্শ করে না)।
+`prisma migrate diff --from-migrations --to-schema-datamodel` →
+**"No difference detected"**, অর্থাৎ schema ও migration হুবহু মেলে।
+
+| ফিল্ড | কেন |
+|---|---|
+| `credentials` | এনক্রিপ্টেড JSON (secretbox) — কলামে কখনো প্লেইনটেক্সট নয় |
+| `isEnabled` · `mode` | `Setting` থেকে সরে এল, একটিই উৎস |
+| `lastTestedAt` · `lastError` | "Test connection"-এর ফল টিকে থাকে |
+| `updatedById` · `updatedByName` | টাকার পথের কনফিগে "কে কখন বদলাল" — অডিট |
+
+⚠️ **RUN.md থেকে ইচ্ছাকৃত বিচ্যুতি:** RUN.md `mode` কে `sandbox|live`
+বলেছে, কিন্তু কোডবেসের `ProviderMode` টাইপ ইতিমধ্যেই `test|live`।
+দুটি শব্দভাণ্ডার পাশাপাশি রাখলে একদিন কেউ `'sandbox'` লিখে `'test'`
+আশা করত — নীরব বাগ। তাই বিদ্যমান শব্দভাণ্ডারই রাখা হয়েছে।
+
+**পিছন-সঙ্গতি:** পড়ার ক্রম মডেল → namespaced `Setting` → legacy
+প্লেইনটেক্সট। সেভ করলে সব পুরনো সারি **একই transaction-এ** মোছে,
+তাই "দুই জায়গায় দুই কনফিগ" অবস্থা তৈরি হতে পারে না।
+
+**Test connection:** ফল সংরক্ষিত হয়, আর ত্রুটি-বার্তা থেকে
+ক্রেডেনশিয়াল **মুছে** (`***`) রাখা হয় — গেটওয়ের ত্রুটি-বার্তায় প্রায়ই
+পাঠানো payload প্রতিধ্বনিত হয়, সেটি অ্যাডমিন UI-তে দেখানো মানে
+সিক্রেট আবার ব্রাউজারে ফেরত পাঠানো। টেস্টে যাচাই করা।
+⚠️ সততা: এটি এখনো **কাঠামোগত** পরীক্ষা (সব কী আছে কি না), বাস্তব
+নেটওয়ার্ক কল নয় — কারণ কোনো লাইভ ড্রাইভার এখনো নেই।
+
+**⬜ Group E-র বাকি:** SSLCommerz → Stripe → PayPal → Razorpay
+ড্রাইভার (signature যাচাই · webhook idempotency · replay protection ·
+`Deposit` সারির সাথে amount assertion)। authoritative API
+ডকুমেন্টেশন লাগবে (RUN.md §STOP নং ২)।
 
 ### GROUP D — টেস্ট (২০২৬-০৮-০৮, Docker চালু হওয়ার পর)
 

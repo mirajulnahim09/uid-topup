@@ -2,7 +2,7 @@ import { requireAdmin, apiError, ApiError } from '@/lib/guard';
 import { adminLog } from '@/lib/adminLog';
 import { getIp } from '@/lib/rateLimit';
 import { getProvider } from '@/lib/payments/registry';
-import { saveProviderConfig, providerHealth, providerInfos } from '@/lib/payments/config';
+import { saveProviderConfig, providerHealth, providerInfos, recordTestResult } from '@/lib/payments/config';
 import type { ProviderId } from '@/lib/payments/types';
 
 /**
@@ -55,8 +55,10 @@ export async function POST(req: Request) {
     const mode = b.mode === 'live' ? 'live' : b.mode === 'test' ? 'test' : undefined;
     const enabled = typeof b.enabled === 'boolean' ? b.enabled : undefined;
 
-    // ★ কনফিগার্ড না হয়ে enable করা আটকাই — ভুলবশত অসম্পূর্ণ গেটওয়ে চালু নয়
-    await saveProviderConfig(id, { keys, mode, enabled });
+    // ★ কে বদলাল তা কনফিগেই সংরক্ষিত — টাকার পথের কনফিগে
+    //   "কে কখন বদলাল" না থাকাটা অডিটের ফাঁক (adminLog আলাদা, কিন্তু
+    //   কনফিগ দেখেই সাথে সাথে বোঝা যাওয়া উচিত)
+    await saveProviderConfig(id, { keys, mode, enabled }, { id: admin.id, name: admin.name });
 
     const health = await providerHealth(id);
 
@@ -86,8 +88,15 @@ export async function POST(req: Request) {
 }
 
 /**
- * ★ সংযোগ যাচাই (health) — কাঠামোগত পরীক্ষা (নেটওয়ার্ক কল নয়, কারণ
- *   লাইভ ড্রাইভার এখনো নেই)। সব কী উপস্থিত কি না তা জানায়।
+ * ★ "Test connection" — ফল `PaymentGatewayConfig`-এ সংরক্ষিত হয়
+ *   (`lastTestedAt` / `lastError`), তাই অ্যাডমিন পরে ফিরে এসেও দেখতে
+ *   পান শেষবার কী হয়েছিল।
+ *
+ *   ⚠️ **সততা:** এটি এখনো *কাঠামোগত* পরীক্ষা — সব কী উপস্থিত কি না।
+ *   কোনো লাইভ ড্রাইভার এখনো নেই, তাই বাস্তব নেটওয়ার্ক কল করার কিছু
+ *   নেই। প্রোভাইডার বাস্তবায়নের সময় এখানেই আসল কল বসবে; ততদিন
+ *   "সফল" মানে কেবল "কনফিগ সম্পূর্ণ", "গেটওয়ে সাড়া দিয়েছে" নয় —
+ *   health বার্তাটিও ঠিক সেটিই বলে।
  */
 export async function PATCH(req: Request) {
   try {
@@ -95,7 +104,20 @@ export async function PATCH(req: Request) {
     const { id } = (await req.json().catch(() => ({}))) as { id?: string };
     const provider = getProvider(String(id || ''));
     if (!provider) throw new ApiError('অজানা প্রোভাইডার', 400);
+
     const health = await providerHealth(provider.id);
+
+    if (provider.kind !== 'MANUAL') {
+      // ★ ok=false হলেই ত্রুটি নয় — CONFIGURED_PENDING মানে কনফিগ
+      //   ঠিক আছে, শুধু ড্রাইভার বাকি। সেটিকে "ব্যর্থ" হিসেবে
+      //   সংরক্ষণ করলে অ্যাডমিন ভুল বুঝত।
+      const configOk = health.status === 'CONFIGURED_PENDING';
+      await recordTestResult(provider.id, {
+        ok: configOk,
+        error: configOk ? undefined : health.message,
+      });
+    }
+
     return Response.json({ success: true, health });
   } catch (e) {
     return apiError(e);

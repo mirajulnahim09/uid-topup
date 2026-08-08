@@ -75,7 +75,7 @@ describe('গেটওয়ে কী — ক্লায়েন্টে ক
 });
 
 describe('গেটওয়ে কী — at-rest এনক্রিপশন', () => {
-  it('সেভ করা কী DB-তে প্লেইনটেক্সটে থাকে না, কিন্তু পড়া যায়', async () => {
+  it('সেভ করা কী DB-তে অপাঠ্য, কিন্তু সার্ভারে হুবহু ফেরত আসে', async () => {
     const { saveProviderConfig, getProviderConfig } = await import('@/lib/payments/config');
 
     await saveProviderConfig('sslcommerz', {
@@ -84,13 +84,13 @@ describe('গেটওয়ে কী — at-rest এনক্রিপশন',
     });
 
     // ── DB-তে যা আছে তা অপাঠ্য ──
-    const row = await db.setting.findUnique({ where: { key: 'pp:sslcommerz:keys' } });
-    expect(row, 'namespaced সারি তৈরি হয়নি').toBeTruthy();
-    expect(row!.value.includes(SECRET), 'DB-তে প্লেইনটেক্সট সিক্রেট!').toBe(false);
-    expect(row!.value.includes(STORE_ID)).toBe(false);
+    const row = await db.paymentGatewayConfig.findUnique({ where: { provider: 'sslcommerz' } });
+    expect(row, 'কনফিগ সারি তৈরি হয়নি').toBeTruthy();
+    expect(row!.credentials.includes(SECRET), 'DB-তে প্লেইনটেক্সট সিক্রেট!').toBe(false);
+    expect(row!.credentials.includes(STORE_ID)).toBe(false);
     // ★ secretbox ফরম্যাট: v1.<iv>.<tag>.<ciphertext>
-    expect(row!.value.startsWith('v1.')).toBe(true);
-    expect(row!.value.split('.')).toHaveLength(4);
+    expect(row!.credentials.startsWith('v1.')).toBe(true);
+    expect(row!.credentials.split('.')).toHaveLength(4);
 
     // ── কিন্তু সার্ভার-সাইডে হুবহু ফেরত আসে ──
     const cfg = await getProviderConfig('sslcommerz');
@@ -99,17 +99,24 @@ describe('গেটওয়ে কী — at-rest এনক্রিপশন',
     expect(cfg.mode).toBe('test');
   });
 
-  it('সেভ করলে পুরনো প্লেইনটেক্সট সারি মুছে যায়', async () => {
-    const { saveProviderConfig } = await import('@/lib/payments/config');
+  it('পুরনো Setting-ভিত্তিক কনফিগ থেকে মডেলে উঠে আসে, পুরনো সারি থাকে না', async () => {
+    const { saveProviderConfig, getProviderConfig } = await import('@/lib/payments/config');
 
+    // ★ মাইগ্রেশনের আগের অবস্থা — প্লেইনটেক্সট Setting সারি
     await db.setting.create({
-      data: { key: 'pp_sslcommerz_keys', value: JSON.stringify({ SSLCZ_STORE_ID: 'old' }) },
+      data: { key: 'pp_sslcommerz_keys', value: JSON.stringify({ SSLCZ_STORE_ID: STORE_ID }) },
     });
 
+    // ★ অ্যাডমিন একটি কী বদলালেই পুরোটা মডেলে চলে আসে
     await saveProviderConfig('sslcommerz', { keys: { SSLCZ_STORE_PASSWD: SECRET } });
 
     expect(await db.setting.findUnique({ where: { key: 'pp_sslcommerz_keys' } })).toBeNull();
-    expect(await db.setting.findUnique({ where: { key: 'pp:sslcommerz:keys' } })).toBeTruthy();
+    expect(await db.setting.findUnique({ where: { key: 'pp:sslcommerz:keys' } })).toBeNull();
+
+    // ★ পুরনো মানটিও সাথে উঠে এসেছে — কিছু হারায়নি
+    const cfg = await getProviderConfig('sslcommerz');
+    expect(cfg.keys.SSLCZ_STORE_ID).toBe(STORE_ID);
+    expect(cfg.keys.SSLCZ_STORE_PASSWD).toBe(SECRET);
   });
 
   it('মাইগ্রেশনের আগের প্লেইনটেক্সট সারি এখনো পড়া যায় (পিছন-সঙ্গতি)', async () => {
@@ -138,6 +145,107 @@ describe('গেটওয়ে কী — at-rest এনক্রিপশন',
     expect(cfg.keys).toEqual({});
     // ★ নিরাপদ দিকে ভেঙে পড়ে — "কনফিগার করা আছে" বলে না
     expect(await configuredAsync('stripe')).toBe(false);
+  });
+});
+
+describe('PaymentGatewayConfig মডেল', () => {
+  it('সেভ করলে মডেলে যায়, ক্রেডেনশিয়াল এনক্রিপ্টেড, actor রেকর্ড হয়', async () => {
+    const { saveProviderConfig } = await import('@/lib/payments/config');
+
+    await saveProviderConfig(
+      'sslcommerz',
+      { keys: { SSLCZ_STORE_ID: STORE_ID, SSLCZ_STORE_PASSWD: SECRET }, mode: 'live', enabled: true },
+      { id: 'admin-1', name: 'Nahim' },
+    );
+
+    const row = await db.paymentGatewayConfig.findUnique({ where: { provider: 'sslcommerz' } });
+    expect(row).toBeTruthy();
+    expect(row!.isEnabled).toBe(true);
+    expect(row!.mode).toBe('live');
+    expect(row!.updatedByName).toBe('Nahim');
+    expect(row!.credentials.includes(SECRET), 'কলামে প্লেইনটেক্সট সিক্রেট!').toBe(false);
+    expect(row!.credentials.startsWith('v1.')).toBe(true);
+  });
+
+  it('একটি কী বদলালে বাকিগুলো হারায় না (merge)', async () => {
+    const { saveProviderConfig, getProviderConfig } = await import('@/lib/payments/config');
+
+    await saveProviderConfig('sslcommerz', {
+      keys: { SSLCZ_STORE_ID: STORE_ID, SSLCZ_STORE_PASSWD: SECRET },
+    });
+    await saveProviderConfig('sslcommerz', { keys: { SSLCZ_STORE_PASSWD: 'new-passwd-9999' } });
+
+    const cfg = await getProviderConfig('sslcommerz');
+    expect(cfg.keys.SSLCZ_STORE_ID).toBe(STORE_ID);      // অক্ষত
+    expect(cfg.keys.SSLCZ_STORE_PASSWD).toBe('new-passwd-9999');
+  });
+
+  it('মডেলে কনফিগ থাকলে পুরনো Setting সারি মুছে যায়', async () => {
+    const { saveProviderConfig } = await import('@/lib/payments/config');
+
+    await db.setting.createMany({
+      data: [
+        { key: 'pp_sslcommerz_keys', value: JSON.stringify({ SSLCZ_STORE_ID: 'old' }) },
+        { key: 'provider_sslcommerz_enabled', value: '1' },
+      ],
+    });
+
+    await saveProviderConfig('sslcommerz', { keys: { SSLCZ_STORE_PASSWD: SECRET } });
+
+    expect(await db.setting.findUnique({ where: { key: 'pp_sslcommerz_keys' } })).toBeNull();
+    expect(await db.setting.findUnique({ where: { key: 'provider_sslcommerz_enabled' } })).toBeNull();
+  });
+
+  it('Test connection ফল সংরক্ষিত হয়; ত্রুটি-বার্তায় সিক্রেট থাকে না', async () => {
+    const { saveProviderConfig, recordTestResult, getProviderConfig } =
+      await import('@/lib/payments/config');
+
+    await saveProviderConfig('sslcommerz', {
+      keys: { SSLCZ_STORE_ID: STORE_ID, SSLCZ_STORE_PASSWD: SECRET },
+    });
+
+    // ★ গেটওয়ে ত্রুটি-বার্তায় পাঠানো ক্রেডেনশিয়াল প্রতিধ্বনিত হলো
+    await recordTestResult('sslcommerz', {
+      ok: false,
+      error: `Auth failed for store ${STORE_ID} with passwd ${SECRET}`,
+    });
+
+    const cfg = await getProviderConfig('sslcommerz');
+    expect(cfg.lastTestedAt).toBeTruthy();
+    expect(cfg.lastError).toBeTruthy();
+    // ★★★ সিক্রেট মুছে গেছে — নাহলে অ্যাডমিন UI-তে ফিরে যেত
+    expect(cfg.lastError!.includes(SECRET)).toBe(false);
+    expect(cfg.lastError!.includes(STORE_ID)).toBe(false);
+    expect(cfg.lastError!.includes('***')).toBe(true);
+  });
+
+  it('অ্যাডমিন API দিয়ে সেভ ও টেস্ট — response-এ সিক্রেট ফেরত আসে না', async () => {
+    const { client: adminClient } = await signedInAdmin(db);
+
+    const save = await adminClient.post<{ success: boolean; providers: unknown[] }>(
+      '/api/admin/payment/provider',
+      {
+        id: 'sslcommerz',
+        keys: { SSLCZ_STORE_ID: STORE_ID, SSLCZ_STORE_PASSWD: SECRET },
+        mode: 'test',
+        enabled: false,
+      },
+    );
+    expect(save.status).toBe(200);
+    expect(JSON.stringify(save.body).includes(SECRET), 'API response-এ সিক্রেট!').toBe(false);
+    expect(JSON.stringify(save.body).includes(STORE_ID)).toBe(false);
+
+    const test = await adminClient.raw('/api/admin/payment/provider', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: 'sslcommerz' }),
+    });
+    expect(test.status).toBe(200);
+
+    const row = await db.paymentGatewayConfig.findUnique({ where: { provider: 'sslcommerz' } });
+    expect(row!.lastTestedAt).toBeTruthy();
+    // ★ সব কী আছে → CONFIGURED_PENDING → ত্রুটি নয়
+    expect(row!.lastError).toBeNull();
   });
 });
 
