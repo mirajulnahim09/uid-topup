@@ -19,6 +19,18 @@ import { prisma } from './prisma';
  *
  *   ⚠️ এগুলো **সিদ্ধান্ত নেয় না** — শুধু অ্যাডমিনের নজরে আনে।
  *      অনুমোদন/বাতিল সবসময় মানুষের হাতেই থাকে।
+ *
+ *   ★★★ Group H (১০ আগস্ট ২০২৬) — এখন এর দুটি **ভোক্তা** আছে:
+ *   ১. অ্যাডমিন কিউ (আগে থেকেই) — লাইভ হিসাব, elevated হলে প্রতিটি
+ *      সতর্কতা ticked না হওয়া পর্যন্ত approve বোতাম নিষ্ক্রিয়।
+ *   ২. ডিপোজিট তৈরির পথ (নতুন) — elevated হলে দাবিটি **auto-hold**
+ *      হয় ও অপারেটরকে টেলিগ্রামে জানানো হয়।
+ *
+ *   ⚠️ hold মানে **স্বয়ংক্রিয় ক্রেডিট বন্ধ**, গ্রাহককে আটকানো নয়।
+ *      দাবিটি স্বাভাবিকভাবেই জমা হয়, গ্রাহক স্বাভাবিক বার্তাই দেখেন,
+ *      আর অ্যাডমিন আগের মতোই অনুমোদন করতে পারেন। **কখনো auto-ban নয়**
+ *      (RUN.md §GROUP H স্পষ্ট) — একটি ভুল সংকেতের শাস্তি যেন কখনো
+ *      অ্যাকাউন্ট হারানো না হয়।
  * ═══════════════════════════════════════════════════════════
  */
 
@@ -199,4 +211,54 @@ export async function assessDeposits(
   }
 
   return result;
+}
+
+/**
+ * ★ একটি ডিপোজিটের মূল্যায়ন — ব্যাচ ফাংশনটিই **পুনঃব্যবহার** করে।
+ *
+ *   কেন নতুন করে লিখলাম না: তাহলে ঝুঁকির নিয়ম দুই জায়গায় থাকত, আর
+ *   একদিন অ্যাডমিন কিউ ও তৈরির-পথ দুটি ভিন্ন উত্তর দিত — অর্থাৎ
+ *   অ্যাডমিন "elevated" দেখতেন অথচ hold হতো না, বা উল্টোটা।
+ */
+export async function assessOneDeposit(
+  deposit: DepositInput,
+  user: UserInput,
+): Promise<RiskAssessment> {
+  const map = await assessDeposits([deposit], new Map([[deposit.userId, user]]));
+  return (
+    map.get(deposit.id) ?? {
+      level: 'normal',
+      signals: [],
+      approvedCount: 0,
+      rejectedCount: 0,
+    }
+  );
+}
+
+/** ★ DB enum-এর রূপ (`DepositRisk`) — দুটি শব্দভাণ্ডার এক রাখতে */
+export function toDbRisk(level: RiskLevel): 'TRUSTED' | 'NORMAL' | 'ELEVATED' {
+  return level === 'elevated' ? 'ELEVATED' : level === 'trusted' ? 'TRUSTED' : 'NORMAL';
+}
+
+/** ★ সংকেতগুলোকে এক লাইনে — সংরক্ষণ ও বার্তা দুই কাজেই */
+export function summarizeSignals(a: RiskAssessment): string {
+  return a.signals
+    .filter((s) => s.tone === 'warn')
+    .map((s) => s.text)
+    .join(' · ');
+}
+
+/**
+ * ★★★ স্বয়ংক্রিয় ক্রেডিট অনুমোদিত কি না — **প্রতিটি** অটো-পথের
+ *   এটি ডাকা বাধ্যতামূলক।
+ *
+ *   আজ কোনো পথই ডিপোজিট অটো-ক্রেডিট করে না (সবই ম্যানুয়াল অনুমোদন),
+ *   তাই এই গার্ড আজ কিছুই আটকায় না। কিন্তু Group E-র গেটওয়ে ও
+ *   `decideDepositApproval()` নীতি-স্তর ঠিক সেই পথটিই তৈরি করছে,
+ *   আর সেটি চালু হওয়ার দিনই hold-এর দরকার পড়বে — তার আগে নয়।
+ *   গার্ডটি **এখনই** বসানো হলো যাতে ঐ পথ লেখার সময় কেউ এটি
+ *   যোগ করতে ভুলে না যায়; ভুললে ঝুঁকিপূর্ণ দাবিও নীরবে ক্রেডিট হতো।
+ */
+export function canAutoCreditDeposit(deposit: { riskHeldAt: Date | null }): boolean {
+  return deposit.riskHeldAt === null;
 }

@@ -421,6 +421,20 @@ model Deposit {
   /// ★ বাতিলের কাঠামোবদ্ধ কারণ — গ্রাহককে সুনির্দিষ্ট বার্তা দিতে
   rejectReason  DepositRejectReason?
 
+  /// ═══ Group H — ঝুঁকি (তৈরির মুহূর্তের snapshot) ═══
+  ///
+  /// ⚠️ অ্যাডমিন কিউ ঝুঁকি **লাইভ** হিসাব করে (`riskSignals.ts`), আর
+  ///    সেটাই সঠিক — ইতিহাস বদলালে মূল্যায়নও বদলানো উচিত। এই তিনটি
+  ///    ফিল্ড সেটির বিকল্প নয়; এগুলো বলে "দাবিটি **যে মুহূর্তে** এল
+  ///    তখন কী দেখা গিয়েছিল", কারণ সিদ্ধান্তটি (hold) তখনই নেওয়া হয়।
+  riskLevel  DepositRisk @default(NORMAL)
+  /// কোন সংকেতগুলো ধরেছিল — অ্যাডমিন পরে কারণ জানতে পারেন
+  riskNote   String?
+  /// ★★★ auto-hold। সময় বসানো থাকলে **কোনো স্বয়ংক্রিয় পথ** এই
+  ///     ডিপোজিট ক্রেডিট করবে না — মানুষকেই দেখতে হবে।
+  ///     ⚠️ মানুষের অনুমোদন কখনো আটকায় না, আর গ্রাহককে ব্যান তো নয়ই।
+  riskHeldAt DateTime?
+
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId])
@@ -432,6 +446,13 @@ enum DepositStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+/// ★ Group H — `riskSignals.ts` এর `RiskLevel` এর সাথে হুবহু মিল
+enum DepositRisk {
+  TRUSTED
+  NORMAL
+  ELEVATED
 }
 
 // ═════════ ORDER ═════════
