@@ -76,7 +76,15 @@ export async function POST(req: Request) {
       // ★ ALLOWED সেট, নয়তো Integration Hub-এর প্যাটার্ন-কী
       //   (integration_<category>_<id>_enabled / integration_<category>_active)।
       //   মান তবু cleanText দিয়ে সাফ হয় (XSS-নিরাপদ)।
-      if (!ALLOWED.has(key) && !/^integration_[a-z0-9_]+$/.test(key)) continue;
+      //
+      // 🔴 বাগ (Group G-তে ধরা পড়ল): প্যাটার্নে হাইফেন ছিল না
+      //    (`[a-z0-9_]+`), অথচ Integration Hub-এর প্রায় প্রতিটি
+      //    gateway-id-তে হাইফেন আছে — `game-api`, `third-party`,
+      //    `internal-auto`। ফলে ঐ প্রোভাইডারগুলোর চালু/বন্ধ ও
+      //    "active" কী-গুলো এখানে **নীরবে বাদ** পড়ত: অ্যাডমিন টগল
+      //    চাপতেন, ২০০ OK আসত, কিন্তু কিছুই সংরক্ষিত হতো না এবং
+      //    প্রোভাইডার কখনো সক্রিয় হতো না। হাইফেন যোগ করা হলো।
+      if (!ALLOWED.has(key) && !/^integration_[a-z0-9_-]+$/.test(key)) continue;
 
       let value = String(raw ?? '');
 
