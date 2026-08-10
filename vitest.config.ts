@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
+import { TEST_DATABASE_URL } from './tests/helpers/testEnv';
 
 /**
  * ★ Vitest — money-পথের ইন্টিগ্রেশন টেস্ট (Group D)
@@ -14,6 +15,30 @@ import path from 'node:path';
  */
 export default defineConfig({
   test: {
+    /**
+     * ★★★ 🔴 টেস্ট প্রসেসের `DATABASE_URL` **এখানেই** টেস্ট DB-তে বাঁধা।
+     *
+     *   ── কোন সমস্যাটা এটি ঠেকায় (মাপা, অনুমান নয়) ──
+     *   `scripts/test-run.mjs` (অর্থাৎ `npm test`) সাব-প্রসেসে
+     *   `DATABASE_URL = TEST_URL` পাঠায়, তাই সেই পথে সব নিরাপদ।
+     *   কিন্তু কেউ সরাসরি `npx vitest run …` চালালে সেই পথটিই বাদ
+     *   পড়ে — তখন টেস্ট প্রসেসের `DATABASE_URL` হয় `.env`-এর মান,
+     *   অর্থাৎ **প্রোডাকশন Neon**।
+     *
+     *   এতদিন ধরা পড়েনি কারণ প্রতিটি টেস্ট HTTP দিয়ে Next প্রসেসে
+     *   যেত (সেটি সঠিক env পায়) আর `db` ক্লায়েন্ট নিজের URL স্পষ্ট
+     *   করে দেয়। কিন্তু কোনো টেস্ট যদি অ্যাপের কোড **সরাসরি** import
+     *   করে (যেমন `rateLimit()`), তখন সেটি `src/lib/prisma` ব্যবহার
+     *   করে — যা ambient `DATABASE_URL` ধরে। বাস্তবে ঠিক তাই ঘটেছে
+     *   এবং কয়েকটি সারি প্রোডাকশনে লেখা হয়েছিল।
+     *
+     *   এখন কোন কমান্ডে চালানো হলো তাতে কিছু আসে যায় না।
+     *   `vitest.setup.ts`-এ এর একটি assertion-ও আছে (দ্বিতীয় স্তর)।
+     */
+    env: {
+      DATABASE_URL: TEST_DATABASE_URL,
+      TEST_DATABASE_URL,
+    },
     include: ['tests/**/*.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
     // ★ একবারই `next dev` চালু হয় ও সব টেস্ট ফাইল সেটি ভাগ করে।

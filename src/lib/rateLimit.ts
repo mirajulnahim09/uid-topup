@@ -1,5 +1,23 @@
+import { createHash } from 'node:crypto';
 import { prisma } from './prisma';
 import { logger } from './logger';
+import { isRedisConfigured, redisIncrWindow, redisCmd, redisDel } from './redis';
+
+/**
+ * ★★★ Group H — Redis-এ যাওয়া কী **হ্যাশ করা**।
+ *
+ *   কারণ: বাকেট-কী-তে আসল মান থাকে — `login:email:rakib@gmail.com`,
+ *   `forgot:ip:103.x.x.x`, `order:<userId>`। Postgres আমাদের নিজের
+ *   ডাটাবেস, কিন্তু Upstash একটি **তৃতীয় পক্ষ**; সেখানে গ্রাহকের
+ *   ইমেইল ও IP জমা করার কোনো দরকার নেই। কাউন্টারের জন্য কী-টির
+ *   **অর্থ** লাগে না, কেবল তার অনন্যতা লাগে।
+ *
+ *   ⚠️ একই ইনপুট সবসময় একই হ্যাশ দেয়, তাই incr/peek/reset তিনটিই
+ *   একই কী-তে পৌঁছায় — নাহলে reset কাজ করত না।
+ */
+function redisKey(key: string): string {
+  return `rl:${createHash('sha256').update(key, 'utf8').digest('hex').slice(0, 32)}`;
+}
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -74,6 +92,36 @@ export async function rateLimit(
 ): Promise<RateLimitResult> {
   const now = Date.now();
   const failClosed = opts.failClosed === true;
+
+  // ═══════════════════════════════════════════════════════
+  // ★★★ Group H — Redis কাউন্টার (কনফিগার করা থাকলে)।
+  //
+  //   কেন: প্রতিটি অনুরোধে একটি Postgres **লেখা** হয়। Neon-এ সংযোগ
+  //   সীমিত ও auto-suspend আছে (H4), আর রেট-লিমিট কোনো খতিয়ান নয় —
+  //   এটি নিছক একটি কাউন্টার। এর জন্য সবচেয়ে দামি সম্পদটি খরচ করা
+  //   অপচয়।
+  //
+  //   ⚠️⚠️ C4-এর fail-closed আচরণ **অক্ষত**: Redis অনুপলব্ধ হলে
+  //   `redisIncrWindow()` `null` ফেরে এবং নিচের Postgres পথটিই চলে —
+  //   অর্থাৎ অথ-পথে ব্যর্থতা এখনো আটকায়। Redis একটি **দ্রুততর পথ**,
+  //   গার্ডের বিকল্প নয়। কনফিগার না থাকলে একটিও নেটওয়ার্ক কল হয় না।
+  //
+  //   ⚠️ মাপা সীমা, সৎভাবে: Redis চালু থাকা অবস্থায় কাউন্টার কেবল
+  //   Redis-এ থাকে। Redis হঠাৎ বন্ধ হলে (বা key evict হলে) গণনা
+  //   শূন্য থেকে শুরু হবে, কারণ ঐ সময়ের কোনো গণনা Postgres-এ লেখা
+  //   হয়নি। দুই জায়গায় লিখলে খরচ দ্বিগুণ হতো অথচ সুরক্ষা প্রায়
+  //   একই — কাউন্টার হারানো সাময়িক ও স্ব-নিরাময়যোগ্য।
+  // ═══════════════════════════════════════════════════════
+  if (isRedisConfigured()) {
+    const r = await redisIncrWindow(redisKey(key), windowSec);
+    if (r) {
+      if (r.count > limit) {
+        return { ok: false, remaining: 0, retryAfter: Math.max(1, r.ttl) };
+      }
+      return { ok: true, remaining: Math.max(0, limit - r.count), retryAfter: 0 };
+    }
+    // ★ null = Redis ব্যর্থ → নিচের Postgres পথে (fail-closed সহ)
+  }
 
   try {
     // ★ একটিমাত্র atomic স্টেটমেন্ট: নতুন key হলে count=1; বিদ্যমান হলে —
@@ -157,6 +205,29 @@ export async function peekRateLimit(
   key: string,
   limit: number
 ): Promise<{ limited: boolean; retryAfter: number; failed?: boolean }> {
+  // ★★★ Group H — কাউন্টার যেখানে, peek-ও সেখানেই।
+  //   দুটো আলাদা জায়গা দেখলে UI একটা বলত আর গার্ড আরেকটা করত:
+  //   লগইন পাতা "চেষ্টা বাকি আছে" দেখাত, অথচ অনুরোধ ৪২৯ পেত।
+  if (isRedisConfigured()) {
+    const rk = redisKey(key);
+    const out = await redisCmd(['GET', rk]);
+    if (out !== null) {
+      const count = Number(out);
+      if (Number.isFinite(count)) {
+        const ttlRaw = await redisCmd(['TTL', rk]);
+        const ttl = Number(ttlRaw);
+        return {
+          limited: count > limit,
+          retryAfter: Number.isFinite(ttl) && ttl > 0 ? ttl : 0,
+        };
+      }
+    }
+    // ★ কী নেই = কোনো চেষ্টাই হয়নি। ⚠️ কিন্তু Redis **ব্যর্থ** হলেও
+    //   `null` আসে — দুটো আলাদা করা যায় না, তাই নিরাপদ দিকে গিয়ে
+    //   Postgres-কেও জিজ্ঞেস করি (নিচে)। খরচ কেবল peek-এর ক্ষেত্রে,
+    //   যা লগইন ব্যর্থ হলেই কেবল ডাকা হয়।
+  }
+
   try {
     const rows = await prisma.$queryRaw<Array<{ count: number; resetAt: Date }>>`
       SELECT "count", "resetAt" FROM "RateLimitBucket"
@@ -187,6 +258,17 @@ export async function peekRateLimit(
  *   তাই সফল চেষ্টা গুনে রাখার কোনো প্রতিরক্ষামূলক মূল্যও নেই।
  */
 export async function resetRateLimit(key: string): Promise<void> {
+  // ★★★ Group H — **দুই জায়গাতেই** মুছতে হয়।
+  //
+  //   ⚠️ এটি ঐচ্ছিক পরিচ্ছন্নতা নয়। এই ফাংশনটিই সফল লগইনের পর
+  //   বাকেট মুছে দেয়; Redis-এর কী রয়ে গেলে ব্যবহারকারী নিজের সফল
+  //   লগইন দিয়েই নিজেকে লক-আউট করে ফেলতেন — হুবহু সেই বাগটিই
+  //   একবার প্রোডাকশনে ঘটেছিল (উপরের মন্তব্য দেখুন)। তাই Redis
+  //   কনফিগার থাকলে সেখানেও, আর Postgres-এ সবসময়ই (পুরনো সারি
+  //   থাকতে পারে — যেমন Redis চালু হওয়ার আগে লেখা)।
+  if (isRedisConfigured()) {
+    await redisDel(redisKey(key));
+  }
   try {
     await prisma.$executeRaw`DELETE FROM "RateLimitBucket" WHERE "key" = ${key}`;
   } catch (e) {
