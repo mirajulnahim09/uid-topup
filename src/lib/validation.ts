@@ -61,6 +61,36 @@ export const orderSchema = z.object({
   couponCode: z.string().trim().toUpperCase().max(24).optional().or(z.literal('')),
 });
 
+/**
+ * ★★★ Group F — রিসেলারের bulk অর্ডার।
+ *
+ *   ⚠️ `MAX_BULK_ITEMS` কেন ২০: প্রতিটি আইটেম নিজের transaction ও
+ *   নিজের row-lock নেয়। এক অনুরোধে শত শত আইটেম নিলে একটি HTTP কল
+ *   কয়েক মিনিট ধরে ডাটাবেস ধরে রাখত এবং serverless-এর সময়সীমায়
+ *   মাঝপথে কেটে যেত — অর্ধেক অর্ডার হয়ে, ক্লায়েন্ট জানত না কোনটা।
+ *   ছোট ব্যাচ + idempotency key মিলে retry-ও নিরাপদ থাকে।
+ */
+export const MAX_BULK_ITEMS = 20;
+
+export const bulkOrderSchema = z.object({
+  items: z
+    .array(
+      orderSchema.extend({
+        /**
+         * ★ ক্লায়েন্টের নিজস্ব রেফারেন্স = idempotency key।
+         *   একই রেফারেন্সে দ্বিতীয়বার পাঠালে নতুন অর্ডার হয় না,
+         *   আগেরটিই ফেরত আসে (ডাবল-চার্জ অসম্ভব)।
+         */
+        clientRef: z
+          .string().trim().min(1).max(64)
+          .regex(/^[a-zA-Z0-9._:\-]+$/, 'clientRef এ অবৈধ অক্ষর আছে')
+          .optional(),
+      }),
+    )
+    .min(1, 'অন্তত একটি আইটেম দিন')
+    .max(MAX_BULK_ITEMS, `একবারে সর্বোচ্চ ${MAX_BULK_ITEMS}টি অর্ডার পাঠানো যাবে`),
+});
+
 /** ★ ডাইরেক্ট পে — অর্ডারের তথ্য + পেমেন্টের দাবি একসাথে */
 export const directOrderSchema = orderSchema.extend({
   method: z.enum(['BKASH', 'NAGAD', 'ROCKET', 'UPAY']),

@@ -61,6 +61,10 @@ for (const file of files) {
   const guards: string[] = [];
   if (/\brequireAdmin\s*\(/.test(src)) guards.push('requireAdmin');
   if (/\brequireUser\s*\(/.test(src)) guards.push('requireUser');
+  // ★ Group F — রিসেলারের API কী। এটি সেশন-ভিত্তিক গার্ড নয়, কিন্তু
+  //   গার্ডই: হ্যাশ-যাচাই + ban + tier পরীক্ষা করে (`src/lib/apiKey.ts`)।
+  //   "ইচ্ছাকৃত পাবলিক" তালিকায় রাখলে ভুল হতো — রুটটি পাবলিক নয়।
+  if (/\brequireApiKey\s*\(/.test(src)) guards.push('requireApiKey');
   if (/\bassertCronAuth\s*\(/.test(src)) guards.push('assertCronAuth');
   if (/\bverifyCronSecret\s*\(/.test(src)) guards.push('verifyCronSecret');
   if (/verifyWebhookSignature|webhookSignature/.test(src)) guards.push('webhookSignature');

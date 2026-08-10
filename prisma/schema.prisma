@@ -63,9 +63,52 @@ model User {
   couponUses    CouponUse[]
   notifications Notification[]
   reviews       Review[]
+  apiKeys       ApiKey[]
 
   @@index([createdAt])
   @@index([referredById])
+}
+
+/// ═══════════════════════════════════════════════════════════
+/// ★★★ Group F — রিসেলার API কী
+///
+///   রিসেলার নিজের সিস্টেম থেকে সরাসরি অর্ডার পাঠান, ব্রাউজার ছাড়া।
+///   সেশন-কুকি সেখানে চলে না, তাই আলাদা একটি শংসাপত্র দরকার।
+///
+///   ⚠️ কাঁচা কী **কখনো** সংরক্ষিত হয় না — কেবল SHA-256 হ্যাশ।
+///   কী তৈরির মুহূর্তে একবারই দেখানো হয়; DB ফাঁস হলেও কেউ সেখান
+///   থেকে কাজ করা কী বানাতে পারবে না।
+///
+///   ⚠️ কেন bcrypt নয়: ধীর KDF-এর কাজ **কম-এনট্রপি** গোপন কথা
+///   (পাসওয়ার্ড) রক্ষা করা। এই কী ৩২ বাইট ক্রিপ্টো-random —
+///   ব্রুট-ফোর্স এমনিতেই অসম্ভব, আর লুকআপের জন্য একটি নির্ধারিত
+///   (deterministic) ইনডেক্সযোগ্য মান লাগে। তাই SHA-256।
+/// ═══════════════════════════════════════════════════════════
+model ApiKey {
+  id     String @id @default(cuid())
+  userId String
+  /// মালিক কোন সিস্টেমকে দিয়েছেন — "নিজের প্যানেল", "টেলিগ্রাম বট"
+  label  String
+  /// ★ কীর প্রথম কয়েকটি অক্ষর — অ্যাডমিন UI-তে কোন কী কোনটি তা চেনার
+  ///   একমাত্র উপায় (পুরো মান তো আর দেখানো যায় না)।
+  prefix String
+  /// ★ SHA-256(কাঁচা কী), hex। ইউনিক — তাই যাচাই একটি ইনডেক্স-লুকআপ।
+  hash   String @unique
+
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  /// ★ প্রত্যাহার = সময় বসানো, সারি **মোছা নয়**। কোন কী কবে থেকে
+  ///   কবে পর্যন্ত সক্রিয় ছিল সেটি পরে জিজ্ঞেস করা যেতেই হবে।
+  revokedAt DateTime?
+
+  /// ★ কে ইস্যু করেছিল — নাম snapshot (AdminLog-এর মতোই), যাতে
+  ///   অ্যাডমিন অ্যাকাউন্ট মুছে গেলেও ইতিহাস পড়া যায়।
+  createdById   String?
+  createdByName String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
 }
 
 // ═════════ RATE LIMIT (C2) ═════════
@@ -461,12 +504,26 @@ model Order {
   ///     আলাদা কোনো "already refunded" পতাকার দরকার পড়ে না।
   refundedAmount Decimal @default(0) @db.Decimal(12, 2)
 
+  /// ★★★ Group F — API ক্লায়েন্টের নিজস্ব রেফারেন্স = idempotency key।
+  ///
+  ///     রিসেলার স্ক্রিপ্ট টাইমআউট দেখলে আবার পাঠায়। মানুষ ব্রাউজারে
+  ///     ফল দেখে থামে, স্ক্রিপ্ট দেখে না — তাই সুরক্ষাটি ডাটাবেসেই
+  ///     থাকতে হবে, কোডের সদিচ্ছায় নয়। `(userId, clientRef)` ইউনিক,
+  ///     অর্থাৎ একই রেফারেন্সে দ্বিতীয় অর্ডার **তৈরিই হতে পারে না** —
+  ///     সমান্তরাল দুটি অনুরোধেও নয়।
+  ///
+  ///     ⚠️ NULLable, আর Postgres-এ ইউনিক ইনডেক্স একাধিক NULL মানে
+  ///     বাধা দেয় না — তাই ওয়েবের সব অর্ডার (clientRef = NULL) ও
+  ///     বিদ্যমান প্রতিটি সারি সম্পূর্ণ অপ্রভাবিত।
+  clientRef String?
+
   user    User         @relation(fields: [userId], references: [id], onDelete: Restrict)
   variant Variant      @relation(fields: [variantId], references: [id], onDelete: Restrict)
   coupon  Coupon?      @relation(fields: [couponId], references: [id], onDelete: SetNull)
   events  OrderEvent[]
   review  Review?
 
+  @@unique([userId, clientRef])
   @@index([userId])
   @@index([status, createdAt])
   // ★ Phase 3 পারফরম্যান্স — getShowcase() এর groupBy(variantId,
