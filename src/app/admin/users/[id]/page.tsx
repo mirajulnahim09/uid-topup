@@ -6,6 +6,7 @@ import { fmtDate } from '@/lib/date';
 import Badge from '@/components/Badge';
 import CustomerActions from '@/components/admin/CustomerActions';
 import CustomerTimeline from '@/components/admin/CustomerTimeline';
+import ResellerPanel from '@/components/admin/ResellerPanel';
 import { buildTimeline } from '@/lib/customerTimeline';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,18 @@ export default async function CustomerDetail({ params }: { params: { id: string 
     select: {
       id: true, name: true, email: true, phone: true, role: true,
       balance: true, isBanned: true, status: true, referralCode: true, createdAt: true,
+      // ★ Group F — রিসেলার স্তর ও তার API কী।
+      //   ⚠️ `hash` ইচ্ছাকৃতভাবে বাদ: এটি ক্লায়েন্ট কম্পোনেন্টে props
+      //   হিসেবে যাবে, অর্থাৎ RSC পে-লোডে সিরিয়ালাইজ হয়ে ব্রাউজারে
+      //   পৌঁছাত (Group E-তে ঠিক এই পথেই গেটওয়ে-কী ফাঁস হচ্ছিল)।
+      tier: true,
+      apiKeys: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true, label: true, prefix: true, createdAt: true,
+          lastUsedAt: true, revokedAt: true, createdByName: true,
+        },
+      },
       referredBy: { select: { name: true, referralCode: true } },
       _count: { select: { orders: true, deposits: true, referrals: true } },
       orders: { orderBy: { createdAt: 'desc' }, take: 25 },
@@ -108,6 +121,26 @@ export default async function CustomerDetail({ params }: { params: { id: string 
           <div><dt className="text-slate-400">মোট ডিপোজিট</dt><dd className="text-slate-900">{user._count.deposits} টি</dd></div>
         </dl>
       </div>
+
+      {/* ── রিসেলার স্তর ও API কী (Group F) ──
+              ⚠️ অ্যাডমিনের নিজের অ্যাকাউন্টে দেখানো হয় না: অ্যাডমিন
+              ইতিমধ্যেই সব পারেন, তাঁকে রিসেলার বানানোর কোনো অর্থ নেই। */}
+      {!isAdmin && (
+        <ResellerPanel
+          userId={user.id}
+          name={user.name}
+          tier={user.tier}
+          keys={user.apiKeys.map((k: (typeof user.apiKeys)[number]) => ({
+            id: k.id,
+            label: k.label,
+            prefix: k.prefix,
+            createdAt: k.createdAt.toISOString(),
+            lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
+            revokedAt: k.revokedAt?.toISOString() ?? null,
+            createdByName: k.createdByName,
+          }))}
+        />
+      )}
 
       {/* ★★★ ৩৬০ টাইমলাইন (3.13) — সব ঘটনা এক ক্রমে।
               নিচের বিস্তারিত তালিকাগুলো **রাখা হয়েছে**: টাইমলাইন

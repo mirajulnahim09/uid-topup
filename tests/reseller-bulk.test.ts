@@ -380,6 +380,27 @@ describe('অ্যাডমিন — কী ব্যবস্থাপনা'
     expect(await db.apiKey.count()).toBe(0);
   });
 
+  /**
+   * ★★★ Group E-র শিক্ষা: ক্লায়েন্ট কম্পোনেন্টের props RSC পে-লোডে
+   *   সিরিয়ালাইজ হয়ে ব্রাউজারে যায়। কী-প্যানেল একটি ক্লায়েন্ট
+   *   কম্পোনেন্ট, তাই তার props-এ `hash` চলে গেলে সেটি view-source-এ
+   *   প্লেইনটেক্সট হয়ে থাকত। পাঠ নয়, প্রমাণ চাই।
+   */
+  it('অ্যাডমিন পাতার HTML-এ কীর হ্যাশ যায় না', async () => {
+    const { user, keyId } = await reseller({ balance: 100 });
+    const row = await db.apiKey.findUnique({ where: { id: keyId } });
+
+    const { client: ac } = await signedInAdmin(db);
+    const res = await ac.raw(`/admin/users/${user.id}`);
+    const html = await res.text();
+
+    expect(res.status).toBe(200);
+    expect(html).not.toContain(row!.hash);
+    // ★ প্যানেলটি আসলেই রেন্ডার হয়েছে — নাহলে টেস্টটি খালি পাতায় পাস করত
+    expect(html).toContain(row!.prefix);
+    expect(html).toContain('টেস্ট কী');
+  });
+
   it('প্রত্যাহার সারি মোছে না, কেবল সময় বসায়', async () => {
     const v = await createVariant(db, { price: 100 });
     const { user, plainKey, keyId } = await reseller({ balance: 500 });

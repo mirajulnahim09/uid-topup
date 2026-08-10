@@ -32,7 +32,8 @@ import { existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 import { db } from '../vitest.setup';
 import { baseUrl } from './helpers/app';
-import { createUser, DEFAULT_PASSWORD } from './helpers/factories';
+import { createUser, createAdmin, DEFAULT_PASSWORD } from './helpers/factories';
+import { generateApiKey } from '../src/lib/apiKey';
 
 const EXE = [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -93,6 +94,63 @@ describe('ব্রাউজার smoke (CSP + hydration)', () => {
         expect(session?.user?.id).toBe(user.id);
 
         expect(problems, `লগইন প্রবাহে সমস্যা:\n${problems.join('\n')}`).toEqual([]);
+      } finally {
+        await browser.close();
+      }
+    },
+    150_000,
+  );
+
+  /**
+   * ★★★ Group F — রিসেলার প্যানেল আসলেই hydrate হয়।
+   *
+   *   HTTP টেস্ট প্রমাণ করেছে সার্ভার-রেন্ডার করা HTML ঠিক আছে ও
+   *   হ্যাশ ফাঁস হয় না। কিন্তু প্যানেলটি একটি **ক্লায়েন্ট** কম্পোনেন্ট:
+   *   hydration ভাঙলে সার্ভার-HTML দিব্যি দেখা যেত, শুধু বোতামগুলো
+   *   কিছুই করত না — আর অ্যাডমিন ভাবতেন ফিচারটা "কাজ করছে না"।
+   *   তাই এখানে সত্যিকারের ক্লিক করে ডায়ালগ খোলা হয়।
+   */
+  it.skipIf(!EXE)(
+    'অ্যাডমিন — রিসেলার প্যানেল ব্রাউজারে hydrate হয় ও বোতাম কাজ করে',
+    async () => {
+      const admin = await createAdmin(db);
+      const target = await createUser(db, { balance: 100 });
+      await db.user.update({ where: { id: target.id }, data: { tier: 'RESELLER' } });
+
+      const { hash, prefix } = generateApiKey();
+      await db.apiKey.create({
+        data: { userId: target.id, label: 'ব্রাউজার কী', prefix, hash },
+      });
+
+      const browser = await chromium.launch({ headless: true, executablePath: EXE });
+      const problems: string[] = [];
+
+      try {
+        const page = await browser.newPage();
+        page.on('console', (m) => {
+          if (m.type() === 'error' && isFatal(m.text())) problems.push(`console: ${m.text()}`);
+        });
+        page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
+
+        await page.goto(`${baseUrl()}/login`, { waitUntil: 'networkidle', timeout: 60_000 });
+        await page.fill('#email', admin.email);
+        await page.fill('#pw', DEFAULT_PASSWORD);
+        await page.click('button[type="submit"]');
+        await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 45_000 });
+
+        await page.goto(`${baseUrl()}/admin/users/${target.id}`, {
+          waitUntil: 'networkidle', timeout: 60_000,
+        });
+
+        // ★ কী তালিকা রেন্ডার হয়েছে (উপসর্গই দেখানো হয়, পুরো কী নয়)
+        await page.waitForSelector(`text=${prefix}`, { timeout: 15_000 });
+
+        // ★★★ hydration-এর আসল প্রমাণ: ক্লিকে ডায়ালগ খোলে। স্ক্রিপ্ট
+        //     ব্লক হলে বা hydration ভাঙলে এখানেই টাইমআউট হতো।
+        await page.click('text=সাধারণ স্তরে ফেরান');
+        await page.waitForSelector('text=তাঁর সব API কী সাথে সাথে অকেজো', { timeout: 15_000 });
+
+        expect(problems, `রিসেলার প্যানেলে সমস্যা:\n${problems.join('\n')}`).toEqual([]);
       } finally {
         await browser.close();
       }
