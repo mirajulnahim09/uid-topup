@@ -33,7 +33,24 @@ export interface BaseProvider {
 export type SendResult = { status: 'SENT' | 'SKIPPED' | 'FAILED'; ref?: string; reason?: string };
 
 // ── Fulfillment ──
-export type Delivery = { status: 'MANUAL' | 'DELIVERED' | 'FAILED'; ref?: string; reason?: string };
+/**
+ * ★★★ Group G — ডেলিভারির ফলাফল।
+ *
+ *   ⚠️ `UNKNOWN` কেন আলাদা, `FAILED`-এর ভেতরে নয়:
+ *   অনুরোধ টাইমআউট হলে আমরা জানি না প্রোভাইডার ডেলিভারি করেছে কি না।
+ *   সেটিকে "ব্যর্থ" ধরে আবার চেষ্টা করলে গেমে **দুবার** ডায়মন্ড চলে
+ *   যেতে পারে — আর সেই খরচ ডাটাবেস কখনো দেখতেই পায় না, ফেরতও আসে না।
+ *   তাই অনিশ্চয়তা একটি **আলাদা** অবস্থা: retry নয়, মানুষের কাছে।
+ *
+ *   `retryable` কেবল `FAILED`-এ অর্থবহ — প্রোভাইডার স্পষ্টভাবে
+ *   "হয়নি" বলেছে, তাই আবার চেষ্টা করা নিরাপদ।
+ */
+export type Delivery = {
+  status: 'MANUAL' | 'DELIVERED' | 'FAILED' | 'UNKNOWN';
+  ref?: string;
+  reason?: string;
+  retryable?: boolean;
+};
 export type FulfillmentJob = {
   orderId: string; productName: string; variantName: string; playerUid: string; quantity: number;
 };

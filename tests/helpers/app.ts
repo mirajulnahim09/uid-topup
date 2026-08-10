@@ -14,6 +14,8 @@ declare module 'vitest' {
     baseUrl: string;
     /** SSLCommerz mock গেটওয়ে যে পোর্টে চলবে (Next-ও এটিই জানে) */
     sslczMockPort: number;
+    /** Group G — ফুলফিলমেন্ট mock প্রোভাইডারের পোর্ট */
+    fulfillMockPort: number;
   }
 }
 
@@ -23,6 +25,10 @@ export function baseUrl(): string {
 
 export function sslczMockPort(): number {
   return inject('sslczMockPort');
+}
+
+export function fulfillMockPort(): number {
+  return inject('fulfillMockPort');
 }
 
 export function client(): Client {

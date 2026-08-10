@@ -44,6 +44,14 @@ export const TELEGRAM_EVENTS = [
     key: 'sla_breach', group: 'order', label: 'SLA ভঙ্গ',
     hint: 'কোনো অর্ডার প্রতিশ্রুত সময় পেরিয়ে গেলে', default: true, wired: true,
   },
+  // ★ Group G — অটো-ডেলিভারি ব্যর্থ বা **অনিশ্চিত**। ডিফল্ট চালু ও
+  //   বন্ধ করা যায়, কিন্তু বন্ধ করলে অর্ডারটি নীরবে ম্যানুয়াল কিউতে
+  //   পড়ে থাকবে — তাই hint-এ সেটি স্পষ্ট বলা।
+  {
+    key: 'fulfillment_failed', group: 'order', label: 'অটো-ডেলিভারি ব্যর্থ',
+    hint: 'অটো-ডেলিভারি না হলে বা ফল অনিশ্চিত থাকলে (ম্যানুয়াল যাচাই দরকার)',
+    default: true, wired: true,
+  },
   // ── ইউজার ──
   { key: 'user_registered', group: 'user', label: 'নতুন রেজিস্ট্রেশন', hint: 'নতুন অ্যাকাউন্ট খুললে', default: false, wired: true },
   // ── সিস্টেম ──

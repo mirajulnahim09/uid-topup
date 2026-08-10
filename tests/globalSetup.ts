@@ -162,6 +162,17 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
    */
   const sslczMockPort = await freePort();
 
+  /**
+   * ★ Group G — ফুলফিলমেন্ট mock প্রোভাইডারের পোর্ট, ঠিক একই কারণে
+   *   এখানেই ঠিক করা: ডেলিভারি-কল যায় **Next প্রসেস** থেকে, আর
+   *   mock সার্ভারটি চলে **টেস্ট প্রসেসে**।
+   *
+   *   ⚠️ `GAME_API_URL`/`GAME_API_KEY` env-এ থাকা মানেই অটো-ডেলিভারি
+   *   চালু নয় — `hub` তখনই একে বাছে যখন সেটিংসেও active করা হয়েছে,
+   *   আর `order_approval` automatic। ডিফল্ট টেস্টগুলো তাই অপ্রভাবিত।
+   */
+  const fulfillMockPort = await freePort();
+
   // ★ প্রোডাকশন DATABASE_URL সাব-প্রসেসে **পাঠানো হয় না**।
   //   বাইরের নেটওয়ার্ক-কল করা কী-গুলো ফাঁকা — টেস্ট কখনো আসল
   //   ইমেইল/টেলিগ্রাম/ব্লব-এ পৌঁছাবে না (email.ts ও telegram/store.ts
@@ -185,6 +196,11 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
     // ★ SSLCommerz ড্রাইভার আসল গেটওয়ের বদলে mock-এ কল করবে।
     //   ⚠️ টেস্ট কখনো sandbox.sslcommerz.com-এ পৌঁছাবে না।
     SSLCZ_BASE_URL: `http://127.0.0.1:${sslczMockPort}`,
+    // ★ Group G — mock ডেলিভারি প্রোভাইডার
+    GAME_API_URL: `http://127.0.0.1:${fulfillMockPort}/deliver`,
+    GAME_API_KEY: 'test-fulfill-key',
+    // ★ ৩s — টাইমআউট-টেস্ট যেন ১৫ সেকেন্ড ধরে ঝুলে না থাকে
+    GAME_API_TIMEOUT_MS: '3000',
   };
 
   server = spawn(process.execPath, [NEXT_BIN, 'dev', '-p', String(port)], {
@@ -212,6 +228,7 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
 
   provide('baseUrl', baseUrl);
   provide('sslczMockPort', sslczMockPort);
+  provide('fulfillMockPort', fulfillMockPort);
 }
 
 export async function teardown() {

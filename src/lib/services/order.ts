@@ -7,7 +7,7 @@ import { validateCoupon, consumeCoupon } from '../coupon';
 import { recordOrderEvent } from '../orderEvents';
 import { generateTrackToken } from '../tracking';
 import { debitWallet } from './wallet';
-import { fulfillOrder } from '../fulfillment/service';
+import { autoFulfillOrder } from '../fulfillment/autoFulfill';
 import { notify, checkStockAlert } from '../notify';
 import { emailOrderPlaced } from '../email';
 import { logActivity } from '../adminLog';
@@ -404,19 +404,21 @@ export async function afterOrderPlaced(
   //   মতো লাগত এবং অ্যাডমিন দুবার ডেলিভারি দিতেন।
   if (result.duplicate) return;
 
-  // ★★★ Fulfillment interface seam (future-ready) — অর্ডার সার্ভিস কেবল
-  //   `fulfillOrder()` ইন্টারফেসের সাথে কথা বলে, কোনো concrete প্রোভাইডার
-  //   নয় (DIP)। আজ MANUAL ফেরে (config ও active provider দুটোই manual) →
-  //   এই ব্লক কিছুই করে না, বর্তমান অর্ডার-প্রবাহ অপরিবর্তিত।
-  try {
-    const d = await fulfillOrder({
-      orderId: result.orderId, productName: result.productName,
-      variantName: result.variantName, playerUid: ctx.playerUid.trim(), quantity: 1,
-    });
-    if (d.status === 'DELIVERED') {
-      // FUTURE: বিদ্যমান order-complete logic (admin/order route-এর মতো)।
-    }
-  } catch { /* fulfillment layer must never break the order flow */ }
+  // ★★★ Group G — অটো-ডেলিভারি।
+  //
+  //   ⚠️ ডিফল্টে কিছুই ঘটে না: `order_approval` সেটিং `manual` (ডিফল্ট)
+  //   হলে `autoFulfillOrder()` সাথে সাথেই MANUAL ফেরে, একটিও DB লেখা
+  //   বা নেটওয়ার্ক কল ছাড়া। অর্থাৎ বর্তমান প্রমাণিত অর্ডার-প্রবাহ
+  //   হুবহু অপরিবর্তিত থাকে যতক্ষণ না মালিক নিজে এটি চালু করেন।
+  //
+  //   ⚠️ এই কল কখনো টাকা নড়ায় না — অর্ডারের টাকা উপরে transaction-এ
+  //   ইতিমধ্যেই কাটা হয়ে গেছে। ব্যর্থ হলে অর্ডার ম্যানুয়াল কিউতে
+  //   ফেরে, ওয়ালেট অস্পৃশ্য থাকে।
+  //
+  //   ⚠️ await করা হয়: ডেলিভারি সফল হলে গ্রাহক উত্তর পাওয়ার আগেই
+  //   অর্ডার COMPLETED হয়ে থাকে, তাই তিনি রিফ্রেশ করে "PENDING" দেখে
+  //   বিভ্রান্ত হন না। ভেতরে সবকিছু guarded — throw হয় না।
+  await autoFulfillOrder(result.orderId);
 
   // ★ অডিট: গ্রাহক অর্ডার তৈরি করেছে (best-effort)
   logActivity({

@@ -1,6 +1,7 @@
 import { getSetting } from '../settings';
 import { isEmailConfigured, sendEmail } from '../email';
 import { providerInfos as paymentInfos } from '../payments/config';
+import { httpFulfillment } from '../fulfillment/httpProvider';
 import type {
   BaseProvider, IntegrationCategory, ProviderInfo, ProviderKind,
   FulfillmentProvider, Delivery, SmsProvider, EmailProvider,
@@ -34,7 +35,10 @@ const fulfillmentStub = (id: string, label: string, keys: string[]): Fulfillment
 });
 const FULFILLMENT: FulfillmentProvider[] = [
   manualFulfillment,
-  fulfillmentStub('game-api', 'গেম প্রোভাইডার API', ['GAME_API_URL', 'GAME_API_KEY']),
+  // ★ Group G — এটি আর স্টাব নয়, আসল HTTP অ্যাডাপ্টার (retry/timeout/
+  //   idempotency সহ)। env দুটি না থাকলে `isConfigured()` false, তাই
+  //   hub একে কখনো active করে না — আচরণ আগের মতোই ম্যানুয়াল।
+  httpFulfillment,
   fulfillmentStub('third-party', 'থার্ড-পার্টি API', ['THIRDPARTY_FULFILL_URL', 'THIRDPARTY_FULFILL_KEY']),
   fulfillmentStub('internal-auto', 'ইন্টারনাল অটোমেশন', ['INTERNAL_AUTOMATION_URL']),
   fulfillmentStub('hybrid', 'হাইব্রিড (ম্যানুয়াল + অটো)', ['HYBRID_FULFILL_ENABLED']),
