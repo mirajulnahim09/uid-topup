@@ -105,6 +105,69 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   await send(to, subject, html);
 }
 
+/**
+ * ═══════════════════════════════════════════════════════════
+ * ★★★ Group I (৩) — OTP কোড। **এটি সত্যি বলে।**
+ *
+ *   ⚠️ উপরের `send()` ব্যর্থতা গিলে ফেলে, আর সেটি বাকি সব ইমেইলের
+ *   জন্য সঠিক: স্বাগত-বার্তা বা অর্ডার-নোটিশ ব্যর্থ হলে মূল কাজটি
+ *   ভাঙা উচিত নয়।
+ *
+ *   OTP-তে ঠিক উল্টো। কোড না পৌঁছালে গ্রাহক **কখনোই** রেজিস্ট্রেশন
+ *   শেষ করতে পারবেন না, অথচ পর্দায় লেখা থাকবে "কোড পাঠানো হয়েছে" —
+ *   একটি সম্পূর্ণ নীরব অচলাবস্থা। তাই এখানে আলাদা পথ, যা
+ *   সফল/ব্যর্থ ফেরত দেয়।
+ *
+ *   ⚠️ কোডটি কেবল ইমেইলের **বডিতে** যায় — লগে বা কোথাও নয়।
+ * ═══════════════════════════════════════════════════════════
+ */
+export async function emailOtpCode(
+  to: string,
+  code: string,
+  ttlMinutes: number,
+): Promise<boolean> {
+  if (!resend) {
+    logger.error('email', 'OTP পাঠানো যায়নি — RESEND_API_KEY সেট নেই');
+    return false;
+  }
+  const html = wrap(
+    'আপনার যাচাই কোড',
+    `<p style="margin:0 0 18px">নিচের কোডটি দিয়ে রেজিস্ট্রেশন সম্পূর্ণ করুন।</p>
+     <div style="text-align:center;margin:24px 0">
+       <span style="display:inline-block;background:#0b0f1a;border:1px solid #2a3448;border-radius:10px;
+                    padding:14px 26px;color:#fff;font-size:30px;font-weight:800;letter-spacing:9px;
+                    font-family:'Courier New',monospace">${code}</span>
+     </div>
+     <p style="margin:0">কোডটি <b>${ttlMinutes} মিনিট</b> বৈধ।</p>
+     <p style="margin:12px 0 0;color:#64748b;font-size:12px">
+       আপনি যদি অ্যাকাউন্ট খোলার চেষ্টা না করে থাকেন, এই বার্তাটি উপেক্ষা করুন —
+       কোডটি ছাড়া কিছুই হবে না।
+     </p>`,
+  );
+
+  try {
+    const finalHtml = html.includes(HEADER_SLOT)
+      ? html.replace(HEADER_SLOT, await brandHeader())
+      : html;
+    const r = await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `যাচাই কোড ${code} — ${BRAND.name}`,
+      html: finalHtml,
+    });
+    // ⚠️ Resend ত্রুটি throw করে না — উত্তরের `error` ক্ষেত্রে দেয়।
+    //    শুধু try/catch করলে ব্যর্থতা "সফল" বলে চলে যেত।
+    if (r?.error) {
+      logger.error('email', 'OTP send rejected', { err: r.error });
+      return false;
+    }
+    return true;
+  } catch (e) {
+    logger.error('email', 'OTP send failed', { err: e });
+    return false;
+  }
+}
+
 export async function emailWelcome(to: string, name: string, refCode: string) {
   await send(to, `স্বাগতম — ${BRAND.name}`, wrap(
     `স্বাগতম, ${name}!`,

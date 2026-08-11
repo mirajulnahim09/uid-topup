@@ -28,6 +28,15 @@ export const registerSchema = z.object({
   phone: z.string().trim().regex(/^01[3-9]\d{8}$/, 'সঠিক মোবাইল নাম্বার দিন (01712345678)'),
   password: passwordSchema,
   referralCode: z.string().trim().toUpperCase().max(16).optional().or(z.literal('')),
+  /**
+   * ★ Group I (৩) — ইমেইলে পাঠানো ৬-অঙ্কের যাচাই কোড।
+   *
+   *   ⚠️ `optional` কেন, অথচ সাইনআপে বাধ্যতামূলক: বাধ্যতামূলকতা
+   *   একটি **সেটিং** (`otp_require_at_signup`, ডিফল্টে চালু), তাই
+   *   সিদ্ধান্তটি রুট-হ্যান্ডলারে নেওয়া হয়, schema-তে নয়। schema-তে
+   *   বসালে অ্যাডমিন সেটিংটি বন্ধ করলেও রেজিস্ট্রেশন ভাঙা থাকত।
+   */
+  code: z.string().trim().regex(/^\d{6}$/, 'কোড ৬ অঙ্কের হতে হবে').optional().or(z.literal('')),
 });
 
 export const forgotSchema = z.object({

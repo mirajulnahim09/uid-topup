@@ -27,7 +27,7 @@
  *   skip মানে কেউ ভাববে ব্রাউজার-যাচাই হয়েছে।
  * ═══════════════════════════════════════════════════════════
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 import { db } from '../vitest.setup';
@@ -56,6 +56,42 @@ const isFatal = (text: string) =>
   /Content Security Policy|Refused to (execute|load|apply)|Hydration failed|did not match|Minified React error/i.test(
     text,
   );
+
+/**
+ * ═══════════════════════════════════════════════════════════
+ * ★★★ ব্রাউজার চালু করার **আগে** রুটগুলো compile করিয়ে নেওয়া
+ *
+ *   ⚠️ কোন ব্যর্থতা এটি সারায় (মাপা, অনুমান নয়): ১০টি পূর্ণ রানের
+ *   একটিতে এই ফাইলের দুটি টেস্টই ব্যর্থ হয়েছিল, আর সেই রানটি
+ *   ১৮৪s নিয়েছিল (বাকিগুলো ~১০০s)। দুটি লক্ষণ —
+ *     · `waitForURL: Timeout 45000ms` — লগইনের পর গন্তব্য পাতাটি
+ *       তখনো compile হচ্ছিল
+ *     · `Unexpected token '<', "<!DOCTYPE "` — `/api/auth/session`
+ *       compile হওয়ার আগে JSON-এর বদলে HTML ফেরত দিয়েছে
+ *
+ *   অর্থাৎ টেস্টগুলো `next dev`-এর চাহিদামতো কম্পাইলারের সাথে দৌড়
+ *   দিচ্ছিল। টাইমআউট বাড়ানো এটি **ঢাকত**, সারাত না — মেশিন ধীর
+ *   হলে আবার ফিরে আসত। `tests/order.test.ts` একই সমস্যার জন্য
+ *   একই সমাধান ব্যবহার করে: আগে একবার হিট করে compile করিয়ে নেওয়া।
+ *
+ *   ⚠️ ব্যর্থতা গিলে ফেলা হয় — এটি কেবল গরম করা, যাচাই নয়।
+ *   আসল দাবিগুলো নিচের টেস্টেই আছে।
+ * ═══════════════════════════════════════════════════════════
+ */
+beforeAll(async () => {
+  if (!EXE) return;
+  const paths = [
+    '/', '/login', '/account', '/account/orders',
+    '/api/auth/session', '/api/auth/csrf', '/api/auth/providers',
+    // ★ ডাইনামিক সেগমেন্ট — id যা-ই হোক, রুট মডিউলটি compile হয়
+    '/admin/users/warmup',
+  ];
+  await Promise.all(
+    paths.map((p) =>
+      fetch(`${baseUrl()}${p}`, { redirect: 'follow' }).catch(() => null),
+    ),
+  );
+}, 180_000);
 
 describe('ব্রাউজার smoke (CSP + hydration)', () => {
   it.skipIf(!EXE)(
@@ -87,10 +123,24 @@ describe('ব্রাউজার smoke (CSP + hydration)', () => {
         await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 45_000 });
 
         // ── ৩. সেশন সত্যিই তৈরি হয়েছে ──
-        const session = await page.evaluate(async () => {
+        /**
+         * ⚠️ `r.json()` সরাসরি নয়: `next dev` কোনো রুট compile করার
+         *   সময় JSON-এর বদলে HTML ফেরত দিতে পারে, আর তখন ব্যর্থতাটি
+         *   `Unexpected token '<'` হয়ে আসে — যা পড়ে কেউ বুঝবে না
+         *   আসল সমস্যা কী। উপরের warm-up এটি ঠেকায়; এখানে টেক্সট
+         *   পড়ে নিজেরাই parse করি যাতে ব্যর্থ হলে **কারণটা দেখা যায়**।
+         */
+        const raw = await page.evaluate(async () => {
           const r = await fetch('/api/auth/session');
-          return r.json() as Promise<{ user?: { id?: string } }>;
+          return { status: r.status, ct: r.headers.get('content-type') ?? '', body: await r.text() };
         });
+        expect(
+          raw.ct.includes('application/json'),
+          `/api/auth/session JSON দেয়নি (status ${raw.status}, type "${raw.ct}") — ` +
+            `প্রথম ২০০ অক্ষর:\n${raw.body.slice(0, 200)}`,
+        ).toBe(true);
+
+        const session = JSON.parse(raw.body) as { user?: { id?: string } };
         expect(session?.user?.id).toBe(user.id);
 
         expect(problems, `লগইন প্রবাহে সমস্যা:\n${problems.join('\n')}`).toEqual([]);

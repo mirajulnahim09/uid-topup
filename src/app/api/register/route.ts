@@ -6,6 +6,8 @@ import { rateLimit, getIp, LIMITS } from '@/lib/rateLimit';
 import { uniqueReferralCode } from '@/lib/referral';
 import { emailWelcome } from '@/lib/email';
 import { cleanText } from '@/lib/sanitize';
+import { consumeOtp, otpMessage } from '@/lib/otp/core';
+import { getOtpConfig } from '@/lib/otp/settings';
 
 import { notifyAdmins } from '@/lib/notify';
 
@@ -51,22 +53,63 @@ export async function POST(req: Request) {
     }
 
     const myCode = await uniqueReferralCode();
+    const passwordHash = await bcrypt.hash(password, 12); // ★ cost 12
 
-    let user;
-    try {
-      user = await prisma.user.create({
+    /**
+     * ═══════════════════════════════════════════════════════════
+     * ★★★ Group I (৩) — ইমেইল যাচাই, সাইনআপে **বাধ্যতামূলক**
+     *
+     *   ⚠️ কোড যাচাই ও ইউজার তৈরি **একই ট্রানজেকশনে** (`consumeOtp`
+     *   কলারের কাজটি নিজের tx-এর ভেতরে চালায়)। আলাদা করলে দুটি
+     *   ফাঁক তৈরি হতো:
+     *     · কোড খরচ হয়ে গেছে কিন্তু ইউজার তৈরি ব্যর্থ → গ্রাহক আটকা,
+     *       কোডও নষ্ট
+     *     · যাচাই ও তৈরির মাঝে একই কোড দ্বিতীয়বার ব্যবহার
+     *
+     *   ⚠️ `emailVerified: true` **কেবল** এই পথে বসে। মাইগ্রেশনে
+     *   ডিফল্ট `false` রাখা হয়েছে ইচ্ছাকৃতভাবে — OTP পথ কখনো ভাঙলে
+     *   অ্যাকাউন্ট "যাচাইকৃত" দেখানোর চেয়ে "যাচাই হয়নি" দেখানো ভালো।
+     * ═══════════════════════════════════════════════════════════
+     */
+    const otpCfg = await getOtpConfig();
+
+    const createUser = async (
+      tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+      emailVerified: boolean,
+    ) =>
+      tx.user.create({
         data: {
           name,
           email,
           phone,
-          password: await bcrypt.hash(password, 12), // ★ cost 12
+          password: passwordHash,
           role: 'USER',
           referralCode: myCode,
           referredById,
+          emailVerified,
         },
         select: { email: true, name: true, referralCode: true },
       });
+
+    let user;
+    try {
+      if (otpCfg.requireAtSignup) {
+        const code = parsed.data.code?.trim();
+        if (!code) throw new ApiError('ইমেইলে পাঠানো ৬-অঙ্কের কোডটি দিন', 400);
+
+        const r = await consumeOtp(
+          { purpose: 'REGISTER', destination: email, code },
+          (tx) => createUser(tx, true),
+        );
+
+        if (!r.ok) throw new ApiError(otpMessage(r.reason), 400);
+        user = r.result;
+      } else {
+        // ★ অ্যাডমিন যাচাই বন্ধ রেখেছেন — তখন অ্যাকাউন্ট **যাচাই-হীন**
+        user = await prisma.$transaction((tx) => createUser(tx, false));
+      }
     } catch (e: unknown) {
+      if (e instanceof ApiError) throw e;
       // ★★★ RACE: উপরের dupe-check আর এই INSERT এর মাঝে
       //     আরেকজন একই ইমেইল/ফোন দিয়ে ঢুকে যেতে পারে।
       //     DB এর @unique ধরবে — কিন্তু কাঁচা DB error দেখানো যাবে না

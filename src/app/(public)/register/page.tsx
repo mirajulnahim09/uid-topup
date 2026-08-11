@@ -22,6 +22,54 @@ function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [errs, setErrs] = useState<Record<string, string>>({});
 
+  /**
+   * ★★★ Group I (৩) — ইমেইল যাচাই কোড।
+   *
+   *   ⚠️ দুই-পাতার ধাপ নয়, একই ফর্মেই: "কোড পাঠান" চাপলে কোডের ঘরটি
+   *   দেখা যায়। দুই পাতায় ভাগ করলে ব্যবহারকারী প্রথম পাতা পেরিয়ে
+   *   এসে দ্বিতীয়টিতে আটকে গেলে আর ফেরার পথ থাকত না, আর অর্ধেক
+   *   ভরা ফর্ম হারাত।
+   *
+   *   ⚠️ কোড ও বাকি তথ্য **একসাথে** `/api/register`-এ যায় — সার্ভারে
+   *   যাচাই ও অ্যাকাউন্ট তৈরি এক ট্রানজেকশনে।
+   */
+  const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  /** ★ পুনরায় পাঠানোর আগে অপেক্ষা — সার্ভারের সীমার সাথে সঙ্গতিপূর্ণ */
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  async function sendCode() {
+    const email = f.email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErrs((e) => ({ ...e, email: 'আগে সঠিক ইমেইল দিন' }));
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, phone: f.phone.trim() || undefined }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error);
+      setCodeSent(true);
+      setCooldown(60);
+      toast.success(d.message || 'কোড পাঠানো হয়েছে');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'কোড পাঠানো যায়নি');
+    } finally {
+      setSending(false);
+    }
+  }
+
   // ?ref=CODE থেকে auto-fill
   useEffect(() => {
     const ref = params.get('ref');
@@ -43,6 +91,9 @@ function RegisterForm() {
       e.password = 'অন্তত একটি অক্ষর থাকতে হবে';
     else if (!/[0-9]/.test(f.password))
       e.password = 'অন্তত একটি সংখ্যা থাকতে হবে';
+    // ★ কোড না চাইলে/না দিলে সার্ভারও আটকাত, কিন্তু এখানে ধরলে
+    //   একটি অকারণ রাউন্ড-ট্রিপ বাঁচে
+    if (!/^\d{6}$/.test(code.trim())) e.code = 'ইমেইলে পাঠানো ৬-অঙ্কের কোড দিন';
     setErrs(e);
     return Object.keys(e).length === 0;
   }
@@ -60,6 +111,7 @@ function RegisterForm() {
           ...f,
           email: f.email.trim().toLowerCase(),
           referralCode: f.referralCode.trim() || undefined,
+          code: code.trim(),
         }),
       });
       const d = await res.json();
@@ -112,6 +164,48 @@ function RegisterForm() {
               aria-invalid={Boolean(errs.email)}
             />
             {errs.email && <p role="alert" className="mt-1 text-xs text-red-600">{errs.email}</p>}
+          </div>
+
+          {/* ★★★ Group I (৩) — ইমেইল যাচাই। ইমেইলের ঠিক নিচে, কারণ
+              এটি ঐ ঘরেরই ধারাবাহিকতা। */}
+          <div>
+            <div className="flex items-end justify-between gap-3">
+              <label htmlFor="otp" className="label mb-0">ইমেইল যাচাই কোড</label>
+              <button
+                type="button"
+                onClick={sendCode}
+                disabled={sending || cooldown > 0}
+                className="btn-ghost px-3 py-1.5 text-xs disabled:opacity-50"
+              >
+                {cooldown > 0
+                  ? `আবার পাঠান (${cooldown}s)`
+                  : sending
+                    ? 'পাঠানো হচ্ছে…'
+                    : codeSent
+                      ? 'আবার পাঠান'
+                      : 'কোড পাঠান'}
+              </button>
+            </div>
+            <input
+              id="otp"
+              className="input mt-1.5 font-mono tracking-[0.4em]"
+              inputMode="numeric"
+              maxLength={6}
+              autoComplete="one-time-code"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                if (errs.code) setErrs({ ...errs, code: '' });
+              }}
+              placeholder="৬ অঙ্ক"
+              aria-invalid={Boolean(errs.code)}
+            />
+            {errs.code && <p role="alert" className="mt-1 text-xs text-red-600">{errs.code}</p>}
+            {codeSent && !errs.code && (
+              <p className="mt-1 text-xs" style={{ color: 'var(--v-mut)' }}>
+                ইমেইল দেখুন — কোডটি ১০ মিনিট বৈধ। স্প্যাম ফোল্ডারও দেখবেন।
+              </p>
+            )}
           </div>
 
           <div>

@@ -29,6 +29,9 @@ model User {
   //   ঢুকলে অ্যাকাউন্টটি reclaim হয় (পুরনো পাসওয়ার্ড বাতিল) — account-
   //   takeover পথ বন্ধ। ইমেইল-ভেরিফিকেশন লিংক (Resend) ছাড়াই কাজ করে।
   emailVerified Boolean @default(false)
+  /// ★ Group I (৩) — ফোন যাচাই হয়েছে কি না। SMS চ্যানেল আজ **বন্ধ**,
+  ///   তাই এটি এখন সবার জন্য false; গেটওয়ে যুক্ত হলে কাজে আসবে।
+  phoneVerified Boolean @default(false)
 
   // ═══════ ADMIN 2FA (Phase 2) ═══════
   // ★ TOTP-ভিত্তিক দুই-ধাপ যাচাই — মূলত অ্যাডমিনের জন্য (অ্যাডমিন
@@ -866,4 +869,59 @@ model PaymentGatewayConfig {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// ★★★ Group I (৩) — OTP এর মাধ্যম। চ্যানেল-নিরপেক্ষ নকশা: একই
+///     মডেল, একই সীমা, একই fail-closed আচরণ — কেবল পৌঁছানোর পথ আলাদা।
+enum OtpChannel {
+  EMAIL
+  SMS
+}
+
+/// ★ কোন কাজের জন্য কোড। আজ কেবল REGISTER ব্যবহৃত; বাকিগুলো
+///   enforcement flag চালু হলে (ডিপোজিট ইত্যাদি) কাজে আসবে।
+enum OtpPurpose {
+  REGISTER
+  PHONE_ADD
+  DEPOSIT
+}
+
+/// ═══════════════════════════════════════════════════════════
+/// ★★★ Group I (৩) — এককালীন যাচাই-কোড
+///
+///   ⚠️ `userId` **নেই**, ইচ্ছাকৃতভাবে: রেজিস্ট্রেশনের কোড ইউজার
+///   তৈরি হওয়ার **আগে** পাঠাতে হয়। তাই কোডটি গন্তব্যের (ইমেইল বা
+///   ফোন) সাথে বাঁধা, অ্যাকাউন্টের সাথে নয়।
+///
+///   ⚠️ `codeHash` — প্লেইনটেক্সট কোড কখনো সংরক্ষণ করা হয় না।
+///   ডাটাবেস ডাম্প ফাঁস হলে সেটি দিয়ে কারও রেজিস্ট্রেশন সম্পূর্ণ
+///   করা যাবে না (পাসওয়ার্ড ও TOTP secret এর মতোই নীতি)।
+///
+///   ⚠️ `attempts` — brute force ঠেকায় DB স্তরে। rate-limit IP
+///   ভিত্তিক, কিন্তু আক্রমণকারী IP বদলাতে পারে; এই গণনা গন্তব্যের
+///   সাথে বাঁধা, তাই বদলানো যায় না।
+/// ═══════════════════════════════════════════════════════════
+model Otp {
+  id      String     @id @default(cuid())
+  channel OtpChannel
+  purpose OtpPurpose @default(REGISTER)
+
+  /// ★ normalize করা ইমেইল (lowercase) বা ফোন (01XXXXXXXXX)
+  destination String
+
+  /// ★ কোডের হ্যাশ — কখনো প্লেইনটেক্সট নয়
+  codeHash String
+
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  /// ★ কে চেয়েছিল — অপব্যবহার তদন্তের জন্য
+  ip String?
+
+  /// ★ সক্রিয় কোড খোঁজা: গন্তব্য + কাজ + এখনো ব্যবহার হয়নি
+  @@index([destination, purpose, consumedAt])
+  /// ★ মেয়াদোত্তীর্ণ সারি পরিষ্কার করার cron এটি ব্যবহার করে
+  @@index([expiresAt])
 }
