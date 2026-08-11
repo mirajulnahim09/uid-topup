@@ -14,6 +14,7 @@ import ThemeToggle from '@/components/theme/ThemeToggle';
 import AccentPicker from '@/components/theme/AccentPicker';
 import { BRAND, isDefaultBrand } from '@/lib/brand';
 import BrandLogo from '@/components/brand/BrandLogo';
+import SearchBox from '@/components/SearchBox';
 import type { LogoPair } from '@/lib/branding';
 
 /**
@@ -222,6 +223,13 @@ export default function Navbar({
             </Link>
           </nav>
 
+          {/* ★ Group I — ডেস্কটপ সার্চ। নেভ ও অ্যাকাউন্টের মাঝে,
+              কারণ এটি নেভিগেশনের অংশ কিন্তু কোনো একটি লিংক নয়।
+              ⚠️ `max-w` দেওয়া — নাহলে বারের বাকি আইটেম চেপে যেত। */}
+          <div className={`hidden w-full max-w-[220px] shrink ${navFlex}`}>
+            <SearchBox compact />
+          </div>
+
           {/* ── ডেস্কটপ: অ্যাকাউন্ট ── */}
           <div className={`hidden shrink-0 items-center gap-1.5 ${navFlex}`}>
             {authed ? (
@@ -403,6 +411,12 @@ export default function Navbar({
             style={{ borderTop: '1px solid var(--v-edge)' }}
             aria-label="মোবাইল মেনু"
           >
+            {/* ★ Group I — সার্চ মেনুর **সবার উপরে**: মোবাইলে খুঁজে
+                পাওয়াই মূল সমস্যা, ক্যাটাগরি স্ক্রল করা নয় */}
+            <div className="px-1 pb-3 pt-1">
+              <SearchBox />
+            </div>
+
             <p className="hud-mut hud px-1 pb-2 pt-1">ক্যাটাগরি</p>
             {categories.map((c: (typeof categories)[number]) => (
               <Link

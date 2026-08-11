@@ -21,6 +21,10 @@ public/uploads/
 # ★ scripts/pw-server.ts এর ws endpoint — প্রতি সেশনে বদলায়, মেশিন-নির্দিষ্ট
 ws.txt
 
+# ★ `npm run dev > .dev-server.log` — ব্রাউজারে যাচাইয়ের সময়কার লগ।
+#   মেশিন-নির্দিষ্ট পাথ ও স্ট্যাক ট্রেস থাকে, সোর্স নয়।
+.dev-server.log
+
 # ★ scripts/package-release.mjs এর আউটপুট zip — বিতরণের জিনিস, সোর্স নয়
 release/
 

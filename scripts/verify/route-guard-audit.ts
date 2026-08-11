@@ -30,6 +30,7 @@ const INTENTIONALLY_PUBLIC: Record<string, string> = {
   'register': 'নতুন অ্যাকাউন্ট — সংজ্ঞা অনুযায়ী অননুমোদিত; IP rate-limit',
   'track': 'অর্ডার নং + ফোন দিয়ে ট্র্যাক; কড়া IP rate-limit',
   'health': 'আপটাইম প্রোব — কোনো সংবেদনশীল তথ্য নেই',
+  'search': 'পাবলিক ক্যাটালগ সার্চ — যা ফেরে তা হোমপেজেই খোলা; IP rate-limit',
   'uid/recent': 'সাম্প্রতিক যাচাই-করা UID (সর্বজনীন শোকেস)',
   'webhooks/payment/[provider]': 'গেটওয়ে কল করে; স্বাক্ষর যাচাই দিয়ে সুরক্ষিত',
   'cron/telegram-scheduler': 'assertCronAuth (Bearer CRON_SECRET)',
