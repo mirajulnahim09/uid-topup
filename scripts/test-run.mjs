@@ -14,6 +14,7 @@
  * ═══════════════════════════════════════════════════════════
  */
 import { spawnSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import net from 'node:net';
 import { createRequire } from 'node:module';
 
@@ -99,4 +100,75 @@ const push = runNode(
 if (push !== 0) process.exit(push);
 
 // ── ৪. টেস্ট ──
-process.exit(runNode(binEntry('vitest'), ['run', ...process.argv.slice(2)], env, 'vitest'));
+/**
+ * ★★★ ব্যর্থ টেস্টের নাম **প্রতিবার** শেষে ছাপা হয়।
+ *
+ *   ⚠️ কেন দরকার হলো: verbose রিপোর্টার নামগুলো ছাপেই, কিন্তু আউটপুট
+ *   কয়েকশো লাইন — CI লগে বা `| tail` করলে সেগুলো হারিয়ে যায়। একবার
+ *   ঠিক তাই হয়েছিল: ১৭৭টির মধ্যে ২টি ব্যর্থ হয়েছিল আর নামই ধরা পড়েনি,
+ *   ফলে "সম্ভবত ফ্লেক" বলে ছেড়ে দেওয়ার প্রলোভন তৈরি হয়েছিল।
+ *   টাকার পথে বিক্ষিপ্ত ব্যর্থতা প্রমাণ না হওয়া পর্যন্ত race condition।
+ *
+ *   JSON রিপোর্টার ফাইলে লেখে, আমরা সেটি পড়ে শেষে একটি ছোট ব্লক ছাপি।
+ *   `scripts/test-flaky.mjs` একই ফাইলটি পড়ে বহু রানের ফল জড়ো করে।
+ */
+export const RESULTS_FILE = '.vitest-results.json';
+
+const code = runNode(
+  binEntry('vitest'),
+  [
+    'run',
+    '--reporter=verbose',
+    '--reporter=json',
+    `--outputFile.json=${RESULTS_FILE}`,
+    ...process.argv.slice(2),
+  ],
+  env,
+  'vitest',
+);
+
+/** ★ ব্যর্থ টেস্টের পূর্ণ নাম বের করা — flaky-রানারও এটিই ব্যবহার করে */
+export function failedTestNames(file = RESULTS_FILE) {
+  if (!existsSync(file)) return null; // ফাইলই নেই = vitest চালুই হয়নি
+  let json;
+  try {
+    json = JSON.parse(readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
+  const out = [];
+  // ⚠️ উইন্ডোজে `process.cwd()` ব্যাকস্ল্যাশ দেয় কিন্তু vitest ফরওয়ার্ড
+  //    স্ল্যাশ লেখে — তুলনার আগে দুটোকেই এক রূপে আনি, নাহলে পুরো
+  //    absolute পাথ ছাপা হয় ও নামগুলো পড়া কঠিন হয়।
+  const cwd = process.cwd().replace(/\\/g, '/');
+  for (const suite of json.testResults ?? []) {
+    const rel = (suite.name || '').replace(/\\/g, '/').replace(cwd, '').replace(/^\//, '');
+    for (const t of suite.assertionResults ?? []) {
+      if (t.status === 'failed') {
+        out.push({
+          name: `${rel} › ${t.fullName || t.title}`,
+          message: (t.failureMessages?.[0] || '').split('\n')[0].slice(0, 200),
+        });
+      }
+    }
+  }
+  return out;
+}
+
+const failed = failedTestNames();
+
+console.log('\n══════════════════════════════════════════');
+if (failed === null) {
+  console.log('  ⚠️  ফলাফল ফাইল পড়া গেল না — vitest চালুই হয়নি?');
+} else if (failed.length === 0) {
+  console.log(code === 0 ? '  ✓ সব টেস্ট সবুজ' : '  ⚠️  exit code শূন্য নয়, কিন্তু কোনো ব্যর্থ টেস্ট নেই');
+} else {
+  console.log(`  ✗ ব্যর্থ টেস্ট — ${failed.length}টি\n`);
+  for (const f of failed) {
+    console.log(`    • ${f.name}`);
+    if (f.message) console.log(`      ${f.message}`);
+  }
+}
+console.log('══════════════════════════════════════════\n');
+
+process.exit(code);

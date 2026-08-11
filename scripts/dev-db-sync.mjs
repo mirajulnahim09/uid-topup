@@ -66,7 +66,7 @@ function readProdUrl() {
 }
 
 /** ★ docker চালানো। `input` থাকলে stdin দিয়ে যায়; secret কখনো argv-তে নয়। */
-function docker(args, { input, capture, label } = {}) {
+function docker(args, { input, capture, label, throwOnFail } = {}) {
   const r = spawnSync('docker', args, {
     input,
     encoding: 'utf8',
@@ -76,7 +76,10 @@ function docker(args, { input, capture, label } = {}) {
   if (r.error) die(`docker চালানো গেল না (${label}): ${r.error.message}`);
   if (r.status !== 0) {
     // ⚠️ stderr ছাপি, কিন্তু URL কখনো এতে থাকে না — pg_dump তা ছাপে না
-    die(`${label} ব্যর্থ (exit ${r.status}):\n${(r.stderr || '').trim()}`);
+    const msg = `${label} ব্যর্থ (exit ${r.status}):\n${(r.stderr || '').trim()}`;
+    // ★ retry-যোগ্য কলার নিজে সামলাবে; বাকিরা সাথে সাথেই থামে
+    if (throwOnFail) throw new Error(msg);
+    die(msg);
   }
   return r.stdout ?? '';
 }
@@ -87,6 +90,32 @@ function pgRun(url, shellCmd, opts = {}) {
     ['run', '--rm', '-i', '-e', `PGURL=${url}`, '--add-host', 'host.docker.internal:host-gateway', PG_IMAGE, 'sh', '-c', shellCmd],
     opts,
   );
+}
+
+/**
+ * ★★★ Neon-এর জন্য retry।
+ *
+ *   ⚠️ Neon-এ **auto-suspend** চালু (CLAUDE.md §1)। বসে থাকা কম্পিউট
+ *   জেগে ওঠার সময় প্রথম সংযোগটি মাঝপথে কাটা পড়তে পারে —
+ *   `SSL error: unexpected eof while reading`। বাস্তবে এটি এই
+ *   স্ক্রিপ্টেই একবার ঘটেছে, তৃতীয় ধাপে।
+ *
+ *   ⚠️ কেবল ডাম্প (পড়া) retry হয়, লেখা নয় — পড়া idempotent।
+ */
+function pgRunRetry(url, shellCmd, opts = {}, attempts = 3) {
+  let last;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return pgRun(url, shellCmd, { ...opts, throwOnFail: true });
+    } catch (e) {
+      last = e;
+      if (i < attempts) {
+        console.log(`       ↻ চেষ্টা ${i} ব্যর্থ (Neon জেগে উঠছে?) — আবার চেষ্টা …`);
+        spawnSync(process.execPath, ['-e', 'setTimeout(()=>{},3000)']); // ~3s বিরতি
+      }
+    }
+  }
+  die(`${opts.label} — ${attempts}টি চেষ্টাতেও ব্যর্থ:\n${last?.message ?? ''}`);
 }
 
 console.log('═══ ডেভ ডাটাবেসে প্রোডাকশনের স্কিমা আনা ═══\n');
@@ -116,7 +145,7 @@ console.log('  ১/৫  ডেভ কনটেইনার যাচাই …')
 
 // ── ২. প্রোডাকশনের স্কিমা ডাম্প (কোনো সারি নয়) ──
 console.log('  ২/৫  প্রোডাকশন স্কিমা ডাম্প (--schema-only, ০ সারি) …');
-const schemaSql = pgRun(
+const schemaSql = pgRunRetry(
   PROD_URL,
   // ⚠️ `--no-owner --no-privileges` — Neon-এর role লোকালে নেই
   // ⚠️ `--schema=public` — Neon-এর অভ্যন্তরীণ স্কিমা বাদ
@@ -127,7 +156,7 @@ if (!/CREATE TABLE/i.test(schemaSql)) die('ডাম্পে কোনো ট�
 
 // ── ৩. মাইগ্রেশন ইতিহাস (শুধু এই একটি টেবিলের ডেটা) ──
 console.log('  ৩/৫  মাইগ্রেশন ইতিহাস ডাম্প (_prisma_migrations) …');
-const historySql = pgRun(
+const historySql = pgRunRetry(
   PROD_URL,
   'pg_dump "$PGURL" --data-only --no-owner --no-privileges --table=public._prisma_migrations',
   { capture: true, label: 'pg_dump (_prisma_migrations)' },
@@ -163,28 +192,95 @@ const ENV_DEV = `# ════════════════════�
 #
 #   ⚠️ হাতে বদলাবেন না; \`npm run dev:db:sync\` আবার লিখে দেবে।
 #
-#   Next.js \`next dev\`-এ এই ফাইলটি \`.env\` এর **উপরে** বসে, তাই
-#   এখানে শুধু \`DATABASE_URL\` override করা আছে — বাকি সব মান
-#   (NEXTAUTH_SECRET, Blob, Resend, Telegram …) \`.env\` থেকেই আসে।
-#
-#   ⚠️⚠️ যা এখনো লাইভ: এই ফাইল কেবল **ডাটাবেস** আলাদা করে। ডেভে
-#   ইমেইল (Resend), টেলিগ্রাম বট ও Blob আপলোড এখনো আসল সার্ভিসেই
-#   যায়। সেগুলোও আলাদা করতে চাইলে সংশ্লিষ্ট কী এখানে override করুন।
+#   Next.js \`next dev\`-এ এই ফাইলটি \`.env\` এর **উপরে** বসে।
+#   (\`@next/env\` আগে-সেট মান overwrite করে না, আর এই ফাইলটি আগে
+#    পড়া হয় — তাই এখানকার মানই জেতে, **খালি মানও**। মাপা হয়েছে।)
 #
 #   ⚠️ Prisma CLI এই ফাইল **পড়ে না** — সে শুধু \`.env\` দেখে। তাই
 #   \`npx prisma studio\` ইত্যাদি এখনো প্রোডাকশনে যাবে। ডেভ DB-তে
 #   চালাতে npm script গুলো ব্যবহার করুন (dev:db:*), যেগুলো URL
 #   স্পষ্ট করে দেয়।
 # ═══════════════════════════════════════════════════════════
+
+# ── ডাটাবেস ──
 DATABASE_URL="${DEV_URL}"
+
+# ═══════════════════════════════════════════════════════════
+# ★★★ বাইরের সার্ভিস — ডেভে সব **বন্ধ**
+#
+#   ⚠️ কেন খালি করা, ভুয়া মান নয়: প্রতিটি ইন্টিগ্রেশন ইতিমধ্যেই
+#   "কী নেই ⇒ ফিচার নীরবে বন্ধ" ধরে লেখা। ভুয়া টোকেন দিলে কোড
+#   আসল কল করার **চেষ্টা** করত ও 401 নিয়ে ফিরত — অর্থাৎ ডেভে
+#   অকারণ ত্রুটি, আর কোনো বাড়তি নিরাপত্তা নয়।
+#
+#   ⚠️ এগুলো লাইভ রাখা ডাটাবেস লাইভ রাখারই মতো, শুধু আরও নীরব:
+#   একটি ভুল ইমেইল আসল গ্রাহকের ইনবক্সে যায়, একটি টেস্ট অর্ডার
+#   আসল অ্যাডমিন-চ্যাটে বাজে, আর একটি আপলোড প্রোডাকশন CDN-এ
+#   চিরকাল থেকে যায় — কোনোটিই ডেভ কনসোলে ধরা পড়ে না।
+# ═══════════════════════════════════════════════════════════
+
+# ইমেইল (Resend) → \`src/lib/email.ts\` কী না থাকলে skip করে ও warn লেখে
+RESEND_API_KEY=
+
+# টেলিগ্রাম → \`envBot()\` null ফেরে, কোনো বার্তা যায় না।
+#   ⚠️ DB-তে বট সেট করা থাকলে **DB জেতে** (store.ts: DB > env)।
+#      ডেভ DB-তে সেটি ডেভের নিজের বট হবে, প্রোডাকশনেরটি নয়।
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+
+# ফাইল আপলোড → লোকাল ডিস্কে (\`public/uploads/\`, gitignored)।
+#   দুটোই দরকার: টোকেন খালি **এবং** ড্রাইভার স্পষ্ট, নাহলে
+#   getStorage() এর fallback যুক্তির উপর নির্ভর করতে হতো।
+BLOB_READ_WRITE_TOKEN=
+STORAGE_DRIVER=local
+
+# ═══════════════════════════════════════════════════════════
+# ⚠️ যা ইচ্ছাকৃতভাবে override করা **হয়নি**
+#
+#   · GOOGLE_CLIENT_ID/SECRET — শুধু লগইন যাচাই করে, বাইরে কিছু
+#     লেখে না; সরালে ডেভে Google লগইন পরীক্ষা করাই যেত না।
+#   · FF_LOOKUP_API_KEY — বাইরের API, কিন্তু **পড়া**, লেখা নয়।
+#     (কোটা খরচ হয়; UID-যাচাই পরীক্ষা করতে হলে দরকার।)
+#   · TELEGRAM_ENC_KEY — DB-তে রাখা টোকেন খোলার চাবি, বাইরের
+#     সার্ভিস নয়। বদলালে ডেভে অকারণ decrypt ব্যর্থতা হতো।
+#   · CRON_SECRET, NEXTAUTH_SECRET — স্থানীয়, বাইরে যায় না।
+# ═══════════════════════════════════════════════════════════
 `;
 writeFileSync('.env.development', ENV_DEV);
+
+/**
+ * ★★★ override সত্যিই কার্যকর হয়েছে কি না — **যাচাই করি, ধরে নিই না**।
+ *
+ *   ⚠️ এটি নীরব-ব্যর্থতার শ্রেণি: Next-এর env অগ্রাধিকার বদলালে
+ *   ফাইলটি ঠিকই থাকত, কিন্তু ডেভ আবার আসল Resend/Telegram/Blob-এ
+ *   যেত আর কেউ টের পেত না। তাই প্রতিবার সিঙ্কে মেপে দেখা হয়।
+ */
+{
+  // ⚠️ `@next/env` CJS — ESM থেকে namespace ও `.default` দুই রূপেই আসতে পারে
+  const mod = await import('@next/env');
+  const loadEnvConfig = mod.loadEnvConfig ?? mod.default?.loadEnvConfig;
+  if (typeof loadEnvConfig !== 'function') die('@next/env থেকে loadEnvConfig পাওয়া গেল না।');
+  loadEnvConfig(process.cwd(), true, { info: () => {}, error: () => {} }, true);
+  const leaking = ['RESEND_API_KEY', 'TELEGRAM_BOT_TOKEN', 'BLOB_READ_WRITE_TOKEN'].filter(
+    (k) => (process.env[k] ?? '') !== '',
+  );
+  if (leaking.length) {
+    die(
+      `override কাজ করেনি — এই কী-গুলো এখনো আসল মান ধরে আছে:\n` +
+        `    ${leaking.join(', ')}\n\n` +
+        `  ডেভ তাহলে আসল ইমেইল/বট/স্টোরেজে লিখত। Next-এর env\n` +
+        `  অগ্রাধিকার বদলে গেছে কি না দেখুন।`,
+    );
+  }
+  console.log('       ✓ Resend · Telegram · Blob — override যাচাই করা হয়েছে');
+}
 
 console.log(`
 ✓ হয়ে গেছে।
 
   ডেভ DB : localhost:5434 / uidtopup_dev   (০ সারি গ্রাহক-ডেটা)
   স্কিমা   : প্রোডাকশনের হুবহু ডাম্প + মাইগ্রেশন ইতিহাস
+  বাইরে   : ইমেইল · টেলিগ্রাম · Blob — সব বন্ধ (আপলোড public/uploads/)
 
   পরের ধাপ:
     npm run dev:db:seed   # ডেমো ডেটা (⚠️ db:seed নয় — সেটি প্রোডাকশনে যায়)
