@@ -75,13 +75,41 @@ function prismaEntry(): string {
   return require.resolve(`prisma/${rel.replace(/^\.\//, '')}`);
 }
 
-function runPrisma(args: string[], url: string) {
+function runPrismaOnce(args: string[], url: string) {
   const r = spawnSync(process.execPath, [prismaEntry(), ...args], {
     encoding: 'utf8',
     env: { ...process.env, DATABASE_URL: url },
     maxBuffer: 16 * 1024 * 1024,
   });
   return { status: r.status ?? 1, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
+}
+
+/**
+ * ★★★ Neon auto-suspend এর জন্য retry।
+ *
+ *   ⚠️ কেন দরকার (মাপা, অনুমান নয়): মাইগ্রেশন প্রয়োগের ঠিক পরেই এই
+ *   স্ক্রিপ্ট `P1001: Can't reach database server` দিয়ে ব্যর্থ হয়েছিল —
+ *   ডাটাবেস ঠিকই ছিল, কেবল Neon-এর কম্পিউট আবার ঘুমিয়ে পড়েছিল
+ *   (CLAUDE.md §1: auto-suspend চালু)।
+ *
+ *   ⚠️ এটি না থাকলে CI-র `migrate-guard` মাঝেমধ্যে **মিথ্যা লাল**
+ *   দেখাত — আর একটি গার্ড যা কারণ ছাড়াই লাল হয়, সেটিকে মানুষ
+ *   উপেক্ষা করতে শেখে। তখন আসল drift-ও চোখ এড়িয়ে যেত।
+ *
+ *   ⚠️ কেবল **সংযোগ-ব্যর্থতা** retry হয়। প্রকৃত drift বা বাকি
+ *   মাইগ্রেশন কখনো retry হয় না — সেগুলো প্রথমবারেই সত্য।
+ */
+const CONNECTION_ERROR = /P1001|Can't reach database server|ECONNRESET|ETIMEDOUT|unexpected eof/i;
+
+function runPrisma(args: string[], url: string, attempts = 3) {
+  let last = runPrismaOnce(args, url);
+  for (let i = 2; i <= attempts && last.status !== 0 && CONNECTION_ERROR.test(last.out); i++) {
+    console.log(`  ↻ সংযোগ ব্যর্থ (Neon জেগে উঠছে?) — চেষ্টা ${i}/${attempts} …`);
+    // ★ ~4s বিরতি — Neon সাধারণত কয়েক সেকেন্ডে জাগে
+    spawnSync(process.execPath, ['-e', 'setTimeout(()=>{},4000)']);
+    last = runPrismaOnce(args, url);
+  }
+  return last;
 }
 
 console.log('═══ যাচাই — স্থাপনার DB-তে মাইগ্রেশন সম্পূর্ণ প্রয়োগ ═══\n');
