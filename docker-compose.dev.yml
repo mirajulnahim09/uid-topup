@@ -1,0 +1,54 @@
+# ═══════════════════════════════════════════════════════════
+# ★★★ ডেভেলপমেন্ট ডাটাবেস — `next dev` এর জন্য
+#
+#   npm run dev:db:up     → চালু
+#   npm run dev:db:sync   → প্রোডাকশনের **স্কিমা** (ডেটা নয়) এখানে আনা
+#   npm run dev:db:down   → বন্ধ (ভলিউম থাকে)
+#   npm run dev:db:reset  → বন্ধ + ভলিউম মুছে ফেলা
+#
+#   ⚠️⚠️ কেন এটি দরকার হলো: `.env` এর `DATABASE_URL` লাইভ Neon-এ যেত,
+#   তাই `npm run dev` ও ব্রাউজারে প্রতিটি ক্লিক **আসল গ্রাহকের ডেটায়**
+#   লিখত। ঠিক এই কারণেই ২০২৬-০৮-১১ তারিখে Group E/F/H-এর মাইগ্রেশন-ফাঁক
+#   এতদিন ধরা পড়েনি — ডেভ ও প্রোড একই ডাটাবেস হলে drift দেখার উপায় নেই।
+#
+#   ⚠️ টেস্ট DB (docker-compose.test.yml, পোর্ট 5433) **পুনর্ব্যবহার করা
+#   হয়নি**, ইচ্ছাকৃতভাবে। কারণ দুটি:
+#     ১. টেস্ট প্রতিটি টেবিল truncate করে — ডেভ ডেটা প্রতি `npm test`-এ
+#        মুছে যেত।
+#     ২. সেটি tmpfs-এ চলে, তাই কনটেইনার রিস্টার্টেই সব উধাও।
+#   ডেভের দরকার টেকসই ডেটা, তাই আলাদা কনটেইনার + নামযুক্ত ভলিউম।
+#
+#   ⚠️ ইমেজ `postgres:18` — কারণ লাইভ Neon-ও **18.4** চালায়। ১৬ দিলে
+#   প্রোডাকশনের pg_dump (v18) এখানে রিস্টোর করাই যেত না, আর ভার্সন-ভেদে
+#   আচরণের পার্থক্য ডেভে ধরা পড়ত না।
+#   (উল্লেখ্য: টেস্ট DB এখনো postgres:16 — সেটি আলাদা ব্যাপার, নিচে
+#    PROGRESS.md-এ নথিভুক্ত।)
+#
+#   পোর্ট 5434 — 5432 (স্থানীয় Postgres) ও 5433 (টেস্ট) এড়াতে।
+# ═══════════════════════════════════════════════════════════
+services:
+  dev-db:
+    image: postgres:18
+    container_name: uidtopup-dev-db
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: uidtopup_dev
+    ports:
+      - '5434:5432'
+    # ★ নামযুক্ত ভলিউম — টেস্ট DB এর tmpfs এর বিপরীত। ডেভে বানানো
+    #   অর্ডার/ইউজার রিস্টার্টের পরেও থাকা দরকার।
+    #
+    # ⚠️ mount `/var/lib/postgresql`, `/var/lib/postgresql/data` **নয়**।
+    #   postgres:18 থেকে ডেটা মেজর-ভার্সনের সাব-ডিরেক্টরিতে (…/18/docker)
+    #   থাকে। পুরনো পাথে mount করলে কনটেইনার চালুতেই exit 1 করে।
+    volumes:
+      - uidtopup-dev-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U dev -d uidtopup_dev']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  uidtopup-dev-db-data:

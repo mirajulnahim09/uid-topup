@@ -21,7 +21,13 @@
     "test:db:up": "docker compose -f docker-compose.test.yml up -d --wait",
     "test:db:down": "docker compose -f docker-compose.test.yml down -v",
     "test": "node scripts/test-run.mjs",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dev:db:up": "docker compose -f docker-compose.dev.yml up -d --wait",
+    "dev:db:down": "docker compose -f docker-compose.dev.yml down",
+    "dev:db:reset": "docker compose -f docker-compose.dev.yml down -v",
+    "dev:db:sync": "node scripts/dev-db-sync.mjs",
+    "dev:db:seed": "node scripts/dev-db-seed.mjs",
+    "verify:migrate-status": "tsx scripts/verify/migrate-status.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
