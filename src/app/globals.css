@@ -1352,6 +1352,27 @@ body:has(.v-ovl) .v-flow-line { animation-play-state:paused !important; }
   }
   .lux-text, .dsp { color:#000 !important; -webkit-text-fill-color:#000 !important; background:none !important; }
   a[href]::after { content:""; }  /* URL ছাপানো হয় না — অগোছালো লাগে */
+
+  /* ★★★ চালান (Group I ২) — `/account/orders/[id]/invoice`
+     এটিই সেই পাতা যা গ্রাহক PDF হিসেবে রাখবেন, তাই কাগজে এটি
+     একটি নথির মতো দেখতে হবে — কার্ড নয়।
+
+     ⚠️ টোকেন নয়, সরাসরি কালো-সাদা: প্রিন্টে `var(--v-mut)` ইত্যাদি
+     হালকা ধূসর হয়ে প্রায় অদৃশ্য হয়ে যায়, আর অনেক প্রিন্টারে
+     ব্যাকগ্রাউন্ড রং আদৌ ছাপে না। */
+  .invoice-sheet {
+    border:0 !important; padding:0 !important;
+    box-shadow:none !important; background:#fff !important;
+    color:#000 !important;
+  }
+  /* inline `style` দিয়ে বসানো টোকেন-রংগুলো ছাপার জন্য অগ্রাহ্য */
+  .invoice-sheet * { color:#000 !important; }
+  .invoice-sheet [style*="--v-mut"] { color:#444 !important; }
+  .invoice-sheet [style*="--v-edge"] { border-color:#bbb !important; }
+  .invoice-sheet table { break-inside:avoid; }
+
+  /* ★ A4-তে যুক্তিসঙ্গত মার্জিন — নাহলে ব্রাউজার-ভেদে কাটাকুটি হয় */
+  @page { size:A4; margin:16mm; }
 }
 
 /* ═══════════ স্পর্শ-লক্ষ্যের মেঝে ═══════════

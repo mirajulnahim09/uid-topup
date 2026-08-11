@@ -174,7 +174,7 @@ export default async function OrderDetail({
 
         {/* ★ রসিদ সংরক্ষণ ও ট্র্যাকিং লিংক */}
         <div className="mt-5 border-t pt-4" style={{ borderColor: 'var(--hair)' }}>
-          <ReceiptActions trackToken={order.trackToken} />
+          <ReceiptActions trackToken={order.trackToken} orderId={order.id} />
         </div>
       </section>
 

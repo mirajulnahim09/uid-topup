@@ -11,7 +11,14 @@ import { useToast } from '@/components/Toast';
  *   **স্থায়ী প্রমাণ** — যেটা সে রেখে দিতে পারে, বা পরে
  *   লগইন ছাড়াই খুলে দেখতে পারে (MANUAL_WORKFLOW.md A6)।
  */
-export default function ReceiptActions({ trackToken }: { trackToken: string | null }) {
+export default function ReceiptActions({
+  trackToken,
+  orderId,
+}: {
+  trackToken: string | null;
+  /** ★ Group I (২) — চালান পাতার লিংকের জন্য */
+  orderId: string;
+}) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
 
@@ -30,6 +37,12 @@ export default function ReceiptActions({ trackToken }: { trackToken: string | nu
 
   return (
     <div className="flex flex-wrap gap-2 print:hidden">
+      {/* ★ Group I (২) — প্রকৃত চালান। এই পাতাটি প্রিন্ট করলে
+          টাইমলাইন/SLA সহ পুরো স্ট্যাটাস পাতা কাগজে যেত, যা চালান নয়। */}
+      <Link href={`/account/orders/${orderId}/invoice`} className="btn-ghost px-4 text-sm">
+        🧾 চালান দেখুন
+      </Link>
+
       <button onClick={() => window.print()} className="btn-ghost px-4 text-sm">
         🖨 রসিদ সংরক্ষণ
       </button>
