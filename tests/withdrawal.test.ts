@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../vitest.setup';
 import { createUser, balanceOf, ledgerSum } from './helpers/factories';
+import { client, signedInUser } from './helpers/app';
 import {
   requestWithdrawal, approveWithdrawal, rejectWithdrawal,
   withdrawableAmount, WITHDRAWAL_KEYS,
@@ -326,5 +327,42 @@ describe('খতিয়ান invariant — প্রত্যাহারস�
       // ★★★ কোনো অবস্থাতেই ঋণাত্মক নয়
       expect(bal).toBeGreaterThanOrEqual(0);
     }
+  });
+});
+
+describe('প্রত্যাহার — পাতা ও গার্ড', () => {
+  it('সাধারণ ইউজার অ্যাডমিন সারিতে ঢুকতে পারে না', async () => {
+    const { client: c } = await signedInUser(db, {});
+    expect((await c.get('/api/admin/withdrawals')).status).toBe(403);
+  });
+
+  it('লগইন ছাড়া প্রত্যাহার API ছোঁয়া যায় না', async () => {
+    expect((await client().get('/api/account/withdraw')).status).toBe(401);
+    expect(
+      (await client().post('/api/account/withdraw', {
+        amount: 100, method: 'BKASH', accountNumber: '01712345678', code: '123456',
+      })).status,
+    ).toBe(401);
+  });
+
+  /** ★★★ কোড ছাড়া টাকা বেরোতে পারবে না */
+  it('OTP ছাড়া অনুরোধ প্রত্যাখ্যাত ও ব্যালেন্স অক্ষত', async () => {
+    await enable();
+    const { user, client: c } = await signedInUser(db, {});
+    await fund(user.id, 2000);
+
+    const res = await c.post('/api/account/withdraw', {
+      amount: 500, method: 'BKASH', accountNumber: '01712345678', code: '000000',
+    });
+
+    expect(res.status).toBe(400);
+    expect(Number(await balanceOf(db, user.id))).toBe(2000);
+    expect(await db.withdrawal.count()).toBe(0);
+  });
+
+  it('ফিচার বন্ধ থাকলে গ্রাহকের পাতা সেটিই বলে', async () => {
+    const { client: c } = await signedInUser(db, {});
+    const html = await (await c.raw('/account/wallet/withdraw')).text();
+    expect(html).toContain('এখনো চালু হয়নি');
   });
 });

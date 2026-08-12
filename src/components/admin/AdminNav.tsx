@@ -18,6 +18,8 @@ const LINKS = [
   { href: '/admin/logs', label: 'লগ', icon: '📋' },
   // ★ Group I (৪) — গ্রাহকের অভিযোগ ও বিরোধ
   { href: '/admin/tickets', label: 'টিকিট', icon: '💬' },
+  // ★ Group I (৫) — ওয়ালেট থেকে টাকা তোলার অনুরোধ
+  { href: '/admin/withdrawals', label: 'টাকা তোলা', icon: '🏧' },
   { href: '/admin/payments', label: 'পেমেন্ট', icon: '💳' },
   { href: '/admin/integrations', label: 'ইন্টিগ্রেশন', icon: '🔌' },
   // ★ Group I (৩) — ইন্টিগ্রেশনের পাশে, কারণ এটিও বাইরের সার্ভিসের কনফিগ
