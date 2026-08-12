@@ -67,6 +67,8 @@ model User {
   notifications Notification[]
   reviews       Review[]
   apiKeys       ApiKey[]
+  /// ★ Group I (৪) — সাপোর্ট টিকিট ও বিরোধ-থ্রেড
+  tickets       Ticket[]
 
   @@index([createdAt])
   @@index([referredById])
@@ -546,6 +548,8 @@ model Order {
   coupon  Coupon?      @relation(fields: [couponId], references: [id], onDelete: SetNull)
   events  OrderEvent[]
   review  Review?
+  /// ★ Group I (৪) — এই অর্ডার নিয়ে খোলা টিকিট/বিরোধ
+  tickets Ticket[]
 
   @@unique([userId, clientRef])
   @@index([userId])
@@ -924,4 +928,86 @@ model Otp {
   @@index([destination, purpose, consumedAt])
   /// ★ মেয়াদোত্তীর্ণ সারি পরিষ্কার করার cron এটি ব্যবহার করে
   @@index([expiresAt])
+}
+
+/// ★★★ Group I (৪) — টিকিটের অবস্থা
+enum TicketStatus {
+  /// গ্রাহক খুলেছেন, অ্যাডমিন এখনো উত্তর দেননি
+  OPEN
+  /// অ্যাডমিন উত্তর দিয়েছেন, গ্রাহকের পালা
+  ANSWERED
+  /// নিষ্পত্তি হয়েছে
+  CLOSED
+}
+
+/// ★ কী নিয়ে টিকিট — অ্যাডমিনের অগ্রাধিকার ঠিক করতে
+enum TicketKind {
+  /// সাধারণ প্রশ্ন
+  GENERAL
+  /// ⚠️ অর্ডার পাইনি / ভুল পেয়েছি — টাকার সাথে জড়িত, তাই আলাদা
+  DISPUTE
+}
+
+/// ═══════════════════════════════════════════════════════════
+/// ★★★ Group I (৪) — ইন-অ্যাপ টিকিট ও বিরোধ-থ্রেড
+///
+///   ⚠️ কেন দরকার: আজ গ্রাহক `deliveryDisputedAt` দিয়ে কেবল একটি
+///   **পতাকা** তুলতে পারেন — "পাইনি"। তারপর কথা বলার জায়গা নেই,
+///   একমাত্র পথ Tawk.to, যা সাইটের বাইরে ও কোনো ইতিহাস রাখে না।
+///   ফলে বিরোধের প্রমাণ কোথাও থাকে না — টাকার বিরোধে যা সবচেয়ে
+///   দরকারি জিনিস।
+///
+///   ⚠️ `orderId` NULLable: সব টিকিট অর্ডার-সংক্রান্ত নয়। কিন্তু
+///   DISPUTE হলে থাকা উচিত, আর সেটি রুট-হ্যান্ডলার যাচাই করে
+///   (schema-তে বাধ্য করলে সাধারণ প্রশ্নও আটকে যেত)।
+///
+///   ⚠️ অর্ডার মুছে গেলে টিকিট **থেকে যায়** (`SetNull`) — বিরোধের
+///   ইতিহাস আর্থিক রেকর্ড, মুছে ফেলা যাবে না (CLAUDE.md §2.1(৫))।
+/// ═══════════════════════════════════════════════════════════
+model Ticket {
+  id      String       @id @default(cuid())
+  userId  String
+  orderId String?
+  kind    TicketKind   @default(GENERAL)
+  status  TicketStatus @default(OPEN)
+
+  /// ★ ছোট বিষয়, তালিকায় দেখানোর জন্য
+  subject String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  /// ★ শেষ বার্তা কখন — তালিকা সাজানোর জন্য (updatedAt স্ট্যাটাস
+  ///   বদলালেও নড়ে, তাই আলাদা)
+  lastMessageAt DateTime @default(now())
+  closedAt      DateTime?
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order    Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  messages TicketMessage[]
+
+  /// ★ গ্রাহকের তালিকা: নিজের টিকিট, নতুনতম আগে
+  @@index([userId, lastMessageAt])
+  /// ★ অ্যাডমিনের সারি: খোলা টিকিট আগে
+  @@index([status, lastMessageAt])
+}
+
+/// ★ থ্রেডের একটি বার্তা
+model TicketMessage {
+  id       String @id @default(cuid())
+  ticketId String
+
+  /// ★ কে লিখল — `null` মানে সিস্টেম-বার্তা (স্ট্যাটাস বদল ইত্যাদি)
+  authorId String?
+  /// ★ নাম snapshot — অ্যাডমিন ডিলিট হলেও "কে লিখেছিল" পড়া যায়
+  authorName String
+  /// ★★★ অ্যাডমিনের বার্তা কি না। relation দিয়ে বের করা যেত, কিন্তু
+  ///     ইউজার ডিলিট হলে সেটি হারাত — আর "কে বলেছিল" বিরোধে মূল প্রশ্ন।
+  isStaff Boolean @default(false)
+
+  body      String
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
 }

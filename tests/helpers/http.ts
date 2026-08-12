@@ -76,6 +76,17 @@ export class Client {
     );
   }
 
+  /** ★ Group I (৪) — টিকিট বন্ধ করা PATCH ব্যবহার করে */
+  async patch<T = any>(path: string, data: unknown): Promise<ApiResult<T>> {
+    return this.toResult<T>(
+      await this.raw(path, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    );
+  }
+
   /** ★ Group I (৩) — `/api/admin/otp` এর "Test connection" PUT ব্যবহার করে */
   async put<T = any>(path: string, data: unknown): Promise<ApiResult<T>> {
     return this.toResult<T>(
