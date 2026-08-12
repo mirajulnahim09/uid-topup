@@ -69,6 +69,8 @@ model User {
   apiKeys       ApiKey[]
   /// ★ Group I (৪) — সাপোর্ট টিকিট ও বিরোধ-থ্রেড
   tickets       Ticket[]
+  /// ★ Group I (৫) — ওয়ালেট থেকে টাকা তোলার অনুরোধ
+  withdrawals   Withdrawal[]
 
   @@index([createdAt])
   @@index([referredById])
@@ -692,6 +694,14 @@ enum LedgerType {
   REFUND
   ADMIN_ADJUST
   REFERRAL_BONUS
+  /// ★★★ Group I (৫) — প্রত্যাহারের অনুরোধে ব্যালেন্স কাটা।
+  ///     ⚠️ কাটা হয় **অনুরোধের সময়**, অনুমোদনের সময় নয় — নাহলে দুটি
+  ///     অনুরোধ একই টাকার উপর একসাথে ঝুলে থাকতে পারত।
+  WITHDRAWAL
+  /// ★★★ প্রত্যাখ্যানে টাকা ফেরত। **আলাদা টাইপ**, কারণ মূল
+  ///     `WITHDRAWAL` সারিটি কখনো মোছা বা সম্পাদনা করা হয় না
+  ///     (CLAUDE.md §2.1(৫)) — উল্টো একটি নতুন সারি লেখা হয়।
+  WITHDRAWAL_REVERSAL
 }
 
 // ═════════ NOTIFICATION ═════════
@@ -888,6 +898,8 @@ enum OtpPurpose {
   REGISTER
   PHONE_ADD
   DEPOSIT
+  /// ★ Group I (৫) — প্রত্যাহারের অনুরোধে বাধ্যতামূলক যাচাই
+  WITHDRAW
 }
 
 /// ═══════════════════════════════════════════════════════════
@@ -1010,4 +1022,71 @@ model TicketMessage {
   ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId, createdAt])
+}
+
+/// ★★★ Group I (৫) — প্রত্যাহারের অবস্থা
+enum WithdrawalStatus {
+  /// অনুরোধ এসেছে, টাকা **কেটে নেওয়া হয়েছে**, অ্যাডমিনের অপেক্ষায়
+  PENDING
+  /// ঝুঁকির কারণে আটকানো — অ্যাডমিন না দেখা পর্যন্ত সারিতে ঢোকে না
+  HELD
+  /// অনুমোদিত ও হাতে পরিশোধ করা হয়েছে
+  APPROVED
+  /// প্রত্যাখ্যাত — টাকা খতিয়ানের মাধ্যমে ফেরত গেছে
+  REJECTED
+}
+
+/// ═══════════════════════════════════════════════════════════
+/// ★★★ Group I (৫) — ওয়ালেট থেকে টাকা তোলা
+///
+///   ⚠️⚠️ এতদিন টাকা কেবল **ঢুকত**; বেরোনোর একমাত্র পথ ছিল রিফান্ড।
+///   এটি প্রথম পথ যেখানে গ্রাহকের নির্দেশে টাকা বাইরে যায়, তাই
+///   এখানকার প্রতিটি নিয়ম ইচ্ছাকৃত।
+///
+///   ⚠️ **ডিফল্টে বন্ধ** (`withdrawal_enabled`)। সক্ষমতা তৈরি ও
+///   পরীক্ষিত, কিন্তু মালিক নিজে চালু না করা পর্যন্ত এক টাকাও
+///   বেরোতে পারবে না।
+///
+///   ⚠️ ব্যালেন্স কাটা হয় **অনুরোধের সময়**, অনুমোদনের সময় নয়।
+///   অনুমোদনে কাটলে একই ব্যালেন্সের উপর একাধিক অনুরোধ একসাথে ঝুলে
+///   থাকতে পারত, আর অ্যাডমিন দুটোই অনুমোদন করলে ব্যালেন্স ঋণাত্মক
+///   হয়ে যেত।
+///
+///   ⚠️ কোনো স্বয়ংক্রিয় পরিশোধ নেই। অ্যাডমিন হাতে টাকা পাঠিয়ে
+///   `payoutRef`-এ লেনদেন নম্বর লেখেন।
+/// ═══════════════════════════════════════════════════════════
+model Withdrawal {
+  id     String @id @default(cuid())
+  userId String
+
+  amount Decimal @db.Decimal(12, 2)
+  /// বিকাশ / নগদ / রকেট — গ্রাহক যেখানে টাকা চান
+  method        String
+  accountNumber String
+
+  status WithdrawalStatus @default(PENDING)
+
+  /// ★ `Deposit` এর মতোই ঝুঁকির snapshot (Group H এর enum পুনঃব্যবহার)
+  riskLevel DepositRisk @default(NORMAL)
+  riskNote  String?
+  heldAt    DateTime?
+
+  /// ★ অ্যাডমিনের সিদ্ধান্ত
+  adminNote String?
+  /// ★ হাতে পাঠানো পরিশোধের লেনদেন নম্বর — অনুমোদনে বাধ্যতামূলক
+  payoutRef String?
+
+  processedById   String?
+  processedByName String?
+  processedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  /// ★ "একজনের একটিই ঝুলন্ত অনুরোধ" যাচাই এই ইনডেক্স ব্যবহার করে
+  @@index([userId, status])
+  /// ★ অ্যাডমিনের সারি
+  @@index([status, createdAt])
 }

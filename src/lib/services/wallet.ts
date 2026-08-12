@@ -26,7 +26,16 @@ import { ApiError } from '../guard';
  *     কলারই `SELECT ... FOR UPDATE` করে, আগের মতোই।
  */
 
-export type LedgerType = 'DEPOSIT' | 'ORDER' | 'REFUND' | 'ADMIN_ADJUST' | 'REFERRAL_BONUS';
+export type LedgerType =
+  | 'DEPOSIT'
+  | 'ORDER'
+  | 'REFUND'
+  | 'ADMIN_ADJUST'
+  | 'REFERRAL_BONUS'
+  /** ★ Group I (৫) — অনুরোধের সময় কাটা */
+  | 'WITHDRAWAL'
+  /** ★ প্রত্যাখ্যানে ফেরত — মূল সারি কখনো সম্পাদনা নয় */
+  | 'WITHDRAWAL_REVERSAL';
 
 type MoveArgs = {
   tx: Prisma.TransactionClient;
