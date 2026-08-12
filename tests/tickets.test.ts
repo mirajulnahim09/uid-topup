@@ -214,6 +214,24 @@ describe('টিকিট — অ্যাডমিন সারি', () => {
     expect(thread.status).toBe(200);
   });
 
+  /** ★ API নয়, **পাতা** — গার্ড দুই জায়গাতেই থাকতে হবে */
+  it('অ্যাডমিন পাতা সাধারণ ইউজারের কাছে টিকিট দেখায় না', async () => {
+    const { client: c } = await signedInUser(db, {});
+    await openTicket(c, { subject: 'অ্যাডমিন-পাতা ফাঁস পরীক্ষা' });
+
+    const html = await (await c.raw('/admin/tickets')).text();
+    expect(html).not.toContain('অ্যাডমিন-পাতা ফাঁস পরীক্ষা');
+  });
+
+  it('অ্যাডমিন পাতা সারিতে টিকিট দেখায়', async () => {
+    const { client: c } = await signedInUser(db, {});
+    await openTicket(c, { subject: 'সারিতে দেখা যাবে' });
+
+    const { client: ac } = await signedInAdmin(db);
+    const html = await (await ac.raw('/admin/tickets')).text();
+    expect(html).toContain('সারিতে দেখা যাবে');
+  });
+
   it('অ্যাডমিনের বার্তা isStaff = true হিসেবে লেখা হয়', async () => {
     const { client: c } = await signedInUser(db, {});
     const id = (await openTicket(c)).body.ticket.id;
