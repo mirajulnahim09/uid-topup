@@ -21,11 +21,12 @@ public/uploads/
 # ★ scripts/pw-server.ts এর ws endpoint — প্রতি সেশনে বদলায়, মেশিন-নির্দিষ্ট
 ws.txt
 
-# ★ `npm run dev > .dev-server.log
-# ★ scripts/pw-server.ts এর লগ — ws endpoint ও মেশিন-নির্দিষ্ট পাথ
-.pw-server.log` — ব্রাউজারে যাচাইয়ের সময়কার লগ।
+# ★ `npm run dev > .dev-server.log` — ব্রাউজারে যাচাইয়ের সময়কার লগ।
 #   মেশিন-নির্দিষ্ট পাথ ও স্ট্যাক ট্রেস থাকে, সোর্স নয়।
 .dev-server.log
+
+# ★ scripts/pw-server.ts এর লগ — ws endpoint ও মেশিন-নির্দিষ্ট পাথ
+.pw-server.log
 
 # ★ vitest এর JSON ফলাফল — test-run.mjs ব্যর্থ টেস্টের নাম ছাপতে ও
 #   test-flaky.mjs বহু রানের ফল জড়ো করতে এটি পড়ে। প্রতি রানে নতুন।
