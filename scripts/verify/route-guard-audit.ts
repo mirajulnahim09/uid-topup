@@ -31,6 +31,10 @@ const INTENTIONALLY_PUBLIC: Record<string, string> = {
   'track': 'অর্ডার নং + ফোন দিয়ে ট্র্যাক; কড়া IP rate-limit',
   'health': 'আপটাইম প্রোব — কোনো সংবেদনশীল তথ্য নেই',
   'search': 'পাবলিক ক্যাটালগ সার্চ — যা ফেরে তা হোমপেজেই খোলা; IP rate-limit',
+  // ★ Group I (৩) — ইউজার এখনো তৈরিই হয়নি, তাই গার্ড দেওয়া অসম্ভব।
+  //   সুরক্ষা: fail-closed IP rate-limit + গন্তব্য-ভিত্তিক চেষ্টা-গণনা,
+  //   আর উত্তর নিবন্ধিত/অনিবন্ধিত দুই ক্ষেত্রেই হুবহু এক (enumeration বন্ধ)।
+  'auth/otp/send': 'রেজিস্ট্রেশনের কোড — ইউজার তৈরির আগে; fail-closed rate-limit',
   'uid/recent': 'সাম্প্রতিক যাচাই-করা UID (সর্বজনীন শোকেস)',
   'webhooks/payment/[provider]': 'গেটওয়ে কল করে; স্বাক্ষর যাচাই দিয়ে সুরক্ষিত',
   'cron/telegram-scheduler': 'assertCronAuth (Bearer CRON_SECRET)',
