@@ -76,6 +76,17 @@ export class Client {
     );
   }
 
+  /** ★ Group I (৩) — `/api/admin/otp` এর "Test connection" PUT ব্যবহার করে */
+  async put<T = any>(path: string, data: unknown): Promise<ApiResult<T>> {
+    return this.toResult<T>(
+      await this.raw(path, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    );
+  }
+
   private async toResult<T>(res: Response): Promise<ApiResult<T>> {
     const text = await res.text();
     let body: unknown = text;

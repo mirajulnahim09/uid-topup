@@ -18,6 +18,8 @@ const LINKS = [
   { href: '/admin/logs', label: 'লগ', icon: '📋' },
   { href: '/admin/payments', label: 'পেমেন্ট', icon: '💳' },
   { href: '/admin/integrations', label: 'ইন্টিগ্রেশন', icon: '🔌' },
+  // ★ Group I (৩) — ইন্টিগ্রেশনের পাশে, কারণ এটিও বাইরের সার্ভিসের কনফিগ
+  { href: '/admin/otp', label: 'যাচাই কোড', icon: '🔐' },
   { href: '/admin/telegram', label: 'টেলিগ্রাম', icon: '✈️' },
   { href: '/admin/tools', label: 'টুলস', icon: '🛠️' },
   { href: '/admin/branding', label: 'ব্র্যান্ডিং', icon: '🎨' },
