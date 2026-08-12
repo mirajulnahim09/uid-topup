@@ -150,13 +150,25 @@ export default function DeliveryConfirm({
         </h2>
         <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--mut)' }}>
           আপনি জানিয়েছেন ডেলিভারি পাননি। আমাদের টিমকে খবর দেওয়া হয়েছে —
-          তারা গেমের রেকর্ড মিলিয়ে দেখবে। দ্রুত সমাধানের জন্য অর্ডার নাম্বার{' '}
-          <span className="font-mono" style={{ color: 'var(--ink)' }}>#{orderNo}</span>{' '}
-          উল্লেখ করে সাপোর্টে মেসেজ দিন।
+          তারা গেমের রেকর্ড মিলিয়ে দেখবে। অর্ডার নাম্বার{' '}
+          <span className="font-mono" style={{ color: 'var(--ink)' }}>#{orderNo}</span>।
         </p>
-        <Link href="/contact" className="btn-primary mt-4 px-5 text-sm">
-          সাপোর্টে যোগাযোগ
+
+        {/* ★★★ Group I (৪) — এখান থেকেই বিরোধ-থ্রেড।
+            ⚠️ আগে এটি `/contact` (Tawk.to) এ পাঠাত — সাইটের বাইরে, কোনো
+            ইতিহাস থাকত না, আর অর্ডারের সাথে সংযোগও না। টাকার বিরোধে
+            "কে কী দাবি করেছিল" রেকর্ড না থাকাই সবচেয়ে বড় ফাঁক ছিল।
+            টিকিটে অর্ডারটি আগেই বাছা থাকে, তাই গ্রাহককে নম্বর মনে
+            রেখে টাইপ করতে হয় না। */}
+        <Link
+          href={`/account/tickets?order=${orderId}`}
+          className="btn-primary mt-4 px-5 text-sm"
+        >
+          সমস্যা বিস্তারিত জানান
         </Link>
+        <p className="mt-2 text-xs" style={{ color: 'var(--mut)' }}>
+          পুরো কথোপকথন এখানেই সংরক্ষিত থাকবে।
+        </p>
       </div>
     );
   }

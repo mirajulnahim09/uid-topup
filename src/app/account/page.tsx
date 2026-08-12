@@ -107,6 +107,8 @@ export default async function AccountPage() {
           { href: '/account/orders', icon: 'box' as const, label: 'অর্ডার' },
           { href: '/account/wallet/deposit', icon: 'wallet' as const, label: 'টাকা যোগ' },
           { href: '/account/notifications', icon: 'bell' as const, label: 'নোটিফিকেশন' },
+          // ★ Group I (৪) — সাপোর্ট টিকিট
+          { href: '/account/tickets', icon: 'chat' as const, label: 'সাপোর্ট' },
           { href: '/account/profile', icon: 'gear' as const, label: 'সেটিংস' },
         ].map((l) => (
           <a

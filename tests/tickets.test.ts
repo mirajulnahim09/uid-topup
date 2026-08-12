@@ -81,6 +81,40 @@ describe('টিকিট — তৈরি', () => {
   });
 });
 
+describe('টিকিট — পাতা', () => {
+  it('তালিকা সার্ভার-রেন্ডার হয় ও নিজের টিকিট দেখায়', async () => {
+    const { client: c } = await signedInUser(db, {});
+    await openTicket(c, { subject: 'আমার নিজের টিকিট' });
+
+    const html = await (await c.raw('/account/tickets')).text();
+    expect(html).toContain('আমার নিজের টিকিট');
+  });
+
+  it('থ্রেড পাতায় অন্যের টিকিট খোলা যায় না', async () => {
+    const { client: ownerC } = await signedInUser(db, {});
+    const id = (await openTicket(ownerC, { subject: 'গোপন থ্রেড ABC' })).body.ticket.id;
+
+    const { client: otherC } = await signedInUser(db, {});
+    const html = await (await otherC.raw(`/account/tickets/${id}`)).text();
+    expect(html).not.toContain('গোপন থ্রেড ABC');
+  });
+
+  /** ★ `?order=` — অর্ডার পাতার "সমস্যা জানান" এই পথেই আসে */
+  it('অর্ডার-preset সহ পাতা খোলে', async () => {
+    const variant = await createVariant(db, { price: 100, stock: 5 });
+    const { client: c } = await signedInUser(db, { balance: 500 });
+    const ord = await c.post<{ orderNo: number }>('/api/order', {
+      variantId: variant.id, playerUid: '999888777',
+    });
+    const order = (await db.order.findFirst({ where: { orderNo: ord.body.orderNo } }))!;
+
+    const res = await c.raw(`/account/tickets?order=${order.id}`);
+    expect(res.status).toBe(200);
+    // ★ ড্রপডাউনে অর্ডারটি থাকতে হবে, নাহলে বিরোধ খোলাই যেত না
+    expect(await res.text()).toContain(String(order.orderNo));
+  });
+});
+
 describe('টিকিট — কে পড়তে ও লিখতে পারে', () => {
   it('অন্যের থ্রেড পড়া যায় না (৪০৪, ফাঁস নেই)', async () => {
     const { client: ownerC } = await signedInUser(db, {});
