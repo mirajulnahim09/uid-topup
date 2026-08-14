@@ -1,6 +1,6 @@
 {
   "base": "https://localhost:3443",
-  "at": "2026-08-14T17:48:48.593Z",
+  "at": "2026-08-14T20:07:56.543Z",
   "auth": {
     "customer-mobile": {
       "chain": [
@@ -42,7 +42,7 @@
           "id": "cmss1fegc0000wkl4esadjace",
           "role": "USER"
         },
-        "expires": "2026-09-13T17:52:03.895Z"
+        "expires": "2026-09-13T20:11:11.155Z"
       },
       "finalUrl": "https://localhost:3443/account",
       "landedOn": "/account",
@@ -91,7 +91,7 @@
           "id": "cmss1bti70000w884xdv5kbv4",
           "role": "ADMIN"
         },
-        "expires": "2026-09-13T17:54:17.714Z"
+        "expires": "2026-09-13T20:13:23.936Z"
       },
       "finalUrl": "https://localhost:3443/admin",
       "landedOn": "/admin",
@@ -139,7 +139,7 @@
           "id": "cmss1fegc0000wkl4esadjace",
           "role": "USER"
         },
-        "expires": "2026-09-13T18:01:25.072Z"
+        "expires": "2026-09-13T20:20:34.283Z"
       },
       "finalUrl": "https://localhost:3443/account",
       "landedOn": "/account",
@@ -188,7 +188,7 @@
           "id": "cmss1bti70000w884xdv5kbv4",
           "role": "ADMIN"
         },
-        "expires": "2026-09-13T18:02:50.740Z"
+        "expires": "2026-09-13T20:22:00.767Z"
       },
       "finalUrl": "https://localhost:3443/admin",
       "landedOn": "/admin",

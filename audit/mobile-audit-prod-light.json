@@ -1,6 +1,6 @@
 {
   "base": "https://localhost:3443",
-  "at": "2026-08-14T17:19:59.973Z",
+  "at": "2026-08-14T20:26:54.317Z",
   "auth": {
     "customer-mobile": {
       "chain": [
@@ -42,7 +42,7 @@
           "id": "cmss1fegc0000wkl4esadjace",
           "role": "USER"
         },
-        "expires": "2026-09-13T17:23:17.612Z"
+        "expires": "2026-09-13T20:30:08.010Z"
       },
       "finalUrl": "https://localhost:3443/account",
       "landedOn": "/account",
@@ -91,7 +91,7 @@
           "id": "cmss1bti70000w884xdv5kbv4",
           "role": "ADMIN"
         },
-        "expires": "2026-09-13T17:25:32.064Z"
+        "expires": "2026-09-13T20:32:20.648Z"
       },
       "finalUrl": "https://localhost:3443/admin",
       "landedOn": "/admin",
@@ -139,7 +139,7 @@
           "id": "cmss1fegc0000wkl4esadjace",
           "role": "USER"
         },
-        "expires": "2026-09-13T17:32:48.549Z"
+        "expires": "2026-09-13T20:39:32.974Z"
       },
       "finalUrl": "https://localhost:3443/account",
       "landedOn": "/account",
@@ -188,7 +188,7 @@
           "id": "cmss1bti70000w884xdv5kbv4",
           "role": "ADMIN"
         },
-        "expires": "2026-09-13T17:34:19.723Z"
+        "expires": "2026-09-13T20:40:59.549Z"
       },
       "finalUrl": "https://localhost:3443/admin",
       "landedOn": "/admin",
@@ -229,9 +229,9 @@
           },
           {
             "selector": "button.shrink-0.whitespace-nowrap.rounded-full",
-            "right": 376,
-            "width": 200,
-            "overhang": 56
+            "right": 365,
+            "width": 195,
+            "overhang": 45
           },
           {
             "selector": "div.pointer-events-none.absolute.-bottom-20",

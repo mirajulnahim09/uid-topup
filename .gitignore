@@ -58,3 +58,7 @@ homepage*.png
 research-*.png
 p5-*.png
 p6-*.png
+
+# ★ অডিট রানের কনসোল লগ — ফল JSON-এ, এগুলো কেবল লগ
+.audit-dark.log
+.audit-light.log
