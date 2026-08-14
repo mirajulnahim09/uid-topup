@@ -32,7 +32,7 @@ import { existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 import { db } from '../vitest.setup';
 import { baseUrl } from './helpers/app';
-import { createUser, createAdmin, DEFAULT_PASSWORD } from './helpers/factories';
+import { createUser, createAdmin, createVariant, balanceOf, DEFAULT_PASSWORD } from './helpers/factories';
 import { generateApiKey } from '../src/lib/apiKey';
 
 const EXE = [
@@ -270,5 +270,79 @@ describe('ব্রাউজার smoke (CSP + hydration)', () => {
       }
     },
     150_000,
+  );
+  /**
+   * ═══════════════════════════════════════════════════════════
+   * ★★★ নিশ্চিতকরণ ডায়ালগে দুইবার ক্লিক — একটিই অর্ডার, একবারই চার্জ
+   *
+   *   ── কোন বাগটি এটি আটকায় (প্রোডাকশন বিল্ডে মাপা, ২০২৬-০৮-১৫) ──
+   *   দ্রুত দুইবার ট্যাপে **দুটি অর্ডার** হতো ও ওয়ালেট থেকে **দুইবার**
+   *   টাকা কাটত। কারণ দুটি, দুটোই "গার্ড আছে" মনে হওয়া সত্ত্বেও:
+   *     · গার্ডগুলো React state-এ ছিল — পরের রেন্ডারে বসে, তাই একই
+   *       টিকের দ্বিতীয় ক্লিক তখনো `false` দেখত
+   *     · `ConfirmDialog` এর reset শর্ত ছিল `if (!open)`, আর কলার
+   *       `onConfirm`-এর ভেতরেই ডায়ালগ বন্ধ করে — ফলে গার্ড সাথে
+   *       সাথেই খুলে যেত, অথচ exit-অ্যানিমেশনে বোতামটি আরও ~২০০ms
+   *       ক্লিকযোগ্য থাকত
+   *
+   *   ⚠️ HTTP টেস্ট এটি ধরতে পারে না — সার্ভারের দিক থেকে দুটি বৈধ
+   *      অনুরোধ, ভিন্ন idempotency key নিয়ে। ধরা পড়ে কেবল আসল
+   *      ব্রাউজারে, আসল ডায়ালগে দুইবার ক্লিক করলে।
+   * ═══════════════════════════════════════════════════════════
+   */
+  it.skipIf(!EXE)(
+    'অর্ডার নিশ্চিতকরণে দুইবার ক্লিকেও একটিই অর্ডার ও একবারই চার্জ',
+    async () => {
+      const variant = await createVariant(db, { price: 100, stock: -1 });
+      const user = await createUser(db, { balance: 1000 });
+      const product = await db.product.findFirst({
+        where: { variants: { some: { id: variant.id } } },
+        select: { id: true, slug: true },
+      });
+
+      const browser = await chromium.launch({ headless: true, executablePath: EXE });
+      try {
+        const page = await browser.newPage();
+        await page.goto(`${baseUrl()}/login`, { waitUntil: 'networkidle', timeout: 60_000 });
+        await page.fill('#email', user.email);
+        await page.fill('#pw', DEFAULT_PASSWORD);
+        await page.click('button[type="submit"]');
+        await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 45_000 });
+
+        await page.goto(`${baseUrl()}/product/${product!.id}/${product!.slug}`, {
+          waitUntil: 'networkidle', timeout: 60_000,
+        });
+        await page.waitForFunction(`!document.getElementById('v-boot')`, null, { timeout: 30_000 })
+          .catch(() => {});
+
+        await page.locator('[role="radio"]').first().click();
+        await page.fill('#uid', '123456789');
+        if (await page.locator('#uid2').count()) await page.fill('#uid2', '123456789');
+        const wallet = page.locator('[role="radio"]').filter({ hasText: /Pay With Wallet/i }).first();
+        if (await wallet.count()) await wallet.click().catch(() => {});
+        await page.waitForTimeout(300);
+
+        await page.locator('button', { hasText: /অর্ডার করুন\s*$/ }).last().click({ timeout: 20_000 });
+        await page.waitForTimeout(400);
+
+        // ★★★ দুইবার ক্লিক — দ্বিতীয়টি জোর করে, exit-অ্যানিমেশনের ভেতরেই
+        const ok = page.locator('button', { hasText: 'হ্যাঁ, অর্ডার করুন' }).first();
+        await ok.click({ timeout: 15_000 });
+        await page.waitForTimeout(60);
+        await ok.click({ force: true, timeout: 3000 }).catch(() => {});
+        await page.waitForTimeout(6000);
+
+        const orders = await db.order.count({ where: { userId: user.id } });
+        const entries = await db.ledgerEntry.count({ where: { userId: user.id } });
+        const bal = await balanceOf(db, user.id);
+
+        expect(orders, `${orders}টি অর্ডার তৈরি হয়েছে`).toBe(1);
+        expect(entries, `${entries}টি খতিয়ান এন্ট্রি`).toBe(1);
+        expect(bal, `ব্যালেন্স ৳${bal}`).toBe(900);
+      } finally {
+        await browser.close();
+      }
+    },
+    180_000,
   );
 });

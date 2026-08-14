@@ -194,7 +194,23 @@ export function ConfirmDialog({
   //   ফাঁকে দ্রুত দ্বিতীয় ক্লিক দ্বিতীয়বার onConfirm চালাত (double-order/
   //   double-action)। প্রথম ক্লিকেই বাটন disable করি। open বদলালে reset।
   const [confirming, setConfirming] = useState(false);
-  useEffect(() => { if (!open) setConfirming(false); }, [open]);
+  /**
+   * ★★★ আসল গার্ডটি **ref**, state নয় — আর reset হয় ডায়ালগ **খোলার**
+   *   সময়, বন্ধ হওয়ার সময় নয়।
+   *
+   *   ⚠️ আগের সংস্করণে দুটি ফাঁক ছিল, দুটোই প্রোডাকশন বিল্ডে ব্রাউজারে
+   *   মাপা (২০২৬-০৮-১৫) — ফল: **একই অর্ডারে দুইবার টাকা কাটা**।
+   *
+   *   ফাঁক ১ — `confirming` একটি state, পরের রেন্ডারে বসে; একই টিকে
+   *     আসা দ্বিতীয় ক্লিক তখনো `false` দেখত।
+   *   ফাঁক ২ — reset শর্ত ছিল `if (!open)`। কলার প্রায়ই `onConfirm`-এর
+   *     ভেতরেই ডায়ালগ বন্ধ করে, তাই গার্ড **সাথে সাথেই খুলে যেত**;
+   *     অথচ `AnimatePresence` এর exit-অ্যানিমেশনে বোতামটি আরও ~২০০ms
+   *     DOM-এ থাকে ও ক্লিকযোগ্য। মাপা ফল: ১৩২ms ব্যবধানে দুটি
+   *     `POST /api/order`, দুটি ভিন্ন idempotency key নিয়ে।
+   */
+  const firedRef = useRef(false);
+  useEffect(() => { if (open) { firedRef.current = false; setConfirming(false); } }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -263,10 +279,19 @@ export function ConfirmDialog({
             <div className="mt-6 flex justify-end gap-2">
               <button onClick={onCancel} className="btn-ghost">{cancelLabel}</button>
               <button
-                onClick={() => { if (confirming) return; setConfirming(true); onConfirm(); }}
+                onClick={() => {
+                  // ★ ref সিঙ্ক্রোনাস — একই টিকের দ্বিতীয় ক্লিকও এখানেই থামে
+                  if (firedRef.current) return;
+                  firedRef.current = true;
+                  setConfirming(true);
+                  onConfirm();
+                }}
                 disabled={confirming}
                 autoFocus
                 className={danger ? 'btn-danger' : 'btn-primary'}
+                /* ★ exit-অ্যানিমেশনে বোতামটি DOM-এ থেকে যায় — ক্লিক যেন
+                   সেখানে পৌঁছাতেই না পারে (force-click ও আটকায়) */
+                style={confirming ? { pointerEvents: 'none' } : undefined}
               >
                 {confirmLabel}
               </button>
