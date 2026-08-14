@@ -28,6 +28,10 @@ ws.txt
 # ★ scripts/pw-server.ts এর লগ — ws endpoint ও মেশিন-নির্দিষ্ট পাথ
 .pw-server.log
 
+# ★ `node scripts/audit/mobile-audit.mjs *> .audit-run.log` — রানের কনসোল
+#   আউটপুট। প্রকৃত ফল `audit/mobile-audit.json` এ, এটি কেবল লগ।
+.audit-run.log
+
 # ★ vitest এর JSON ফলাফল — test-run.mjs ব্যর্থ টেস্টের নাম ছাপতে ও
 #   test-flaky.mjs বহু রানের ফল জড়ো করতে এটি পড়ে। প্রতি রানে নতুন।
 .vitest-results.json

@@ -132,9 +132,16 @@ const MEASURE = `(function () {
            || c2.overflowX === 'hidden' || c2.overflowX === 'clip';
     if (!hid) continue;
     /**
-     * ⚠️ বন্ধ `<details>` বাদ — সেটি কন্টেন্ট **লুকিয়ে রাখার
+     * ⚠️ বন্ধ \`<details>\` বাদ — সেটি কন্টেন্ট **লুকিয়ে রাখার
      *   জন্যই** তৈরি। প্রথম রানে হোমপেজের FAQ অ্যাকর্ডিয়নগুলো
      *   "৮৩–১০৬px কাটা" হিসেবে দেখাত, যা সম্পূর্ণ ভুল অভিযোগ।
+     *
+     *   ⚠️⚠️ এই ব্লকটি একটি template literal এর **ভিতরে**, তাই
+     *   এখানে প্রতিটি backtick অবশ্যই escape করতে হবে। না করলে
+     *   literal ওখানেই বন্ধ হয়ে যায় আর ভিতরের লেখাটুকু expression
+     *   হিসেবে evaluate হয় — স্ক্রিপ্ট চালু হওয়ার আগেই
+     *   ReferenceError: details is not defined. ২০২৬-০৮-১৪ তারিখে
+     *   ঠিক তাই ঘটেছিল, এবং কমিট হওয়া কপিটি চলতই না।
      */
     if (e2.tagName === 'DETAILS' && !e2.open) continue;
     if (e2.closest('details:not([open])')) continue;
@@ -220,9 +227,26 @@ async function settle(page) {
   await page.waitForLoadState('domcontentloaded').catch(() => {});
   await page
     .waitForFunction(
-      `!document.querySelector('.v-ovl') && (function(){ var b=document.getElementById('v-boot'); return !b || !b.offsetParent || getComputedStyle(b).opacity === '0'; })()`,
+      /**
+       * ⚠️⚠️ এখানে `offsetParent` **ব্যবহার করা যাবে না**।
+       *
+       *   `#v-boot` হলো `position:fixed`, আর fixed এলিমেন্টের
+       *   `offsetParent` স্পেক অনুযায়ী **সবসময় null**। তাই আগের
+       *   শর্তে `!b.offsetParent` প্রথম মুহূর্তেই সত্য হয়ে যেত এবং
+       *   অপেক্ষাটি সাথে সাথেই শেষ হতো — অর্থাৎ প্রতিটি পাতা মাপা
+       *   হতো **বুট-পর্দা ওঠা অবস্থায়**। ২০২৬-০৮-১৪ এর রানে ঠিক
+       *   তাই হয়েছিল: ৪৭১টি "ঢাকা" অভিযোগের প্রায় সবগুলোই
+       *   `div#v-boot` — একটিও আসল নয়।
+       *
+       *   `BootDismiss` পর্দাটি ৪২০ms পরে DOM থেকে **সরিয়ে** দেয়,
+       *   তাই `!b` ই যথেষ্ট; opacity শর্তটি রাখা হলো নিরাপত্তার
+       *   জন্য (JS ব্যর্থ হলে CSS-এর ৮s safety opacity 0 করে)।
+       */
+      `!document.querySelector('.v-ovl') && (function(){ var b=document.getElementById('v-boot'); return !b || getComputedStyle(b).opacity === '0' || getComputedStyle(b).visibility === 'hidden'; })()`,
       null,
-      { timeout: 15000 },
+      // ⚠️ `next dev` এ প্রতিটি রুট প্রথমবার on-demand কম্পাইল হয়;
+      //    ১৫s এ কুলাত না, তখন বুট-পর্দা ওঠা অবস্থাতেই মাপা হতো।
+      { timeout: 45000 },
     )
     .catch(() => {});
   await page.waitForTimeout(400);
@@ -238,13 +262,33 @@ async function login(ctx, page, creds, wantPath) {
   };
   page.on('response', onResp);
 
-  await page.goto(`${BASE}/login?callbackUrl=${encodeURIComponent(wantPath)}`, { waitUntil: 'domcontentloaded' });
-  await settle(page);
-  await page.fill('input[type="email"]', creds.email);
-  await page.fill('input[type="password"]', creds.password);
-  await page.click('button[type="submit"]');
-  await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 30000 }).catch(() => {});
-  await settle(page);
+  /**
+   * ★ একবার ব্যর্থ হলে বাকেট পরিষ্কার করে **আর একবার** চেষ্টা।
+   *
+   *   ⚠️ কেন দরকার: রান শুরুর সময় বাকেট খালি করা হয়, কিন্তু anon
+   *   পর্বটি ১০ মিনিটের বেশি চলে। ইতিমধ্যে অন্য কিছু (ডেভেলপারের
+   *   নিজের ব্রাউজার, আরেকটি স্ক্রিপ্ট) ঐ IP থেকে লগইন করলে
+   *   `login:ip` সীমা (১০/১০মিনিট) ভরে যায় এবং
+   *   `/api/auth/callback/credentials` **401** দেয়। ২০২৬-০৮-১৪ এর
+   *   রানে ঠিক তাই হয়েছিল — রিপোর্টে "৮টি পাতা বাউন্স" দেখাচ্ছিল,
+   *   অথচ দোষ অ্যাপের নয়, হারনেসের পাশে চলা আরেকটি লগইনের।
+   */
+  const attempt = async () => {
+    await page.goto(`${BASE}/login?callbackUrl=${encodeURIComponent(wantPath)}`, { waitUntil: 'domcontentloaded' });
+    await settle(page);
+    await page.fill('input[type="email"]', creds.email);
+    await page.fill('input[type="password"]', creds.password);
+    await page.click('button[type="submit"]');
+    await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 30000 }).catch(() => {});
+    await settle(page);
+    return !new URL(page.url()).pathname.startsWith('/login');
+  };
+
+  if (!(await attempt())) {
+    console.log(`  ↻ লগইন ব্যর্থ (${creds.email}) — বাকেট খালি করে আবার চেষ্টা`);
+    await clearRateLimits();
+    await attempt();
+  }
 
   trace.finalUrl = page.url();
   trace.cookies = (await ctx.cookies()).map((c) => ({ name: c.name, secure: c.secure, httpOnly: c.httpOnly, sameSite: c.sameSite }));
@@ -258,16 +302,40 @@ async function visit(page, route) {
   await settle(page);
   let m;
   try { m = await page.evaluate(MEASURE); } catch (e) { m = { error: String(e.message) }; }
+
+  /**
+   * ⚠️⚠️ "ঢাকা পড়েছে" প্রশ্নটি **পাতার একদম নিচে গিয়ে** করতে হয়।
+   *
+   *   উপরে (scrollY = 0) মাপলে ফুটারের যেকোনো লিংক—যেটি ঠিক তখন
+   *   পর্দার নিচের অংশে পড়েছে—বটম-বারের সাথে ওভারল্যাপ দেখায়।
+   *   কিন্তু ব্যবহারকারী স্ক্রল করলেই সেটি বেরিয়ে আসে, অর্থাৎ কিছুই
+   *   হারায়নি। ২০২৬-০৮-১৪ এর রানে এমন ১৪টি "ঢাকা" ছিল — নিচে
+   *   স্ক্রল করে মাপতেই **শূন্য**।
+   *
+   *   আসল প্রশ্ন: `body` এর padding-reserve কি বারের উচ্চতার সমান?
+   *   না হলে max-scroll অবস্থাতেও কনটেন্ট বারের নিচে আটকে থাকে —
+   *   সেটিই একমাত্র অবস্থা যেখানে কনটেন্ট **পৌঁছানো যায় না**।
+   *   (fixed/sticky ভিতরের এলিমেন্টও এখানেই ধরা পড়ে, কারণ তারা
+   *   স্ক্রলেও সরে না।)
+   */
+  await page.evaluate(`window.scrollTo(0, document.documentElement.scrollHeight)`).catch(() => {});
+  await page.waitForTimeout(350);
+  let mb;
+  try { mb = await page.evaluate(MEASURE); } catch { mb = null; }
+  await page.evaluate(`window.scrollTo(0, 0)`).catch(() => {});
+
   const here = new URL(page.url());
   return {
     route, status: resp ? resp.status() : null,
     landedOn: here.pathname,
-    bouncedToLogin: here.pathname.startsWith('/login'),
+    // ★ `/login` নিজে গন্তব্য হলে সেটি "বাউন্স" নয় — আগে প্রতিটি
+    //   anon রানে একটি করে মিথ্যা বাউন্স গোনা হতো।
+    bouncedToLogin: here.pathname.startsWith('/login') && !route.startsWith('/login'),
     vw: m.vw, scrollWidth: m.scrollWidth,
     overflowing: m.scrollWidth > m.vw + 1,
     offenders: (m.overflow || []).slice(0, 5),
     clipped: (m.clipped || []).slice(0, 5),
-    covered: (m.covered || []).slice(0, 5),
+    covered: ((mb || m).covered || []).slice(0, 5),
   };
 }
 
