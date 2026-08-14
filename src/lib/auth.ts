@@ -11,6 +11,12 @@ import { notifyAdmins } from './notify';
 import { emailWelcome } from './email';
 import { decryptSecret } from './secretbox';
 import { verifyTotp, hashRecoveryCode } from './totp';
+import {
+  SESSION_COOKIE_NAME,
+  CSRF_COOKIE_NAME,
+  CALLBACK_COOKIE_NAME,
+  USE_SECURE_AUTH_COOKIES,
+} from './authCookies';
 
 /**
  * ★ Google দিয়ে সাইন-ইন করা ইউজার DB তে খুঁজে বের করে, না থাকলে তৈরি করে।
@@ -124,18 +130,46 @@ export const authOptions: NextAuthOptions = {
     },
   },
 
-  // ★ কুকি নিরাপত্তা
+  /**
+   * ★ কুকি নিরাপত্তা
+   *
+   *   নামগুলো `authCookies.ts` থেকে আসে — `middleware.ts` ও ঠিক সেই
+   *   ফাইল থেকেই পড়ে। আগে নাম দুই জায়গায় দুইভাবে ঠিক হতো এবং লাইভ
+   *   সাইটে অমিল হয়ে প্রতিটি সুরক্ষিত রুট `/login` এ ফেরত পাঠাত;
+   *   বিস্তারিত ওই ফাইলের মাথায়।
+   *
+   *   ★ csrfToken ও callbackUrl আগে **override করা হতো না**, তাই
+   *   next-auth সেগুলোর নাম/`secure` ঠিক করত `NEXTAUTH_URL` দেখে।
+   *   লাইভে সেটি https না হওয়ায় দুটোই `Secure` ছাড়া যেত — অর্থাৎ
+   *   প্রোডাকশনে অ-নিরাপদ কুকি। এখন তিনটিই একই নিয়মে চলে।
+   */
   cookies: {
     sessionToken: {
-      name:
-        process.env.NODE_ENV === 'production'
-          ? '__Secure-next-auth.session-token'
-          : 'next-auth.session-token',
+      name: SESSION_COOKIE_NAME,
       options: {
         httpOnly: true,   // JavaScript পড়তে পারবে না (XSS হলেও টোকেন চুরি হবে না)
         sameSite: 'lax',  // CSRF প্রতিরোধ
         path: '/',
-        secure: process.env.NODE_ENV === 'production', // শুধু HTTPS
+        secure: USE_SECURE_AUTH_COOKIES, // শুধু HTTPS
+      },
+    },
+    csrfToken: {
+      name: CSRF_COOKIE_NAME,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        // ⚠️ `__Host-` prefix এর শর্ত — path অবশ্যই '/', domain অনুপস্থিত
+        path: '/',
+        secure: USE_SECURE_AUTH_COOKIES,
+      },
+    },
+    callbackUrl: {
+      name: CALLBACK_COOKIE_NAME,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: USE_SECURE_AUTH_COOKIES,
       },
     },
   },

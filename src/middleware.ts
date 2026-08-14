@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { THEME_INIT_SCRIPT } from '@/lib/themeScript';
+import { SESSION_COOKIE_NAME, USE_SECURE_AUTH_COOKIES } from '@/lib/authCookies';
 
 /**
  * ═══════════════════════════════════════════════════════
@@ -178,7 +179,26 @@ export async function middleware(req: NextRequest) {
   const isAccount = pathname.startsWith('/account');
 
   if (isAdmin || isAccount) {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    /**
+     * ★★★ কুকির নাম **স্পষ্ট করে** দিতে হয়।
+     *
+     *   না দিলে `getToken()` নিজে অনুমান করে, আর সেই অনুমান
+     *   `NEXTAUTH_URL` এর উপর দাঁড়ানো (next-auth 4.24.15 ·
+     *   `jwt/index.js:65`)। লাইভ ডিপ্লয়মেন্টে ওই env https ছিল না,
+     *   তাই middleware খুঁজত `next-auth.session-token` অথচ কোর
+     *   লিখত `__Secure-next-auth.session-token` — অমিল। প্রতিটি
+     *   `/account` ও `/admin` অনুরোধ তখন `/login` এ 307 হতো,
+     *   যদিও ব্যবহারকারী প্রকৃতপক্ষে লগইন করা ছিলেন।
+     *
+     *   দুটোই পাঠানো হয়: `cookieName` কোন কুকি পড়া হবে তা ঠিক করে,
+     *   `secureCookie` next-auth এর ভেতরের fallback পথটিও বন্ধ করে।
+     */
+    const token = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName: SESSION_COOKIE_NAME,
+      secureCookie: USE_SECURE_AUTH_COOKIES,
+    });
 
     if (!token?.id) {
       const url = new URL('/login', req.url);
