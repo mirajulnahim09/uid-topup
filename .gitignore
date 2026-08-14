@@ -32,6 +32,15 @@ ws.txt
 #   আউটপুট। প্রকৃত ফল `audit/mobile-audit.json` এ, এটি কেবল লগ।
 .audit-run.log
 
+# ★ `scripts/prod-https.mjs` এর স্ব-স্বাক্ষরিত localhost সার্টিফিকেট।
+#   ⚠️ ব্যক্তিগত কী — কখনো কমিট নয়। প্রতি সেশনে নতুন বানানো যায়:
+#   openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
+#     -keyout .certs/localhost-key.pem -out .certs/localhost-cert.pem \
+#     -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+.certs/
+.prod-server.log
+.prod-https.log
+
 # ★ vitest এর JSON ফলাফল — test-run.mjs ব্যর্থ টেস্টের নাম ছাপতে ও
 #   test-flaky.mjs বহু রানের ফল জড়ো করতে এটি পড়ে। প্রতি রানে নতুন।
 .vitest-results.json
