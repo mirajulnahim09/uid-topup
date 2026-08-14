@@ -39,8 +39,21 @@ const check = (name: string, ok: boolean, note = '') => {
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${name}${note ? ` — ${note}` : ''}`);
 };
 
-/** ★ "Slow 3G" এর কাছাকাছি — Chrome DevTools যা ব্যবহার করে */
-const SLOW = { offline: false, latency: 400, downloadThroughput: (500 * 1024) / 8, uploadThroughput: (500 * 1024) / 8 };
+/**
+ * ★ "Fast 3G" — Chrome DevTools এর প্রিসেট।
+ *
+ * ⚠️ প্রথমে Slow 3G (৫০০kbps) দেওয়া হয়েছিল, কিন্তু তাতে প্রোডাকশন
+ *   বান্ডেল নামাতেই এত সময় লাগত যে Chrome নেভিগেশন ছেড়ে দিত
+ *   (`ERR_TOO_MANY_RETRIES`) — অর্থাৎ পরিমাপই সম্ভব হতো না। Fast 3G
+ *   যথেষ্ট ধীর (দেরি ৩০০ms, ~১.৫Mbps) যে ওভারলে-সময়ের ক্রম স্পষ্ট
+ *   দেখা যায়, অথচ পাতা লোড হয়।
+ */
+const SLOW = {
+  offline: false,
+  latency: 300,
+  downloadThroughput: (1.5 * 1024 * 1024) / 8,
+  uploadThroughput: (750 * 1024) / 8,
+};
 
 const go = async (page: Page, url: string) => {
   try { await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90_000 }); }
@@ -116,10 +129,23 @@ const clearRateLimits = () => db.$executeRawUnsafe('DELETE FROM "RateLimitBucket
      *   অর্থাৎ সে চললেই হাইড্রেশন হয়ে গেছে। উল্টোটা হলে (CSS-এর
      *   ৮s safety পথে সরলে) পাতা দেখা যেত কিন্তু ক্লিক কাজ করত না।
      */
+    /**
+     * ⚠️ দাবিটি "DOM থেকে সরে যাওয়া" নয়, **অদৃশ্য হওয়া**।
+     *   `BootDismiss` হাইড্রেশনের পর এলিমেন্টটি সরায়; JS কোনো কারণে
+     *   না চললে CSS-এর ৮s safety কেবল `opacity:0` করে — এলিমেন্টটি
+     *   DOM-এ থেকেই যায়। ব্যবহারকারীর কাছে দুটোই এক, তাই কড়া
+     *   `!getElementById` শর্তটি মিথ্যা FAIL দিত।
+     */
+    const bootStart = Date.now();
     const bootGone = await page.waitForFunction(
-      `!document.getElementById('v-boot')`, null, { timeout: 90_000 },
+      `(function(){ var b = document.getElementById('v-boot');
+         if (!b) return true;
+         var cs = getComputedStyle(b);
+         return cs.opacity === '0' || cs.visibility === 'hidden'; })()`,
+      null, { timeout: 90_000 },
     ).then(() => true).catch(() => false);
-    check('ধীর সংযোগেও বুট-পর্দা শেষ পর্যন্ত সরে', bootGone);
+    check('ধীর সংযোগেও বুট-পর্দা শেষ পর্যন্ত সরে', bootGone,
+      `${((Date.now() - bootStart) / 1000).toFixed(1)}s`);
 
     const hydrated = await page.evaluate(`(function(){
       var el = document.querySelector('nav, header');
@@ -146,25 +172,34 @@ const clearRateLimits = () => db.$executeRawUnsafe('DELETE FROM "RateLimitBucket
      *   ওভারলে কখন অদৃশ্য হলো। ওভারলে **আগে** মিলিয়ে গেলে
      *   অ্যানিমেশনটি মিথ্যা বলছে।
      */
+    /**
+     * ⚠️⚠️ মাপনের নিয়ম: **POST শুরু হওয়ার পরের** ওভারলে-ট্রানজিশনই গোনা হয়।
+     *
+     *   প্রথম সংস্করণে পাতা-লোডের ওভারলেটি ধরা পড়ত, যেটি POST শুরুর
+     *   আগেই মিলিয়ে যায় — রিপোর্টে আসত "ওভারলে উত্তরের ১.৬s আগে
+     *   মিলিয়ে গেছে", অথচ সেটি দুটি ভিন্ন ওভারলের তুলনা। ভুল মাপ
+     *   থেকে ভুল বাগ-রিপোর্ট, তাই ক্রমটি এখানে স্পষ্ট করে বাঁধা।
+     */
     await page.evaluate(`(function(){
-      window.__probe = { respAt: 0, overlayGoneAt: 0, overlaySeen: false };
+      window.__probe = { startAt: 0, respAt: 0, overlayShownAt: 0, overlayGoneAt: 0 };
       var of = window.fetch;
       window.fetch = function(){
         var args = arguments;
-        var isDeposit = String(args[0]).indexOf('/api/deposit') === 0 && args[1] && args[1].method === 'POST';
+        var url = String(args[0]);
+        var isDeposit = url.indexOf('/api/deposit') === 0
+                     && args[1] && String(args[1].method).toUpperCase() === 'POST';
+        if (isDeposit) window.__probe.startAt = performance.now();
         return of.apply(this, args).then(function(r){
-          if (isDeposit) window.__probe.respAt = performance.now();
+          if (isDeposit && !window.__probe.respAt) window.__probe.respAt = performance.now();
           return r;
         });
       };
-      var seen = false;
-      var iv = setInterval(function(){
+      setInterval(function(){
+        var p = window.__probe;
+        if (!p.startAt) return;
         var has = !!document.querySelector('.v-ovl');
-        if (has) { seen = true; window.__probe.overlaySeen = true; }
-        else if (seen && !window.__probe.overlayGoneAt) {
-          window.__probe.overlayGoneAt = performance.now();
-          clearInterval(iv);
-        }
+        if (has && !p.overlayShownAt) p.overlayShownAt = performance.now();
+        else if (!has && p.overlayShownAt && !p.overlayGoneAt) p.overlayGoneAt = performance.now();
       }, 20);
     })()`);
 
@@ -176,16 +211,17 @@ const clearRateLimits = () => db.$executeRawUnsafe('DELETE FROM "RateLimitBucket
     await page.waitForTimeout(12_000);
 
     const probe = (await page.evaluate(`window.__probe`)) as
-      { respAt: number; overlayGoneAt: number; overlaySeen: boolean };
+      { startAt: number; respAt: number; overlayShownAt: number; overlayGoneAt: number };
+    const rel = (t: number) => (t ? `POST+${Math.round(t - probe.startAt)}ms` : '—');
 
-    check('মিউটেশনে লোডিং ওভারলে দেখা গেছে', probe.overlaySeen === true);
-    if (probe.overlaySeen && probe.respAt && probe.overlayGoneAt) {
+    check('মিউটেশনে লোডিং ওভারলে দেখা গেছে', probe.overlayShownAt > 0, rel(probe.overlayShownAt));
+    if (probe.respAt && probe.overlayGoneAt) {
       check('ওভারলে উত্তর আসার **আগে** মিলিয়ে যায় না',
         probe.overlayGoneAt >= probe.respAt - 50,
-        `উত্তর ${Math.round(probe.respAt)}ms · ওভারলে গেল ${Math.round(probe.overlayGoneAt)}ms`);
+        `উত্তর ${rel(probe.respAt)} · ওভারলে গেল ${rel(probe.overlayGoneAt)}`);
     } else {
       check('ওভারলে উত্তর আসার আগে মিলিয়ে যায় না', false,
-        `মাপা যায়নি (respAt=${Math.round(probe.respAt)} overlayGoneAt=${Math.round(probe.overlayGoneAt)})`);
+        `মাপা যায়নি (resp=${rel(probe.respAt)} gone=${rel(probe.overlayGoneAt)})`);
     }
 
     const deposits = await db.deposit.count({ where: { userId } });

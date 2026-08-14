@@ -177,6 +177,68 @@ describe('অর্ডার — সমান্তরালতা', () => {
   });
 
   /**
+   * ═══════════════════════════════════════════════════════════
+   * ★★★ ওয়েবে দুইবার-জমা — একই `clientRef`, একটিই চার্জ
+   *
+   *   ── কোন বাগটি এটি আটকায় (ব্রাউজারে মাপা, ২০২৬-০৮-১৪) ──
+   *   নিশ্চিতকরণ ডায়ালগের বোতামে দ্রুত দুইবার ক্লিক করলে **দুটি
+   *   অর্ডার** তৈরি হতো ও ওয়ালেট থেকে **দুইবার** টাকা কাটত।
+   *   `submit()` এ `if (loading) return` ছিল, কিন্তু `loading`
+   *   React state — পরের রেন্ডারে বসে, আর দুটি ক্লিকের মাঝে সেই
+   *   রেন্ডারের সময়ই থাকে না।
+   *
+   *   ওয়েব রুট তখন ইচ্ছাকৃতভাবে `clientRef: null` পাঠাত ("UI
+   *   আটকাবে")। এখন ক্লায়েন্ট প্রতি-চেষ্টায় একটি কী পাঠায় এবং
+   *   সার্ভার `(userId, clientRef)` ইউনিক ইনডেক্স দিয়ে দ্বিতীয়
+   *   অনুরোধে **আগের অর্ডারটিই** ফেরত দেয়।
+   *
+   *   ⚠️ এখানে সমান্তরাল অনুরোধ — অর্থাৎ UI-এর গার্ড ব্যর্থ হলেও
+   *   সার্ভারই শেষ রক্ষা করে, সেটিই প্রমাণ করা হচ্ছে।
+   * ═══════════════════════════════════════════════════════════
+   */
+  it('একই clientRef এ দুটি সমান্তরাল অর্ডার — একটিই অর্ডার, একবারই চার্জ', async () => {
+    const variant = await createVariant(db, { price: 100, stock: -1 });
+    const { user, client: c } = await signedInUser(db, { balance: 500 });
+    const ref = `web-${Date.now()}-dbl`;
+
+    const results = await Promise.all(
+      Array.from({ length: 2 }, () =>
+        c.post<{ success?: boolean; orderId?: string }>('/api/order', {
+          variantId: variant.id,
+          playerUid: '123456789',
+          clientRef: ref,
+        }),
+      ),
+    );
+
+    // দুটোই সফল উত্তর পেতে পারে — কিন্তু **একই** অর্ডার
+    for (const r of results) expect(r.status).toBe(200);
+    const ids = new Set(results.map((r) => r.body.orderId));
+    expect(ids.size, `ভিন্ন অর্ডার আইডি: ${[...ids].join(', ')}`).toBe(1);
+
+    expect(await db.order.count({ where: { userId: user.id } })).toBe(1);
+    expect(await db.ledgerEntry.count({ where: { userId: user.id } })).toBe(1);
+    expect(await balanceOf(db, user.id)).toBe(400);
+    expect(await ledgerSum(db, user.id)).toBe(-100);
+  });
+
+  /** ★ ভিন্ন কী = ভিন্ন অর্ডার — idempotency যেন বৈধ দ্বিতীয় অর্ডার আটকে না দেয় */
+  it('ভিন্ন clientRef এ দুটি অর্ডার — দুটিই হয়', async () => {
+    const variant = await createVariant(db, { price: 100, stock: -1 });
+    const { user, client: c } = await signedInUser(db, { balance: 500 });
+
+    for (const ref of ['web-a-1', 'web-a-2']) {
+      const r = await c.post('/api/order', {
+        variantId: variant.id, playerUid: '123456789', clientRef: ref,
+      });
+      expect(r.status).toBe(200);
+    }
+
+    expect(await db.order.count({ where: { userId: user.id } })).toBe(2);
+    expect(await balanceOf(db, user.id)).toBe(300);
+  });
+
+  /**
    * ★★★ স্টক race — ৩ স্টকে ৬ জন একসাথে।
    *   ⚠️ ইচ্ছাকৃতভাবে **আলাদা ইউজার**, প্রত্যেকের যথেষ্ট ব্যালেন্স —
    *   তাই ব্যালেন্স-লক এদের ক্রমিক করে না, একমাত্র ভ্যারিয়েন্ট-লকই করে।

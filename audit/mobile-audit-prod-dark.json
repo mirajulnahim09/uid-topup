@@ -1,6 +1,6 @@
 {
   "base": "https://localhost:3443",
-  "at": "2026-08-14T15:53:34.739Z",
+  "at": "2026-08-14T17:48:48.593Z",
   "auth": {
     "customer-mobile": {
       "chain": [
@@ -42,7 +42,7 @@
           "id": "cmss1fegc0000wkl4esadjace",
           "role": "USER"
         },
-        "expires": "2026-09-13T15:56:49.439Z"
+        "expires": "2026-09-13T17:52:03.895Z"
       },
       "finalUrl": "https://localhost:3443/account",
       "landedOn": "/account",
@@ -91,7 +91,7 @@
           "id": "cmss1bti70000w884xdv5kbv4",
           "role": "ADMIN"
         },
-        "expires": "2026-09-13T15:59:01.638Z"
+        "expires": "2026-09-13T17:54:17.714Z"
       },
       "finalUrl": "https://localhost:3443/admin",
       "landedOn": "/admin",
@@ -139,7 +139,7 @@
           "id": "cmss1fegc0000wkl4esadjace",
           "role": "USER"
         },
-        "expires": "2026-09-13T16:06:07.669Z"
+        "expires": "2026-09-13T18:01:25.072Z"
       },
       "finalUrl": "https://localhost:3443/account",
       "landedOn": "/account",
@@ -188,7 +188,7 @@
           "id": "cmss1bti70000w884xdv5kbv4",
           "role": "ADMIN"
         },
-        "expires": "2026-09-13T16:07:35.490Z"
+        "expires": "2026-09-13T18:02:50.740Z"
       },
       "finalUrl": "https://localhost:3443/admin",
       "landedOn": "/admin",
@@ -2768,38 +2768,38 @@
         "landedOn": "/account",
         "bouncedToLogin": false,
         "vw": 320,
-        "scrollWidth": 343,
-        "overflowing": true,
+        "scrollWidth": 320,
+        "overflowing": false,
         "offenders": [
           {
-            "selector": "path",
-            "right": 321,
-            "width": 299,
-            "overhang": 1
-          },
-          {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 140,
+            "right": 141,
             "width": 147,
-            "overhang": -180
+            "overhang": -179
           },
           {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 370,
+            "right": 346,
             "width": 128,
-            "overhang": 50
+            "overhang": 26
           },
           {
-            "selector": "span.absolute.rounded-full",
-            "right": 336,
-            "width": 4,
-            "overhang": 16
+            "selector": "th",
+            "right": 381,
+            "width": 129,
+            "overhang": 61
           },
           {
-            "selector": "path",
-            "right": 329,
-            "width": 15,
-            "overhang": 9
+            "selector": "th.num",
+            "right": 520,
+            "width": 139,
+            "overhang": 200
+          },
+          {
+            "selector": "th.num",
+            "right": 657,
+            "width": 137,
+            "overhang": 337
           }
         ],
         "clipped": [],
@@ -2812,38 +2812,26 @@
         "landedOn": "/account/orders",
         "bouncedToLogin": false,
         "vw": 320,
-        "scrollWidth": 343,
-        "overflowing": true,
+        "scrollWidth": 320,
+        "overflowing": false,
         "offenders": [
           {
-            "selector": "path",
-            "right": 321,
-            "width": 299,
-            "overhang": 1
-          },
-          {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 140,
+            "right": 141,
             "width": 147,
-            "overhang": -180
+            "overhang": -179
           },
           {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 370,
+            "right": 346,
             "width": 128,
-            "overhang": 50
+            "overhang": 26
           },
           {
-            "selector": "span.absolute.rounded-full",
-            "right": 336,
-            "width": 4,
-            "overhang": 16
-          },
-          {
-            "selector": "path",
-            "right": 329,
-            "width": 15,
-            "overhang": 9
+            "selector": "span.v-ambient__beam",
+            "right": 0,
+            "width": 134,
+            "overhang": -320
           }
         ],
         "clipped": [],
@@ -2856,38 +2844,26 @@
         "landedOn": "/account/profile",
         "bouncedToLogin": false,
         "vw": 320,
-        "scrollWidth": 343,
-        "overflowing": true,
+        "scrollWidth": 320,
+        "overflowing": false,
         "offenders": [
           {
-            "selector": "path",
-            "right": 321,
-            "width": 299,
-            "overhang": 1
-          },
-          {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 140,
+            "right": 141,
             "width": 147,
-            "overhang": -180
+            "overhang": -179
           },
           {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 370,
+            "right": 346,
             "width": 128,
-            "overhang": 50
+            "overhang": 26
           },
           {
-            "selector": "span.absolute.rounded-full",
-            "right": 336,
-            "width": 4,
-            "overhang": 16
-          },
-          {
-            "selector": "path",
-            "right": 329,
-            "width": 15,
-            "overhang": 9
+            "selector": "span.v-ambient__beam",
+            "right": 0,
+            "width": 134,
+            "overhang": -320
           }
         ],
         "clipped": [],
@@ -2900,38 +2876,26 @@
         "landedOn": "/account/notifications",
         "bouncedToLogin": false,
         "vw": 320,
-        "scrollWidth": 343,
-        "overflowing": true,
+        "scrollWidth": 320,
+        "overflowing": false,
         "offenders": [
           {
-            "selector": "path",
-            "right": 321,
-            "width": 299,
-            "overhang": 1
-          },
-          {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 140,
+            "right": 141,
             "width": 147,
-            "overhang": -180
+            "overhang": -179
           },
           {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 370,
+            "right": 346,
             "width": 128,
-            "overhang": 50
+            "overhang": 26
           },
           {
-            "selector": "span.absolute.rounded-full",
-            "right": 336,
-            "width": 4,
-            "overhang": 16
-          },
-          {
-            "selector": "path",
-            "right": 329,
-            "width": 15,
-            "overhang": 9
+            "selector": "span.v-ambient__beam",
+            "right": 0,
+            "width": 134,
+            "overhang": -320
           }
         ],
         "clipped": [],
@@ -2944,38 +2908,26 @@
         "landedOn": "/account/wallet/deposit",
         "bouncedToLogin": false,
         "vw": 320,
-        "scrollWidth": 343,
-        "overflowing": true,
+        "scrollWidth": 320,
+        "overflowing": false,
         "offenders": [
           {
-            "selector": "path",
-            "right": 321,
-            "width": 299,
-            "overhang": 1
-          },
-          {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 140,
+            "right": 141,
             "width": 147,
-            "overhang": -180
+            "overhang": -179
           },
           {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 370,
+            "right": 346,
             "width": 128,
-            "overhang": 50
+            "overhang": 26
           },
           {
-            "selector": "span.absolute.rounded-full",
-            "right": 336,
-            "width": 4,
-            "overhang": 16
-          },
-          {
-            "selector": "path",
-            "right": 329,
-            "width": 15,
-            "overhang": 9
+            "selector": "span.v-ambient__beam",
+            "right": 0,
+            "width": 134,
+            "overhang": -320
           }
         ],
         "clipped": [],
@@ -2988,38 +2940,26 @@
         "landedOn": "/account/wallet/withdraw",
         "bouncedToLogin": false,
         "vw": 320,
-        "scrollWidth": 343,
-        "overflowing": true,
+        "scrollWidth": 320,
+        "overflowing": false,
         "offenders": [
           {
-            "selector": "path",
-            "right": 321,
-            "width": 299,
-            "overhang": 1
-          },
-          {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 140,
+            "right": 141,
             "width": 147,
-            "overhang": -180
+            "overhang": -179
           },
           {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 370,
+            "right": 346,
             "width": 128,
-            "overhang": 50
+            "overhang": 26
           },
           {
-            "selector": "span.absolute.rounded-full",
-            "right": 336,
-            "width": 4,
-            "overhang": 16
-          },
-          {
-            "selector": "path",
-            "right": 329,
-            "width": 15,
-            "overhang": 9
+            "selector": "span.v-ambient__beam",
+            "right": 0,
+            "width": 134,
+            "overhang": -320
           }
         ],
         "clipped": [],
@@ -3032,38 +2972,26 @@
         "landedOn": "/account/tickets",
         "bouncedToLogin": false,
         "vw": 320,
-        "scrollWidth": 343,
-        "overflowing": true,
+        "scrollWidth": 320,
+        "overflowing": false,
         "offenders": [
           {
-            "selector": "path",
-            "right": 321,
-            "width": 299,
-            "overhang": 1
-          },
-          {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 140,
+            "right": 141,
             "width": 147,
-            "overhang": -180
+            "overhang": -179
           },
           {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 370,
+            "right": 346,
             "width": 128,
-            "overhang": 50
+            "overhang": 26
           },
           {
-            "selector": "span.absolute.rounded-full",
-            "right": 336,
-            "width": 4,
-            "overhang": 16
-          },
-          {
-            "selector": "path",
-            "right": 329,
-            "width": 15,
-            "overhang": 9
+            "selector": "span.v-ambient__beam",
+            "right": 0,
+            "width": 134,
+            "overhang": -320
           }
         ],
         "clipped": [],
@@ -3076,38 +3004,26 @@
         "landedOn": "/account/smm-orders",
         "bouncedToLogin": false,
         "vw": 320,
-        "scrollWidth": 343,
-        "overflowing": true,
+        "scrollWidth": 320,
+        "overflowing": false,
         "offenders": [
           {
-            "selector": "path",
-            "right": 321,
-            "width": 299,
-            "overhang": 1
-          },
-          {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 140,
+            "right": 141,
             "width": 147,
-            "overhang": -180
+            "overhang": -179
           },
           {
             "selector": "span.v-lift.absolute.rounded-full",
-            "right": 370,
+            "right": 346,
             "width": 128,
-            "overhang": 50
+            "overhang": 26
           },
           {
-            "selector": "span.absolute.rounded-full",
-            "right": 336,
-            "width": 4,
-            "overhang": 16
-          },
-          {
-            "selector": "path",
-            "right": 329,
-            "width": 15,
-            "overhang": 9
+            "selector": "span.v-ambient__beam",
+            "right": 0,
+            "width": 134,
+            "overhang": -320
           }
         ],
         "clipped": [],
@@ -19906,10 +19822,10 @@
   },
   "summary": {
     "bounced": 0,
-    "overflowPages": 8,
+    "overflowPages": 0,
     "clippedPages": 0,
     "coveredPages": 0,
     "notSettled": 0
   },
-  "theme": "default"
+  "theme": "dark"
 }

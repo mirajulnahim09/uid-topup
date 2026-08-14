@@ -2,7 +2,7 @@
 
 import { fetchMe, invalidateMe } from '@/lib/clientFetch';
 
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -100,6 +100,26 @@ export default function OrderForm({
   const [checking, setChecking] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  /**
+   * ★★★ দুইবার-জমা প্রতিরোধ — **দুই স্তরে**।
+   *
+   *   ⚠️ কেন `loading` state যথেষ্ট নয় (ব্রাউজারে মাপা, ২০২৬-০৮-১৪):
+   *   `setLoading(true)` পরের রেন্ডারে কার্যকর হয়, কিন্তু দ্রুত দুটি
+   *   ক্লিকের মাঝে React রেন্ডার করার সময়ই পায় না — দুটি কলই
+   *   `loading === false` দেখে ঢুকে পড়ত, দুটি অর্ডার হতো, ওয়ালেট
+   *   থেকে **দুইবার** টাকা কাটত।
+   *
+   *   স্তর ১ — `submittingRef`: ref সাথে সাথেই বদলায়, রেন্ডারের
+   *            অপেক্ষা করে না। তাই দ্বিতীয় ক্লিক এখানেই থামে।
+   *   স্তর ২ — `clientRef`: একটি অর্ডার-চেষ্টার জন্য একটিই কী।
+   *            নেটওয়ার্কে দুটি অনুরোধ পৌঁছালেও সার্ভার
+   *            `(userId, clientRef)` ইউনিক ইনডেক্স দিয়ে দ্বিতীয়টিকে
+   *            আগের অর্ডারই ফেরত দেয়। ক্লায়েন্টের সদিচ্ছার উপর
+   *            টাকার নিরাপত্তা ছেড়ে দেওয়া যায় না।
+   */
+  const submittingRef = useRef(false);
+  const clientRefRef = useRef<string>('');
   const [burst, setBurst] = useState(false);
 
   const authed = status === 'authenticated';
@@ -227,7 +247,19 @@ export default function OrderForm({
     //   ছাড়া, তাই দ্রুত ডাবল-ক্লিকে submit() দুবার ঢুকে দুটো অর্ডার যেতে
     //   পারত (order route-এ per-request idempotency নেই)। loading already
     //   true হলে দ্বিতীয় কল এখানেই থামে।
-    if (loading) return;
+    // ★ ref — সিঙ্ক্রোনাস, তাই একই টিকে আসা দ্বিতীয় ক্লিকও ধরা পড়ে
+    if (submittingRef.current || loading) return;
+    submittingRef.current = true;
+
+    // ★ এই চেষ্টার idempotency key — সফল না হওয়া পর্যন্ত একই থাকে,
+    //   তাই রিট্রাই করলেও নতুন অর্ডার নয়, আগেরটিই ফিরে আসে
+    if (!clientRefRef.current) {
+      clientRefRef.current =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `web-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    }
+
     setConfirm(false);
     setLoading(true);
 
@@ -243,6 +275,7 @@ export default function OrderForm({
           playerUid: uid.trim(),
           playerName: playerName.trim() || undefined,
           couponCode: applied?.code || undefined,
+          clientRef: clientRefRef.current,
           ...(isDirect
             ? {
                 method: dpMethod,
@@ -261,6 +294,10 @@ export default function OrderForm({
       //     ৫ সেকেন্ড পর্যন্ত কাটার আগের টাকা দেখাত, আর গ্রাহক ভুল
       //     অঙ্ক দেখে পরের সিদ্ধান্ত নিত।
       invalidateMe();
+
+      // ★ অর্ডার সফল — পরের অর্ডারের জন্য নতুন idempotency key দরকার,
+      //   নাহলে দ্বিতীয় অর্ডারে সার্ভার আগেরটিই ফেরত দিত
+      clientRefRef.current = '';
 
       // ★ সেলিব্রেশন — তারপর অর্ডার পেজে
       setBurst(true);
@@ -282,7 +319,14 @@ export default function OrderForm({
       }, 850);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'অর্ডার করা যায়নি');
+      /**
+       * ⚠️ ব্যর্থ হলে `clientRefRef` **মুছি না** — ইচ্ছাকৃত। নেটওয়ার্ক
+       *   টাইমআউটে অর্ডারটি সার্ভারে তৈরি হয়ে থাকতে পারে; একই কী নিয়ে
+       *   আবার চেষ্টা করলে সার্ভার সেই আগের অর্ডারটিই ফেরত দেবে, নতুন
+       *   একটি বানাবে না।
+       */
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }
