@@ -1309,3 +1309,13 @@ Docker আটকে গিয়েছিল। পরে চালানো হ
 অবশিষ্ট ৫৯টি "ঢাকা" সবই `div#v-boot`: `next dev` এ অ্যাডমিন পাতা
 প্রথমবার কম্পাইল হতে ৪৫s এর বেশি লাগলে মাপার সময় বুট-পর্দা তখনো ওঠা
 থাকে। প্রোডাক্ট-বাগ নয়, হারনেসের সীমা — নথিভুক্ত রইল।
+
+**verify স্ক্রিপ্ট — ১১টির ১১টি সবুজ (২০২৬-০৮-১৪):**
+`order-price-lock` · `ban-revocation` · `ip-spoofing` · `ratelimit-failclosed` ·
+`isr-no-user-leak` · `theme-contrast` · `theme-meta-token` · `csp-nonce` ·
+`polling-load` · `route-guard-audit` · `migrate-status` (১২/১২ মাইগ্রেশন, শূন্য drift)।
+RUN.md শেষ হওয়ার পর এই প্রথম সবগুলো একসাথে সবুজ — আগের ৪টি "বাসি"
+স্ক্রিপ্টের প্রতিটির কারণ ছিল হারনেসে, প্রোডাক্টে নয়। উল্লেখ্য
+`isr-no-user-leak` এখন M6 সত্যিই প্রমাণ করে: `/product/…` ক্যাশ থেকেই
+পরিবেশিত (`x-nextjs-cache=HIT`) এবং অতিথি, ইউজার A ও ইউজার B — তিনজনের
+মার্কআপ byte-identical।
