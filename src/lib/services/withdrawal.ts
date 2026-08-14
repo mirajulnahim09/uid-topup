@@ -87,6 +87,24 @@ export async function withdrawableAmount(
   balance: Prisma.Decimal | number,
   holdHours: number,
 ): Promise<number> {
+  /**
+   * ★★★ `holdHours = 0` মানে **hold নেই** — সেটিই অ্যাডমিনের সেটিংয়ের
+   *   সরল অর্থ, আর কোডকেও ঠিক তাই বলতে হবে।
+   *
+   *   ⚠️ আগে ০ দিলেও গণনা চলত: `since = এখন`, আর শর্তটি `gte` —
+   *   অর্থাৎ **ঠিক এই মুহূর্তে বা তার পরে** তৈরি হওয়া ক্রেডিট hold-এ
+   *   পড়ত। `createdAt` ডাটাবেসের ঘড়ি থেকে আসে, `Date.now()` Node এর
+   *   ঘড়ি থেকে; দুটোর মধ্যে সামান্য ব্যবধান থাকলেই (সদ্য চালু হওয়া
+   *   ডকার কনটেইনারে যা স্বাভাবিক) সদ্য করা জমা "সাম্প্রতিক" গণ্য হয়ে
+   *   পুরো ব্যালেন্স আটকে দিত। ২০২৬-০৮-১৪ তে ঠিক এই কারণেই
+   *   `withdrawal.test.ts` এর ৪টি টেস্ট ("সাম্প্রতিক জমা **0 ঘণ্টা**
+   *   পর তোলা যাবে") এক রানে ব্যর্থ, পরের রানে সবুজ হতো।
+   *
+   *   ⚠️ এটি গার্ডটিকে **শুধু তখনই** শিথিল করে যখন মালিক নিজে
+   *   `withdrawal_hold_hours = 0` দিয়েছেন। ডিফল্ট ৭২ ঘণ্টা অপরিবর্তিত।
+   */
+  if (!(holdHours > 0)) return Math.max(0, round2(Number(balance)));
+
   const since = new Date(Date.now() - holdHours * 3600_000);
 
   const held = await tx.ledgerEntry.aggregate({
