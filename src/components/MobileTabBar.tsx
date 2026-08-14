@@ -148,9 +148,33 @@ export default function MobileTabBar() {
                   aria-label={t.label}
                   className="group relative flex min-h-[56px] flex-col items-center justify-end gap-1 px-1 pb-1.5"
                 >
+                  {/**
+                    * ★★★ `position` ও `top` ইচ্ছাকৃতভাবে **ইনলাইন**।
+                    *
+                    *   আগে ক্লাসে `absolute -top-5` লেখা ছিল, কিন্তু
+                    *   `.v-sheen` (globals.css:1302) নিজেই
+                    *   `position:relative` বসায়। দুটির specificity
+                    *   সমান (0,1,0), আর `.v-sheen` স্টাইলশিটে Tailwind
+                    *   utilities-এর **পরে** থাকায় সে-ই জিতত।
+                    *
+                    *   ফল (লাইভ সাইটে মাপা): FAB বৃত্তটি ভাসত না,
+                    *   layout-এ **জায়গা নিত** — তাই তার `<li>` হতো
+                    *   ১০৮px আর পুরো বার ১০৯px, অথচ `globals.css`-এ
+                    *   কনটেন্টের জন্য ছাড়া ছিল মাত্র ৫৬px। অর্থাৎ
+                    *   প্রতিটি মোবাইল পাতার নিচের **৫৩px কনটেন্ট
+                    *   বারের নিচে ঢাকা পড়ত**, আর "টাকা যোগ" লেবেলটি
+                    *   বাকি লেবেলের অনেক নিচে ছিটকে যেত।
+                    *
+                    *   ইনলাইন স্টাইল যেকোনো ক্লাসকে হারায়, তাই এটি
+                    *   ভবিষ্যতেও cascade-দুর্ঘটনায় ভাঙবে না।
+                    *   ⚠️ `.v-sheen` নিজে **বদলানো হয়নি** — সেটি
+                    *   সাধারণ utility, অন্য কোথাও ব্যবহার হতে পারে।
+                    */}
                   <span
-                    className="v-sheen absolute -top-5 grid h-14 w-14 place-items-center transition-transform duration-300 group-active:scale-95"
+                    className="v-sheen grid h-14 w-14 place-items-center transition-transform duration-300 group-active:scale-95"
                     style={{
+                      position: 'absolute',
+                      top: -20, // = Tailwind এর `-top-5`
                       background: 'linear-gradient(140deg,var(--accent-2),var(--accent) 48%,var(--accent-strong))',
                       color: 'var(--accent-ink)',
                       borderRadius: 18,

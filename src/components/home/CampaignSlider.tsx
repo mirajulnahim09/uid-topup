@@ -64,7 +64,32 @@ export default function CampaignSlider({ slides }: { slides: CampaignItem[] }) {
         touchX.current = null;
       }}
     >
-      <div className="relative aspect-[21/9] sm:aspect-[24/7]" role="group" aria-label={`${i + 1} / ${n}`}>
+      {/**
+        * ★★★ উচ্চতা এখন **কনটেন্ট ঠিক করে**, aspect-ratio নয়।
+        *
+        *   আগে: `aspect-[21/9]`। ৩৯০px ফোনে প্যানেল ≈৩৫৮px চওড়া,
+        *   অর্থাৎ উচ্চতা ≈১৫৩px — অথচ ব্যাজ + দুই লাইন শিরোনাম +
+        *   দুই লাইন বিবরণ + CTA বোতামের দরকার ১৮২px। বাকি ২৯px
+        *   `overflow-hidden` কেটে দিত, আর কাটা পড়ত **সবচেয়ে নিচের
+        *   জিনিসটি — CTA বোতাম** (লাইভ সাইটে মাপা ও স্ক্রিনশটে দেখা:
+        *   বোতামটি অর্ধেক কাটা)।
+        *
+        *   কেন `absolute inset-0` সমস্যার মূলে: স্লাইডগুলো একে অপরের
+        *   উপরে বসাতে হয় (ট্রানজিশন), আর absolute সন্তান কখনো
+        *   অভিভাবকের উচ্চতা তৈরি করে না। তাই উচ্চতা বাইরে থেকে
+        *   চাপিয়ে দিতে হতো।
+        *
+        *   সমাধান: **grid stacking** — সব স্লাইড একই grid ঘরে
+        *   (`[grid-area:1/1]`) বসে, তাই তারা ওভারল্যাপ করে *এবং*
+        *   অভিভাবকের উচ্চতা সবচেয়ে লম্বা স্লাইড ঠিক করে। ফলে
+        *   যেকোনো দৈর্ঘ্যের লেখাতেই আর কিছু কাটা পড়ে না।
+        *   `min-h` কেবল **মেঝে** — ব্যানারের চেহারা ধরে রাখতে।
+        */}
+      <div
+        className="relative grid min-h-[180px] sm:min-h-[200px] lg:min-h-[240px]"
+        role="group"
+        aria-label={`${i + 1} / ${n}`}
+      >
         <AnimatePresence initial={false} custom={dir} mode="popLayout">
           <motion.div
             key={s.id}
@@ -73,7 +98,12 @@ export default function CampaignSlider({ slides }: { slides: CampaignItem[] }) {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: dir * -60, opacity: 0 }}
             transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
-            className="absolute inset-0"
+            /* ★ `absolute inset-0` নয় — একই grid ঘরে বসে, তাই
+               ওভারল্যাপও হয় আবার উচ্চতাও তৈরি করে। `relative`
+               রাখা হয়েছে যাতে ভেতরের পটভূমি-span গুলো এর সাপেক্ষেই
+               বসে (আগে যেমন বসত)। `mode="popLayout"` বেরিয়ে যাওয়া
+               স্লাইডকে নিজেই flow থেকে সরায়, তাই লাফ লাগে না। */
+            className="relative [grid-area:1/1] min-w-0"
           >
             {/* পটভূমি: ছবি বা থিম-গ্রেডিয়েন্ট */}
             {s.imageUrl ? (
@@ -87,7 +117,10 @@ export default function CampaignSlider({ slides }: { slides: CampaignItem[] }) {
             )}
 
             {/* কনটেন্ট */}
-            <div className="relative flex h-full flex-col justify-center gap-3 p-5 sm:p-8 lg:max-w-[62%]">
+            {/* ★ একাধিক স্লাইড থাকলে নিচে ডট-গুলো বসে (`bottom-3`),
+                তাই ঠিক ততটা জায়গা ছেড়ে দিই — নাহলে CTA বোতামের
+                উপর ডট চলে আসত। */}
+            <div className={`relative flex h-full flex-col justify-center gap-3 p-5 sm:p-8 lg:max-w-[62%] ${n > 1 ? 'pb-11 sm:pb-12' : ''}`}>
               <span className="v-hud inline-flex w-fit items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold uppercase"
                 style={{ color: th.accent, background: th.soft, border: `1px solid ${th.edge}`, borderRadius: 3 }}>
                 <Icon name={th.icon} size={12} />
