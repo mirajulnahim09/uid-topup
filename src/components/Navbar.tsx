@@ -161,7 +161,21 @@ export default function Navbar({
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 xl:px-4">
         <div className="flex h-[68px] items-center justify-between gap-3">
           {/* ── ব্র্যান্ড ── */}
-          <Link href="/" className="group flex min-h-[44px] shrink-0 items-center gap-2.5" aria-label={siteName}>
+          {/**
+            * ★★★ `shrink-0` **সরানো হলো**, `min-w-0` যোগ হলো।
+            *
+            *   ⚠️ ৩২০px ফোনে (iPhone SE ১ম প্রজন্ম, পুরনো Android) এই
+            *   সারিতে জায়গা থাকে ২৮৮px, অথচ ব্র্যান্ড-লিংক একাই ১৮১px
+            *   নিত আর ডানে ব্যালেন্স-চিপ ও হ্যামবার্গার। `shrink-0`
+            *   থাকায় সারিটি সংকুচিত হতে পারত না — পুরো পাতা **২৩px
+            *   অনুভূমিকভাবে স্ক্রলযোগ্য** হয়ে যেত (প্রোডাকশন বিল্ডে
+            *   মাপা, ২০২৬-০৮-১৪; প্রতিটি `/account/*` পাতায়)।
+            *
+            *   এখন প্রয়োজন হলে কেবল ওয়ার্ডমার্কের লেজটুকু কাটা পড়ে
+            *   (নিচে `truncate`), নামটি উধাও হয় না — ৩৯০px ফোনে নাম
+            *   লুকিয়ে ফেলার পুরনো ভুলটি ফিরিয়ে আনা হয়নি।
+            */}
+          <Link href="/" className="group flex min-h-[44px] min-w-0 items-center gap-2.5" aria-label={siteName}>
             {/* ★★★ অ্যাডমিনের আপলোড করা লোগো (থিম-সচেতন) সর্বোচ্চ অগ্রাধিকার।
                 লোগো থাকলে শুধু সেটিই — পাশে সাইটের নাম আবার লিখলে
                 বেশিরভাগ ওয়ার্ডমার্কে নামটি দুবার দেখাত। */}
@@ -177,13 +191,15 @@ export default function Navbar({
                     ৩৯০px চওড়া ফোনে — অর্থাৎ বাজারের সবচেয়ে সাধারণ
                     পর্দায় — সাইটের নামটাই উধাও হয়ে যেত, পড়ে থাকত
                     কেবল একটি চিহ্ন। লোগো থেকে নাম সরানো যায় না। */}
-                <span className="block">
+                <span className="block min-w-0">
                   {/* ★ দুই-টোন ওয়ার্ডমার্ক — "SS" অ্যাকসেন্ট রঙে, বাকিটা ink-এ।
                       নতুন ফন্ট বা ছবি ছাড়াই নামটিকে ব্র্যান্ডের মতো দেখায়।
                       ⚠️ অ্যাডমিন নিজের নাম বসালে এটি প্রযোজ্য নয় — তখন তাদের
                       নাম এক রঙেই দেখানো হয় (এটি আমাদের ব্র্যান্ড, তাদের নয়)। */}
                   <span
-                    className="v-dsp block text-[15px] font-extrabold uppercase leading-none xs:text-[17px]"
+                    /* ★ `truncate` — জায়গা না কুলালে নামের লেজ কাটা পড়ে,
+                       পাতা অনুভূমিকভাবে স্ক্রলযোগ্য হয় না (উপরে ব্যাখ্যা) */
+                    className="v-dsp block truncate text-[15px] font-extrabold uppercase leading-none xs:text-[17px]"
                     style={{ color: 'var(--v-ink)', letterSpacing: '-.02em' }}
                   >
                     {isDefaultBrand(siteName) ? (

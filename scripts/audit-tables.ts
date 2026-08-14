@@ -6,6 +6,8 @@
  * দেখে (getBoundingClientRect), শুধু CSS পড়ে নয়। এছাড়া ওভারফ্লো,
  * ফোকাস-রিং, ও খালি/লোডিং অবস্থা যাচাই করে।
  */
+/** ⚠️ লাইভ DB-তে লেখা আটকায় — প্রথম import হতে হবে। */
+import './_guard-live-db';
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 

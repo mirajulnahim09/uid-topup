@@ -1,0 +1,145 @@
+
+⚠️  ঐচ্ছিক env নেই (সংশ্লিষ্ট ফিচার বন্ধ থাকবে):
+   · BLOB_READ_WRITE_TOKEN — Vercel Blob — ছবি আপলোডের জন্য
+   · RESEND_API_KEY — Resend — ইমেইল ও পাসওয়ার্ড রিসেটের জন্য
+
+═══ ইন্টারঅ্যাকশন সুইপ — লিংক · বোতাম · ফর্ম · মিউটেশন ═══
+  সার্ভার: https://localhost:3443 · DB: localhost:5434/uidtopup_dev
+
+━━━ অতিথি ━━━
+  PASS  অতিথি /: পাতা খোলে — /
+  PASS  অতিথি /: সব অভ্যন্তরীণ লিংক খোলে (25টি) — ভাঙা নেই
+  PASS  অতিথি /: 8টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অতিথি /: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অতিথি /: কোনো 5xx নেই — পরিষ্কার
+  PASS  অতিথি /login: পাতা খোলে — /login
+  PASS  অতিথি /login: সব অভ্যন্তরীণ লিংক খোলে (15টি) — ভাঙা নেই
+  PASS  অতিথি /login: 7টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অতিথি /login: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অতিথি /login: কোনো 5xx নেই — পরিষ্কার
+  PASS  অতিথি /register: পাতা খোলে — /register
+  PASS  অতিথি /register: সব অভ্যন্তরীণ লিংক খোলে (14টি) — ভাঙা নেই
+  PASS  অতিথি /register: 7টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অতিথি /register: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অতিথি /register: কোনো 5xx নেই — পরিষ্কার
+  PASS  অতিথি /track: পাতা খোলে — /track
+  PASS  অতিথি /track: সব অভ্যন্তরীণ লিংক খোলে (14টি) — ভাঙা নেই
+  PASS  অতিথি /track: 5টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অতিথি /track: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অতিথি /track: কোনো 5xx নেই — পরিষ্কার
+  PASS  অতিথি /contact: পাতা খোলে — /contact
+  PASS  অতিথি /contact: সব অভ্যন্তরীণ লিংক খোলে (14টি) — ভাঙা নেই
+  PASS  অতিথি /contact: 5টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অতিথি /contact: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অতিথি /contact: কোনো 5xx নেই — পরিষ্কার
+  PASS  অতিথি /faq: পাতা খোলে — /faq
+  PASS  অতিথি /faq: সব অভ্যন্তরীণ লিংক খোলে (14টি) — ভাঙা নেই
+  PASS  অতিথি /faq: 5টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অতিথি /faq: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অতিথি /faq: কোনো 5xx নেই — পরিষ্কার
+  PASS  অতিথি /search?q=diamond: পাতা খোলে — /search
+  PASS  অতিথি /search?q=diamond: সব অভ্যন্তরীণ লিংক খোলে (14টি) — ভাঙা নেই
+  PASS  অতিথি /search?q=diamond: 5টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অতিথি /search?q=diamond: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অতিথি /search?q=diamond: কোনো 5xx নেই — পরিষ্কার
+
+━━━ গ্রাহক ━━━
+  PASS  সুইপের জন্য গ্রাহক অ্যাকাউন্ট তৈরি
+  PASS  গ্রাহক /account: পাতা খোলে — /account
+  PASS  গ্রাহক /account: সব অভ্যন্তরীণ লিংক খোলে (14টি) — ভাঙা নেই
+  PASS  গ্রাহক /account: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  গ্রাহক /account: 3টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  গ্রাহক /account: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  গ্রাহক /account: কোনো 5xx নেই — পরিষ্কার
+  PASS  গ্রাহক /account/orders: পাতা খোলে — /account/orders
+  PASS  গ্রাহক /account/orders: সব অভ্যন্তরীণ লিংক খোলে (11টি) — ভাঙা নেই
+  PASS  গ্রাহক /account/orders: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  গ্রাহক /account/orders: 1টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  গ্রাহক /account/orders: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  গ্রাহক /account/orders: কোনো 5xx নেই — পরিষ্কার
+  PASS  গ্রাহক /account/profile: পাতা খোলে — /account/profile
+  PASS  গ্রাহক /account/profile: সব অভ্যন্তরীণ লিংক খোলে (11টি) — ভাঙা নেই
+  PASS  গ্রাহক /account/profile: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  গ্রাহক /account/profile: 5টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  গ্রাহক /account/profile: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  গ্রাহক /account/profile: কোনো 5xx নেই — পরিষ্কার
+  PASS  গ্রাহক /account/notifications: পাতা খোলে — /account/notifications
+  PASS  গ্রাহক /account/notifications: সব অভ্যন্তরীণ লিংক খোলে (11টি) — ভাঙা নেই
+  PASS  গ্রাহক /account/notifications: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  গ্রাহক /account/notifications: 1টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  গ্রাহক /account/notifications: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  গ্রাহক /account/notifications: কোনো 5xx নেই — পরিষ্কার
+  PASS  গ্রাহক /account/wallet/deposit: পাতা খোলে — /account/wallet/deposit
+  PASS  গ্রাহক /account/wallet/deposit: সব অভ্যন্তরীণ লিংক খোলে (11টি) — ভাঙা নেই
+  PASS  গ্রাহক /account/wallet/deposit: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  গ্রাহক /account/wallet/deposit: 11টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  গ্রাহক /account/wallet/deposit: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  গ্রাহক /account/wallet/deposit: কোনো 5xx নেই — পরিষ্কার
+  PASS  গ্রাহক /account/tickets: পাতা খোলে — /account/tickets
+  PASS  গ্রাহক /account/tickets: সব অভ্যন্তরীণ লিংক খোলে (11টি) — ভাঙা নেই
+  PASS  গ্রাহক /account/tickets: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  গ্রাহক /account/tickets: 2টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  গ্রাহক /account/tickets: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  গ্রাহক /account/tickets: কোনো 5xx নেই — পরিষ্কার
+
+━━━ মিউটেশন → ডাটাবেস ━━━
+  PASS  প্রোফাইলের নাম বদল ডাটাবেসে পৌঁছেছে — DB: "সুইপ 62382" · চেয়েছি: "সুইপ 62382"
+  PASS  টিকিট তৈরি API সফল — HTTP 200 {"success":true,"ticket":{"id":"cmst7efep0008zftqf4bbnruc","subject":"যাচাই টিকিট","status":"OPEN","kind":"GENERAL","cre
+  PASS  টিকিট ডাটাবেসে আছে — যাচাই টিকিট
+  PASS  notifications PATCH সাড়া দেয় — HTTP 200
+  PASS  সব নোটিফিকেশন পড়া-চিহ্নিত হয়েছে — 0টি অপঠিত
+
+━━━ অ্যাডমিন ━━━
+  PASS  অ্যাডমিন /admin: পাতা খোলে — /admin
+  PASS  অ্যাডমিন /admin: সব অভ্যন্তরীণ লিংক খোলে (21টি) — ভাঙা নেই
+  PASS  অ্যাডমিন /admin: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  অ্যাডমিন /admin: 3টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin: কোনো 5xx নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/orders: পাতা খোলে — /admin/orders
+  PASS  অ্যাডমিন /admin/orders: সব অভ্যন্তরীণ লিংক খোলে (25টি) — ভাঙা নেই
+  PASS  অ্যাডমিন /admin/orders: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  অ্যাডমিন /admin/orders: 3টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/orders: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/orders: কোনো 5xx নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/deposits: পাতা খোলে — /admin/deposits
+  PASS  অ্যাডমিন /admin/deposits: সব অভ্যন্তরীণ লিংক খোলে (24টি) — ভাঙা নেই
+  PASS  অ্যাডমিন /admin/deposits: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  অ্যাডমিন /admin/deposits: 3টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/deposits: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/deposits: কোনো 5xx নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/users: পাতা খোলে — /admin/users
+  PASS  অ্যাডমিন /admin/users: সব অভ্যন্তরীণ লিংক খোলে (24টি) — ভাঙা নেই
+  PASS  অ্যাডমিন /admin/users: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  অ্যাডমিন /admin/users: 9টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/users: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/users: কোনো 5xx নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/products: পাতা খোলে — /admin/products
+  PASS  অ্যাডমিন /admin/products: সব অভ্যন্তরীণ লিংক খোলে (21টি) — ভাঙা নেই
+  PASS  অ্যাডমিন /admin/products: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  অ্যাডমিন /admin/products: 5টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/products: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/products: কোনো 5xx নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/coupons: পাতা খোলে — /admin/coupons
+  PASS  অ্যাডমিন /admin/coupons: সব অভ্যন্তরীণ লিংক খোলে (21টি) — ভাঙা নেই
+  PASS  অ্যাডমিন /admin/coupons: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  অ্যাডমিন /admin/coupons: 6টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/coupons: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/coupons: কোনো 5xx নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/reports: পাতা খোলে — /admin/reports
+  PASS  অ্যাডমিন /admin/reports: সব অভ্যন্তরীণ লিংক খোলে (21টি) — ভাঙা নেই
+  PASS  অ্যাডমিন /admin/reports: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  অ্যাডমিন /admin/reports: 3টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/reports: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/reports: কোনো 5xx নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/site: পাতা খোলে — /admin/site
+  PASS  অ্যাডমিন /admin/site: সব অভ্যন্তরীণ লিংক খোলে (21টি) — ভাঙা নেই
+  PASS  অ্যাডমিন /admin/site: লগইন করা অবস্থায় কোনো লিংক /login এ পাঠায় না — পাঠায় না
+  PASS  অ্যাডমিন /admin/site: 7টি নিরাপদ বোতামে ক্লিকে সার্ভার-ত্রুটি নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/site: হাইড্রেশন সতর্কতা নেই — পরিষ্কার
+  PASS  অ্যাডমিন /admin/site: কোনো 5xx নেই — পরিষ্কার
+
+  (যাচাই-ডেটা মুছে ফেলা হলো)
+
+════════════════════════════════════════
+  125/125 পাস

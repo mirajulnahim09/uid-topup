@@ -13,6 +13,8 @@
  *     ২. th-এর কার্যকর `text-align` == সেই কলামের td-দের `text-align`
  *     ৩. লেখার প্রকৃত প্রান্ত (content box) একই দিকে ঘেঁষা কি না
  */
+/** ⚠️ লাইভ DB-তে লেখা আটকায় — প্রথম import হতে হবে। */
+import './_guard-live-db';
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 

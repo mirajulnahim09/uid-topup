@@ -8,6 +8,8 @@
  * তাই টেস্টটি সত্যিই একটি লোগো আপলোড করে ও নাম বদলায়, তারপর
  * প্রতিটি পৃষ্ঠে গিয়ে দেখে। শেষে সব আগের অবস্থায় ফেরানো হয়।
  */
+/** ⚠️ লাইভ DB-তে লেখা আটকায় — প্রথম import হতে হবে। */
+import './_guard-live-db';
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 

@@ -18,6 +18,8 @@
  *     ৫. পরিষ্কার: পরীক্ষার blob ও Media সারি মুছে ফেলা হয়
  * ═══════════════════════════════════════════════════════════
  */
+/** ⚠️ লাইভ DB-তে লেখা আটকায় — প্রথম import হতে হবে। */
+import './_guard-live-db';
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 

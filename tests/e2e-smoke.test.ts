@@ -207,4 +207,68 @@ describe('ব্রাউজার smoke (CSP + hydration)', () => {
     },
     150_000,
   );
+
+  /**
+   * ═══════════════════════════════════════════════════════════
+   * ★★★ ৩২০px — সবচেয়ে সরু ফোনে পাতা অনুভূমিকভাবে স্ক্রল করে না
+   *
+   *   ── কোন বাগটি এটি আটকায় (প্রোডাকশন বিল্ডে মাপা, ২০২৬-০৮-১৪) ──
+   *   `Navbar.tsx` এর ব্র্যান্ড-লিংকে `shrink-0` ছিল। ৩২০px পর্দায়
+   *   হেডার-সারিতে জায়গা ২৮৮px, অথচ লিংকটি একাই ১৮১px নিত, ডানে
+   *   ব্যালেন্স-চিপ ও হ্যামবার্গার। সারিটি সংকুচিত হতে না পারায়
+   *   **প্রতিটি `/account/*` পাতা ২৩px পাশে স্ক্রলযোগ্য** হয়ে যেত।
+   *
+   *   ⚠️ কেন ইউনিট টেস্টে ধরা পড়ত না: এটি সম্পূর্ণভাবে **লেআউটের**
+   *   ব্যাপার — সার্ভার দিব্যি 200 আর সঠিক HTML দেয়। কেবল আসল
+   *   ব্রাউজারে, আসল প্রস্থে মাপলেই ধরা পড়ে।
+   *
+   *   ⚠️ বুট-পর্দা সরার জন্য অপেক্ষা করা হয় — নাহলে মাপা হতো
+   *   পর্দার নিচে থাকা অসম্পূর্ণ লেআউট, আর টেস্টটি মিথ্যা সবুজ হতো।
+   * ═══════════════════════════════════════════════════════════
+   */
+  it.skipIf(!EXE)(
+    '৩২০px ফোনে গ্রাহকের পাতাগুলো অনুভূমিকভাবে স্ক্রল করে না',
+    async () => {
+      const user = await createUser(db, { balance: 5000 });
+      const browser = await chromium.launch({ headless: true, executablePath: EXE });
+
+      try {
+        const ctx = await browser.newContext({
+          viewport: { width: 320, height: 568 },
+          isMobile: true, hasTouch: true, deviceScaleFactor: 3,
+          userAgent:
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 ' +
+            '(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+        });
+        const page = await ctx.newPage();
+
+        await page.goto(`${baseUrl()}/login`, { waitUntil: 'networkidle', timeout: 60_000 });
+        await page.fill('#email', user.email);
+        await page.fill('#pw', DEFAULT_PASSWORD);
+        await page.click('button[type="submit"]');
+        await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 45_000 });
+
+        for (const route of ['/account', '/account/orders', '/account/wallet/deposit']) {
+          await page.goto(baseUrl() + route, { waitUntil: 'networkidle', timeout: 60_000 });
+          await page
+            .waitForFunction(`!document.getElementById('v-boot')`, null, { timeout: 30_000 })
+            .catch(() => {});
+          await page.waitForTimeout(300);
+
+          const m = (await page.evaluate(`({
+            sw: document.documentElement.scrollWidth,
+            cw: document.documentElement.clientWidth,
+          })`)) as { sw: number; cw: number };
+
+          expect(
+            m.sw,
+            `${route} ৩২০px এ ${m.sw - m.cw}px পাশে উপচে পড়েছে (scrollWidth ${m.sw} > ${m.cw})`,
+          ).toBeLessThanOrEqual(m.cw + 1);
+        }
+      } finally {
+        await browser.close();
+      }
+    },
+    150_000,
+  );
 });

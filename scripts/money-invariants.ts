@@ -17,6 +17,8 @@
  *      ডাটাবেসে কোনো চিহ্ন থাকে না। টাকার টেস্ট আসল ডাটা নোংরা
  *      করলে সেটাই সবচেয়ে বড় বিপদ হতো।
  */
+/** ⚠️ লাইভ DB-তে লেখা আটকায় — প্রথম import হতে হবে। */
+import './_guard-live-db';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { creditWallet, debitWallet } from '../src/lib/services/wallet';
 

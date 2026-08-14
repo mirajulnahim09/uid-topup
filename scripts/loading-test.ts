@@ -13,6 +13,8 @@
  * ⚠️ FPS **প্রোডাকশন বিল্ডে** মাপতে হবে (`next start`)। dev-এ HMR,
  *    source-map ও রি-কম্পাইল চলে — সেই সংখ্যা বাস্তব নয়।
  */
+/** ⚠️ লাইভ DB-তে লেখা আটকায় — প্রথম import হতে হবে। */
+import './_guard-live-db';
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 

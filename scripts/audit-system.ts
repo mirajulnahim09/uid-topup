@@ -2,6 +2,8 @@
  * ★★★ সিস্টেম অডিট — নিরাপত্তা, a11y, SEO/PWA, থিম, ইন্টিগ্রেশন, DB।
  * `npx tsx scripts/audit-system.ts`
  */
+/** ⚠️ লাইভ DB-তে লেখা আটকায় — প্রথম import হতে হবে। */
+import './_guard-live-db';
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 

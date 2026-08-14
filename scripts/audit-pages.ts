@@ -6,6 +6,8 @@
  * HTTP অবস্থা, কনসোল ত্রুটি, ব্যর্থ নেটওয়ার্ক অনুরোধ, অনুভূমিক ওভারফ্লো
  * (৩৯০/৭৬৮/১৪৪০), ব্র্যান্ড উপস্থিতি, ও স্ক্রিনশট।
  */
+/** ⚠️ লাইভ DB-তে লেখা আটকায় — প্রথম import হতে হবে। */
+import './_guard-live-db';
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 

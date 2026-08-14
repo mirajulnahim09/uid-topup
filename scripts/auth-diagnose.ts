@@ -14,6 +14,8 @@
  *   এই স্ক্রিপ্ট তিনটিকে আলাদা করে দেখায়।
  * ═══════════════════════════════════════════════════════════
  */
+/** ⚠️ লাইভ DB-তে লেখা আটকায় — প্রথম import হতে হবে। */
+import './_guard-live-db';
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 
