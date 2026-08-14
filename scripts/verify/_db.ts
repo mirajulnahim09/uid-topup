@@ -27,10 +27,13 @@
  *      সচেতনভাবে দরকার হলে `VERIFY_ALLOW_REMOTE=1`।
  * ═══════════════════════════════════════════════════════════
  */
-import { loadEnvConfig } from '@next/env';
-
-// ⚠️ `dev = true` — `.env.development` ওভারলে করার একমাত্র উপায়
-loadEnvConfig(process.cwd(), true);
+/**
+ * ⚠️⚠️ `./_env` **সবার আগে ও আলাদা ফাইলে** — কেন, তা ওই ফাইলে
+ *   বিস্তারিত। সংক্ষেপে: এখানে `loadEnvConfig()` লিখলেও ESM
+ *   `@prisma/client` কে তার **আগে** লোড করে ফেলত, আর Prisma লোড
+ *   হওয়ার সময়েই `.env` (লাইভ Neon) থেকে `DATABASE_URL` বসিয়ে দিত।
+ */
+import './_env';
 
 import { PrismaClient } from '@prisma/client';
 
