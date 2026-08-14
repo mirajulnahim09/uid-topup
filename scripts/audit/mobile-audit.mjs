@@ -30,6 +30,10 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { PrismaClient } from '@prisma/client';
 
 const BASE = process.env.AUDIT_BASE || 'http://localhost:3000';
+/** ★ `AUDIT_THEME=light` / `dark` — খালি রাখলে সাইটের ডিফল্ট (ডার্ক) */
+const THEME = process.env.AUDIT_THEME || '';
+/** ★ ফলাফলের ফাইল — prod ও dev, dark ও light রান আলাদা রাখতে */
+const OUT = process.env.AUDIT_OUT || 'audit/mobile-audit.json';
 /** ⚠️ স্পষ্ট ডেভ URL — `.env` (লাইভ Neon) ভুল করেও ছোঁয়া যাবে না */
 const DEV_URL = 'postgresql://dev:dev@localhost:5434/uidtopup_dev';
 const db = new PrismaClient({ datasources: { db: { url: DEV_URL } } });
@@ -324,6 +328,19 @@ async function visit(page, route) {
   try { mb = await page.evaluate(MEASURE); } catch { mb = null; }
   await page.evaluate(`window.scrollTo(0, 0)`).catch(() => {});
 
+  /**
+   * ★★★ বুট-পর্দা তখনো উঠে থাকলে মাপটি **অসম্পূর্ণ** — লুকানো নয়, স্বীকৃত।
+   *
+   *   `#v-boot` একটি `aria-hidden` fixed স্তর যা হাইড্রেশনের ৪২০ms পরে
+   *   DOM থেকে **সরে যায়** (`BootDismiss.tsx`) — কখনোই স্থায়ী ওভারলে নয়।
+   *   কিন্তু `next dev` এ কোনো রুট প্রথমবার কম্পাইল হতে দেরি হলে
+   *   `settle()` টাইমআউট করে ও পাতা মাপা হয় পর্দা ওঠা অবস্থায়; তখন
+   *   প্রতিটি বোতাম "ঢাকা পড়েছে" দেখায় (একবার ৪৭১টি মিথ্যা অভিযোগ)।
+   *   সেই মাপগুলো এখন `notSettled` হিসেবে আলাদা গোনা হয়।
+   */
+
+  const bootStillUp = await page.evaluate(`!!document.getElementById('v-boot')`).catch(() => false);
+
   const here = new URL(page.url());
   return {
     route, status: resp ? resp.status() : null,
@@ -335,14 +352,16 @@ async function visit(page, route) {
     overflowing: m.scrollWidth > m.vw + 1,
     offenders: (m.overflow || []).slice(0, 5),
     clipped: (m.clipped || []).slice(0, 5),
-    covered: ((mb || m).covered || []).slice(0, 5),
+    covered: bootStillUp ? [] : ((mb || m).covered || []).slice(0, 5),
+    notSettled: bootStillUp,
   };
 }
 
 /* ─────────────────────────── মূল রান ─────────────────────────── */
 
 const report = { base: BASE, at: new Date().toISOString(), auth: {}, viewports: {},
-                 summary: { bounced: 0, overflowPages: 0, clippedPages: 0, coveredPages: 0 } };
+                 summary: { bounced: 0, overflowPages: 0, clippedPages: 0, coveredPages: 0, notSettled: 0 },
+                 theme: THEME || 'default' };
 
 const browser = await chromium.launch({ headless: true, executablePath: CHROME });
 
@@ -355,8 +374,21 @@ async function persona(label, creds, wantPath, routes, vps, isMobile) {
   const ctx = await browser.newContext({
     viewport: { width: vps[0].width, height: vps[0].height },
     isMobile, hasTouch: isMobile, deviceScaleFactor: isMobile ? 3 : 1,
+    /* ★ প্রোডাকশন বিল্ড যাচাই হয় স্ব-স্বাক্ষরিত TLS প্রক্সির পিছনে
+       (`scripts/prod-https.mjs`) — এটি ছাড়া প্রতিটি নেভিগেশন
+       `ERR_CERT_AUTHORITY_INVALID` দিয়ে ব্যর্থ হয় */
+    ignoreHTTPSErrors: true,
     ...(isMobile ? { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' } : {}),
   });
+  /**
+   * ★ থিম প্রথম paint এর **আগেই** বসাতে হয়: `layout.tsx` এর inline
+   *   theme-script localStorage পড়ে। পরে টগল চাপলে হাইড্রেশন-পরবর্তী
+   *   অবস্থা মাপা হতো, প্রথম রেন্ডার নয়।
+   */
+  if (THEME) {
+    await ctx.addInitScript(`try { localStorage.setItem('theme', ${JSON.stringify(THEME)}); } catch {}`);
+  }
+
   const page = await ctx.newPage();
 
   if (creds) {
@@ -383,6 +415,7 @@ async function persona(label, creds, wantPath, routes, vps, isMobile) {
     report.summary.overflowPages += bad.length;
     report.summary.clippedPages += clip.length;
     report.summary.coveredPages += cov.length;
+    report.summary.notSettled += rows.filter((r) => r.notSettled).length;
 
     console.log(`  ${label}@${vp.name.padEnd(10)} ওভারফ্লো ${String(bad.length).padStart(2)} · ক্লিপ ${String(clip.length).padStart(2)} · ঢাকা ${String(cov.length).padStart(2)} · বাউন্স ${String(bounce.length).padStart(2)}  (${rows.length})`);
     for (const b of bad.slice(0, 3))
@@ -409,11 +442,12 @@ await browser.close();
 await db.$disconnect();
 
 mkdirSync('audit', { recursive: true });
-writeFileSync('audit/mobile-audit.json', JSON.stringify(report, null, 2));
+writeFileSync(OUT, JSON.stringify(report, null, 2));
 
 console.log('\n━━━ সারাংশ ━━━');
 console.log(`  লগইন বাউন্স        : ${report.summary.bounced}`);
 console.log(`  ওভারফ্লো (পাতা×ভিউ) : ${report.summary.overflowPages}`);
 console.log(`  উল্লম্ব ক্লিপিং     : ${report.summary.clippedPages}`);
 console.log(`  ঢাকা-পড়া কন্ট্রোল  : ${report.summary.coveredPages}`);
+console.log(`  অমীমাংসিত মাপ      : ${report.summary.notSettled}  (বুট-পর্দা তখনো ওঠা)`);
 console.log('  → audit/mobile-audit.json');
