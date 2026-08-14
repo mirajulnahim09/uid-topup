@@ -123,9 +123,14 @@ body {
    নাহলে কনটেন্ট বারের নিচে ঢাকা পড়ে। ২০২৬-০৮-১৪ তারিখে ঠিক এই
    অমিলটিই লাইভে ছিল: FAB বৃত্তটি cascade-দুর্ঘটনায় `relative` হয়ে
    layout-এ জায়গা নিচ্ছিল, তাই আসল বার ছিল ১০৯px — এখানে ছাড়া ছিল
-   ৫৬px, ফলে ৫৩px কনটেন্ট ঢাকা পড়ত। (বিস্তারিত ওই ফাইলে।) */
+   ৫৬px, ফলে ৫৩px কনটেন্ট ঢাকা পড়ত। (বিস্তারিত ওই ফাইলে।)
+
+   ★ হিসাবটি ৫৬ + ১ = **৫৭px**: `min-h-[56px]` এর সাথে ন্যাভের
+   `borderTop: 1px` যোগ হয় (border-box নয়, তাই বর্ডার বাইরে বসে)।
+   ব্রাউজারে মাপা বারের উচ্চতা ঠিক ৫৭px। আগে ছাড়া ছিল ৫৬px —
+   এক পিক্সেল কম, যা চোখে পড়ে না কিন্তু হিসাবটা মিথ্যা করে রাখত। */
 @media (max-width: 767px) {
-  body { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+  body { padding-bottom: calc(57px + env(safe-area-inset-bottom)); }
 }
 .dsp, .eng { font-family:'Unbounded','Anek Bangla','Hind Siliguri',system-ui,sans-serif; letter-spacing:-.02em; }
 
@@ -1420,6 +1425,17 @@ table.tbl td a, td a, .card a.underline { display: inline-flex; align-items: cen
    ═══════════════════════════════════════════════════════════ */
 
 /* ── ধাপ পরিবর্তনের ট্রানজিশন ── */
+/* ★★★ ধাপ-কার্ডটি ১৮px ডান/বাঁ থেকে সরে এসে বসে (নিচের keyframes)।
+   মোবাইলে পাতার প্যাডিং ১৬px, অর্থাৎ কার্ডের ডানে ফাঁকা আছে ১৬px —
+   ১৮px সরালে অ্যানিমেশনের ~০.৩৪s জুড়ে পাতা **২px অনুভূমিকভাবে
+   স্ক্রলযোগ্য** হয়ে যেত (মাপা: ৩২০–৪১২px সব ফোনে, ২০২৬-০৮-১৪ অডিট)।
+   টাচ ডিভাইসে সেটি আসল ঝাঁকুনি।
+
+   ⚠️ `clip`, `hidden` নয়। `overflow-x:hidden` দিলে ব্রাউজার
+   `overflow-y` কে `auto` করে ফেলে — অর্থাৎ একটি scroll container
+   তৈরি হয় এবং ভিতরের `position:sticky` ভেঙে যায়। `clip` কোনো
+   scroll container বানায় না, শুধু আঁকাটুকু কাটে। */
+.wz-stage { overflow-x: clip; }
 .wz-step { animation: wz-in .34s cubic-bezier(.22,1,.36,1) both; }
 .wz-step[data-dir='back'] { animation-name: wz-in-back; }
 @keyframes wz-in { from { opacity:0; transform: translateX(18px) } to { opacity:1; transform:none } }

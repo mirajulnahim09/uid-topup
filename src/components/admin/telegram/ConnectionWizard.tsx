@@ -160,7 +160,9 @@ export default function ConnectionWizard({
     true;
 
   return (
-    <div className="space-y-4">
+    /* ★ `wz-stage` — ধাপ বদলের স্লাইড-ইন যেন পাতাকে অনুভূমিকভাবে
+       স্ক্রলযোগ্য করে না ফেলে (কারণ globals.css এ ব্যাখ্যা করা) */
+    <div className="wz-stage space-y-4">
       <div ref={liveRef} className="sr-only" role="status" aria-live="polite" />
 
       {/* ═══ প্রগ্রেস ═══ */}

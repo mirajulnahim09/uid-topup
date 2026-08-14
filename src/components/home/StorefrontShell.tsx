@@ -162,7 +162,25 @@ export default function StorefrontShell({
 
   return (
     <section className="mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6">
-      <div className="grid gap-5 lg:grid-cols-[240px_1fr_300px]">
+      {/**
+        * ★★★ ট্র্যাকের সংখ্যা **দৃশ্যমান কলামের সংখ্যার সমান** হতে হবে।
+        *
+        *   আগে `lg` থেকেই তিনটি ট্র্যাক (`240px 1fr 300px`) ঘোষণা করা
+        *   ছিল, অথচ ডান সাইডবারটি (`aside`, নিচে) দেখা যায় কেবল `xl`
+        *   থেকে। ফলে ১০২৪–১২৭৯px পরিসরে ডানদিকের ৩০০px ট্র্যাকটি
+        *   **খালি পড়ে থাকত** — grid ট্র্যাক শিশুটি `display:none`
+        *   হলেও জায়গা ছাড়েই।
+        *
+        *   মাপা ফল (১০২৪px): মাঝের কলাম ৪১২px, তার ভিতরে
+        *   `lg:grid-cols-4` — প্রতিটি প্রোডাক্ট কার্ড মাত্র **৯০px**।
+        *   কার্ডের ভিতরের প্যাডিং বাদে ৬০px জায়গায় দাম বসত ৭৩px,
+        *   তাই `.prod-card` এর `overflow:hidden` দামের ডান দিক
+        *   ৫–১৩px কেটে দিত আর তীর-বোতামটি ০px এ চুপসে যেত।
+        *
+        *   এখন ট্র্যাক দুই ধাপে: `lg` এ দুটি, `xl` এ তিনটি — যেখানে
+        *   যতগুলো কলাম সত্যিই দেখা যায়।
+        */}
+      <div className="grid gap-5 lg:grid-cols-[240px_1fr] xl:grid-cols-[240px_1fr_300px]">
         {/* ─────────── বাঁ সাইডবার (ডেস্কটপ) ─────────── */}
         <aside className="hidden self-start lg:block" style={{ position: 'sticky', top: 88 }}>
           <div className="card overflow-hidden">
