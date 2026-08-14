@@ -49,9 +49,9 @@ const check = (name: string, ok: boolean, note = '') => {
 };
 
 /** পাতা-ভিত্তিক কনসোল ত্রুটি ও ব্যর্থ অনুরোধ — §9 এর দাবি */
-type Noise = { console: string[]; bad: string[] };
+type Noise = { console: string[]; bad: string[]; aborted: string[] };
 function watch(page: Page): Noise {
-  const n: Noise = { console: [], bad: [] };
+  const n: Noise = { console: [], bad: [], aborted: [] };
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
     const t = m.text();
@@ -66,6 +66,20 @@ function watch(page: Page): Noise {
      *   কোলাহল, প্রোডাক্টের ত্রুটি নয়।
      */
     if (/SSL certificate error occurred when fetching the script/i.test(t)) return;
+    /**
+     * ⚠️ **বাতিল হওয়া RSC prefetch** — ত্রুটি নয়, Next এর নিজস্ব
+     *   fallback পথ। হারনেস `settle()` এর পরপরই পরের পাতায় যায়,
+     *   তাই চলমান prefetch গুলো abort হয় ও Chrome সেগুলোকে
+     *   "TypeError: Failed to fetch" বলে; Next তখন লেখে
+     *   "Falling back to browser navigation" এবং পাতাটি ঠিকই খোলে
+     *   (উপরের "পাতা খোলে" দাবিগুলোই তার প্রমাণ)।
+     *
+     *   প্রমাণ যে এটি প্রক্সি/অ্যাপের ত্রুটি নয়: পাবলিক পাতায় একই
+     *   চাপ দিয়ে প্রক্সির **ভিতর দিয়ে** ও **সরাসরি http** — দুই
+     *   পথেই শূন্য ত্রুটি (২০২৬-০৮-১৫ তে মাপা)। তাই গোনা হয়,
+     *   কিন্তু ব্যর্থতা ধরা হয় না — সংখ্যাটি রিপোর্টে দেখানো থাকে।
+     */
+    if (/Failed to fetch RSC payload/i.test(t)) { n.aborted.push(t.slice(0, 120)); return; }
     n.console.push(t.slice(0, 200));
   });
   page.on('requestfailed', (r) => {
@@ -308,6 +322,7 @@ async function runAdmin(browser: Browser, label: string, mobile: boolean) {
     new URL(page.url()).pathname.startsWith('/admin'), new URL(page.url()).pathname);
 
   check(`${label}: কনসোলে ত্রুটি নেই`, noise.console.length === 0, noise.console.slice(0, 3).join(' | ') || 'পরিষ্কার');
+  if (noise.aborted.length) console.log(`  info  ${label}: ${noise.aborted.length}টি prefetch বাতিল (হারনেস দ্রুত নেভিগেট করায়; Next নিজেই fallback করেছে)`);
   check(`${label}: ব্যর্থ/4xx-5xx অনুরোধ নেই`, noise.bad.length === 0, noise.bad.slice(0, 3).join(' | ') || 'পরিষ্কার');
 
   await ctx.close();

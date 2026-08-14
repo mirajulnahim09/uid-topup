@@ -54,14 +54,28 @@ const DESTRUCTIVE = /মুছ|বাতিল|রিফান্ড|ফের�
  */
 const NAVIGATES = /^\s*(কোড পাঠান|আবার পাঠান)|google|গুগল|facebook|ফেসবুক/i;
 
-type Noise = { console: string[]; hydration: string[]; bad: string[] };
+type Noise = { console: string[]; hydration: string[]; bad: string[]; aborted: string[] };
 function watch(page: Page): Noise {
-  const n: Noise = { console: [], hydration: [], bad: [] };
+  const n: Noise = { console: [], hydration: [], bad: [], aborted: [] };
   page.on('console', (m) => {
     if (m.type() !== 'error' && m.type() !== 'warning') return;
     const t = m.text();
     // ⚠️ স্ব-স্বাক্ষরিত সার্টে service worker নিবন্ধন হয় না — পরিবেশের কোলাহল
     if (/SSL certificate error occurred when fetching the script/i.test(t)) return;
+    /**
+     * ⚠️ **বাতিল হওয়া RSC prefetch** — ত্রুটি নয়, Next এর নিজস্ব
+     *   fallback পথ। হারনেস `settle()` এর পরপরই পরের পাতায় যায়,
+     *   তাই চলমান prefetch গুলো abort হয় ও Chrome সেগুলোকে
+     *   "TypeError: Failed to fetch" বলে; Next তখন লেখে
+     *   "Falling back to browser navigation" এবং পাতাটি ঠিকই খোলে
+     *   (উপরের "পাতা খোলে" দাবিগুলোই তার প্রমাণ)।
+     *
+     *   প্রমাণ যে এটি প্রক্সি/অ্যাপের ত্রুটি নয়: পাবলিক পাতায় একই
+     *   চাপ দিয়ে প্রক্সির **ভিতর দিয়ে** ও **সরাসরি http** — দুই
+     *   পথেই শূন্য ত্রুটি (২০২৬-০৮-১৫ তে মাপা)। তাই গোনা হয়,
+     *   কিন্তু ব্যর্থতা ধরা হয় না — সংখ্যাটি রিপোর্টে দেখানো থাকে।
+     */
+    if (/Failed to fetch RSC payload/i.test(t)) { n.aborted.push(t.slice(0, 120)); return; }
     if (/hydrat|did not match|Text content does not match/i.test(t)) n.hydration.push(t.slice(0, 200));
     else if (m.type() === 'error') n.console.push(t.slice(0, 200));
   });

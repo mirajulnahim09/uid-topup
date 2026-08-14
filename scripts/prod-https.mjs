@@ -41,6 +41,18 @@ if (!existsSync(key) || !existsSync(cert)) {
   process.exit(1);
 }
 
+/**
+ * ★ upstream এ keep-alive পুল।
+ *
+ * ⚠️ কেন: Next এর ক্লায়েন্ট-রাউটার একসাথে অনেকগুলো RSC prefetch পাঠায়।
+ *   প্রতিটির জন্য নতুন TCP সংযোগ খুললে Windows-এ কিছু সংযোগ ব্যর্থ হয়,
+ *   আর ব্রাউজারে দেখা যায়
+ *   "Failed to fetch RSC payload … Falling back to browser navigation"।
+ *   পাতা তবু খোলে (Next নিজেই fallback করে), কিন্তু কনসোল-ত্রুটি গোনা
+ *   যাচাইয়ে সেটি মিথ্যা FAIL হয়ে আসত।
+ */
+const agent = new http.Agent({ keepAlive: true, maxSockets: 64, keepAliveMsecs: 30_000 });
+
 const server = https.createServer(
   { key: readFileSync(key), cert: readFileSync(cert) },
   (req, res) => {
@@ -51,7 +63,7 @@ const server = https.createServer(
      */
     const headers = { ...req.headers, 'x-forwarded-proto': 'https', 'x-forwarded-host': req.headers.host };
     const upstream = http.request(
-      { host: '127.0.0.1', port: HTTP_PORT, path: req.url, method: req.method, headers },
+      { host: '127.0.0.1', port: HTTP_PORT, path: req.url, method: req.method, headers, agent },
       (up) => {
         /**
          * ★★★ `Location` **পুনর্লিখন আবশ্যক**।
@@ -79,10 +91,29 @@ const server = https.createServer(
         up.pipe(res);
       },
     );
-    upstream.on('error', (e) => {
+    /**
+     * ★★★ বাতিল হওয়া অনুরোধ **নীরবে** ছেড়ে দিতে হয়।
+     *
+     *   ⚠️ Next এর ক্লায়েন্ট-রাউটার নেভিগেশনের সময় চলমান RSC prefetch
+     *   গুলো abort করে। আগের সংস্করণে তখন `upstream.on('error')`
+     *   ধ্বংস-হয়ে-যাওয়া `res` এ `writeHead()` করতে যেত, সেটি throw
+     *   করত, আর **পুরো keep-alive সংযোগটি** পড়ে যেত — ঐ সংযোগে থাকা
+     *   বাকি prefetch গুলোও মরত। ব্রাউজারে দেখা যেত
+     *   "Failed to fetch RSC payload … TypeError: network error",
+     *   অর্থাৎ যাচাইয়ে অ্যাপের নামে মিথ্যা অভিযোগ (৩/৩ রানে)।
+     *
+     *   এখন: ক্লায়েন্ট চলে গেলে upstream বন্ধ করি, আর উত্তর লেখার
+     *   আগে সবসময় দেখে নিই সংযোগটি এখনো জীবিত কি না।
+     */
+    const safeFail = (e) => {
+      if (res.headersSent || res.destroyed) { res.destroy(); return; }
       res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
       res.end(`upstream error: ${e.message}`);
-    });
+    };
+    upstream.on('error', safeFail);
+    req.on('error', () => upstream.destroy());
+    res.on('close', () => { if (!res.writableEnded) upstream.destroy(); });
+
     req.pipe(upstream);
   },
 );
