@@ -13,13 +13,10 @@
  *   আলাদা হলে সীমা বাইপাসযোগ্য — সেটিই ছিল বাগ।
  * ═══════════════════════════════════════════════════════════
  */
-import { loadEnvConfig } from '@next/env';
-loadEnvConfig(process.cwd());
+/** ⚠️ `./_db` সবার আগে — env লোড ও লাইভ-DB সুরক্ষা (ওই ফাইলে ব্যাখ্যা) */
+import { db as prisma, BASE, dbLabel } from './_db';
 
 import { pickIp } from '../../src/lib/rateLimit';
-import { prisma } from '../../src/lib/prisma';
-
-const BASE = 'http://localhost:3000';
 
 let fail = 0;
 const check = (name: string, ok: boolean, note = '') => {
@@ -31,6 +28,7 @@ const headers = (o: Record<string, string>) => (n: string) => o[n];
 
 (async () => {
   console.log('═══ H2 — IP স্পুফিং যাচাই ═══\n');
+  console.log(`  DB: ${dbLabel()} · সার্ভার: ${BASE}\n`);
 
   const original = process.env.TRUSTED_PROXY;
 

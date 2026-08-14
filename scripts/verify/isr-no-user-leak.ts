@@ -16,13 +16,13 @@
  *   এক বিন্দু আলাদা হলেই বুঝব ক্যাশে ব্যক্তিগত কিছু ঢুকছে।
  * ═══════════════════════════════════════════════════════════
  */
-import { loadEnvConfig } from '@next/env';
-loadEnvConfig(process.cwd());
+/** ⚠️ `./_db` সবার আগে — env লোড ও লাইভ-DB সুরক্ষা (ওই ফাইলে ব্যাখ্যা) */
+import { db as prisma, dbLabel } from './_db';
 
 import bcrypt from 'bcryptjs';
 import { createHash } from 'node:crypto';
 import { encode } from 'next-auth/jwt';
-import { prisma } from '../../src/lib/prisma';
+import { SESSION_COOKIE_NAME } from '../../src/lib/authCookies';
 
 const PORT = process.argv.find((a) => a.startsWith('--port='))?.slice(7) || '3000';
 const BASE = `http://localhost:${PORT}`;
@@ -93,7 +93,8 @@ async function mkUser(n: number, balance: number) {
 }
 
 (async () => {
-  console.log(`═══ M6 — ক্যাশে ব্যবহারকারী-লিক যাচাই (${BASE}) ═══\n`);
+  console.log(`═══ M6 — ক্যাশে ব্যবহারকারী-লিক যাচাই (${BASE}) ═══`);
+  console.log(`  DB: ${dbLabel()}\n`);
 
   const a = await mkUser(1, 1111.11);
   const b = await mkUser(2, 2222.22);
@@ -119,8 +120,8 @@ async function mkUser(n: number, balance: number) {
       };
 
       const guest = await get();
-      const ra = await get(`next-auth.session-token=${a.jwt}`);
-      const rb = await get(`next-auth.session-token=${b.jwt}`);
+      const ra = await get(`${SESSION_COOKIE_NAME}=${a.jwt}`);
+      const rb = await get(`${SESSION_COOKIE_NAME}=${b.jwt}`);
 
       const [ng, na, nb] = [guest.html, ra.html, rb.html].map(normalize);
       console.log(`  guest ${guest.status} · sha ${sha(ng)} · x-nextjs-cache=${guest.cache}`);
@@ -136,23 +137,52 @@ async function mkUser(n: number, balance: number) {
        *   ভিন্ন JS chunk লোড হয়। এটি auth-**অবস্থা**, পরিচয় নয়।
        *   প্রথমে তিনটিকেই সমান ধরে পরীক্ষা লিখেছিলাম — সেটি ভুল দাবি ছিল।
        */
+      /**
+       * ★★★ দাবিটি **পাতা ক্যাশ হচ্ছে কি না তার উপর নির্ভরশীল** —
+       *   আর এটিই এই স্ক্রিপ্টের আগের সংস্করণের ভুল ছিল (২০২৬-০৮-১২
+       *   এর রানে "ব্যর্থ" দেখাত, অথচ কোনো লিক ছিল না)।
+       *
+       *   · পাতা **ক্যাশড** হলে একজনের HTML আরেকজন পাবে — তখন
+       *     ব্যক্তি-পরিচয়ের কণামাত্রও রেন্ডারে থাকা চলবে না, এবং
+       *     দুই ব্যবহারকারীর মার্কআপ **অভিন্ন** হতেই হবে।
+       *   · পাতা **প্রতি-অনুরোধে রেন্ডার** (`force-dynamic`, আজকের
+       *     অবস্থা) হলে নিজের নাম নিজের পাতায় থাকা স্বাভাবিক —
+       *     সেটি লিক নয়। তখন আসল দাবি একটাই: **একজনের তথ্য
+       *     আরেকজনের HTML-এ যায় না।**
+       *
+       *   তাই আগে ঠিক করি পাতাটি ক্যাশড কি না, তারপর সেই অনুযায়ী দাবি।
+       */
+      const cached = guest.cache !== '(নেই)' && guest.cache.toUpperCase() !== 'MISS';
+      console.log(`  মোড  : ${cached ? 'ক্যাশড (ISR/স্ট্যাটিক)' : 'প্রতি-অনুরোধে রেন্ডার (dynamic)'}`);
+
       const [ma, mb] = [ra.html, rb.html].map(markupOnly);
-      check(`${path}: ★ দুই ভিন্ন ব্যবহারকারীর মার্কআপ অভিন্ন (পরিচয় লিক নেই)`,
-        ma === mb, ma === mb ? 'অভিন্ন' : `⚠️ আলাদা\n              ${firstDiff(ma, mb)}`);
+
+      if (cached) {
+        check(`${path}: ★ (ক্যাশড) দুই ব্যবহারকারীর মার্কআপ অভিন্ন`,
+          ma === mb, ma === mb ? 'অভিন্ন' : `⚠️ আলাদা\n              ${firstDiff(ma, mb)}`);
+
+        for (const [label, u] of [['A', a], ['B', b]] as const) {
+          const present =
+            ra.html.includes(u.name) || rb.html.includes(u.name) ||
+            ra.html.includes(u.email) || rb.html.includes(u.email);
+          check(`${path}: (ক্যাশড) ইউজার ${label} এর নাম/ইমেইল রেন্ডারে নেই`, !present);
+        }
+        const balLeak = [ra.html, rb.html].some((h) => h.includes('1111.11') || h.includes('2222.22'));
+        check(`${path}: (ক্যাশড) কোনো ব্যালেন্স রেন্ডারে নেই`, !balLeak);
+      } else {
+        // ★ ক্রস-দূষণই একমাত্র প্রকৃত দাবি
+        const aInB = rb.html.includes(a.name) || rb.html.includes(a.email) || rb.html.includes('1111.11');
+        const bInA = ra.html.includes(b.name) || ra.html.includes(b.email) || ra.html.includes('2222.22');
+        check(`${path}: ★ A এর নাম/ইমেইল/ব্যালেন্স B এর HTML-এ নেই`, !aInB);
+        check(`${path}: ★ B এর নাম/ইমেইল/ব্যালেন্স A এর HTML-এ নেই`, !bInA);
+        check(`${path}: অতিথির HTML-এ কারো ব্যালেন্স নেই`,
+          !guest.html.includes('1111.11') && !guest.html.includes('2222.22'));
+        if (ma !== mb) console.log('  note  দুই ব্যবহারকারীর মার্কআপ আলাদা — dynamic পাতায় প্রত্যাশিত');
+      }
 
       if (ng !== na) {
         console.log('  note  guest ≠ লগ-ইন — navbar এর auth-অবস্থা (প্রত্যাশিত)');
       }
-
-      // নাম/ইমেইল/ব্যালেন্স কোথাও নেই তো?
-      for (const [label, u] of [['A', a], ['B', b]] as const) {
-        const leaked =
-          ra.html.includes(u.name) || rb.html.includes(u.name) ||
-          ra.html.includes(u.email) || rb.html.includes(u.email);
-        check(`${path}: ইউজার ${label} এর নাম/ইমেইল HTML-এ নেই`, !leaked);
-      }
-      const balLeak = [ra.html, rb.html].some((h) => h.includes('1111.11') || h.includes('2222.22'));
-      check(`${path}: কোনো ব্যালেন্স HTML-এ নেই`, !balLeak);
 
       // ★ ISR সত্যিই কার্যকর কিনা — `x-nextjs-cache` না থাকলে পাতা
       //   প্রতি-অনুরোধে রেন্ডার হচ্ছে, অর্থাৎ `revalidate` কার্যত নিষ্ক্রিয়।

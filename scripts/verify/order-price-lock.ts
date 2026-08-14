@@ -19,15 +19,18 @@
  *      শেষে সব মুছে ফেলা হয়। প্রকৃত ক্যাটালগ ছোঁয়া হয় না।
  * ═══════════════════════════════════════════════════════════
  */
-import { loadEnvConfig } from '@next/env';
-loadEnvConfig(process.cwd());
+/**
+ * ⚠️ `./_db` **সবার আগে** — সে env লোড করে (`.env.development`
+ *    ওভারলে সহ) এবং লাইভ ডাটাবেসে চলতে দেয় না। পরের import গুলো
+ *    module-scope এ env পড়ে, তাই ক্রমটি গুরুত্বপূর্ণ।
+ */
+import { db as prisma, BASE, dbLabel } from './_db';
 
 import bcrypt from 'bcryptjs';
 import { encode } from 'next-auth/jwt';
 import { PrismaClient } from '@prisma/client';
-import { prisma } from '../../src/lib/prisma';
+import { SESSION_COOKIE_NAME } from '../../src/lib/authCookies';
 
-const BASE = 'http://localhost:3000';
 const SECRET = process.env.NEXTAUTH_SECRET as string;
 const tag = `h1-${Date.now()}`;
 
@@ -42,6 +45,7 @@ const PRICE_AFTER = 999;
 
 (async () => {
   console.log('═══ H1 — অর্ডারের দাম লক করা রো থেকে ═══\n');
+  console.log(`  DB: ${dbLabel()} · সার্ভার: ${BASE}\n`);
 
   // ★ Product-এর একটি category লাগে — বিদ্যমান একটিতে যুক্ত করি,
   //   নতুন ক্যাটাগরি বানিয়ে ক্যাটালগ নোংরা করি না।
@@ -79,7 +83,10 @@ const PRICE_AFTER = 999;
   try {
     // ── ১+২. লক ধরে রেখে সমান্তরাল UPDATE ব্লক হয় কিনা ──
     console.log('── লক আচরণ ──');
-    const other = new PrismaClient();
+    // ★ দ্বিতীয় সংযোগ — একই (যাচাই-নির্ধারিত) ডাটাবেসে
+    const other = new PrismaClient({
+      datasources: { db: { url: process.env.VERIFY_DATABASE_URL || process.env.DATABASE_URL } },
+    });
     let updateBlocked = false;
     let updateFinished = false;
 
@@ -119,7 +126,8 @@ const PRICE_AFTER = 999;
 
     const res = await fetch(`${BASE}/api/order`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', cookie: `next-auth.session-token=${jwt}` },
+      // ★ কুকির নাম `authCookies.ts` থেকে — হাতে লিখলে dev/prod এ ভুল হয়
+      headers: { 'content-type': 'application/json', cookie: `${SESSION_COOKIE_NAME}=${jwt}` },
       body: JSON.stringify({ variantId: variant.id, playerUid: '123456789' }),
     });
     const body = await res.json();
@@ -157,13 +165,30 @@ const PRICE_AFTER = 999;
     }
 
     // ── ৫. সোর্স যাচাই — দাম সত্যিই লক-কোয়েরিতে আছে ──
+    /**
+     * ⚠️ ফাইলের নাম **হালনাগাদ করা হলো**। Group F (৩) এ অর্ডার বসানোর
+     *   পুরো যুক্তি `src/app/api/order/route.ts` থেকে
+     *   `src/lib/services/order.ts` এ সরেছে — রুটটি এখন কেবল
+     *   `placeOrder()` ডাকে। পুরনো পথ ধরে খোঁজায় এই যাচাই ২০২৬-০৮-১২
+     *   থেকে **ভুল ফাইলে** খুঁজছিল ও মিথ্যা FAIL দিত, অথচ H1 অক্ষত।
+     *
+     *   `resellerPrice` ও লক-কোয়েরিতে থাকা **আবশ্যক** — Group F এর
+     *   পর সেটিও টাকার মান, তাই লক-বহির্ভূত পড়া চলবে না।
+     */
     console.log('\n── সোর্স যাচাই ──');
     const { readFileSync } = await import('node:fs');
-    for (const f of ['src/app/api/order/route.ts', 'src/app/api/order/direct/route.ts']) {
+    const SOURCES: Array<[string, RegExp]> = [
+      // সাধারণ অর্ডার — সার্ভিস স্তর
+      ['src/lib/services/order.ts',
+        /SELECT id, stock, price, "costPrice", "isActive", "resellerPrice"[\s\S]{0,160}FOR UPDATE/],
+      // "ডিরেক্ট" অর্ডার — নিজের লক নিজেই নেয়
+      ['src/app/api/order/direct/route.ts',
+        /SELECT id, stock, price, "costPrice", "isActive"[\s\S]{0,160}FOR UPDATE/],
+    ];
+    for (const [f, re] of SOURCES) {
       const src = readFileSync(f, 'utf8');
-      const lockSel = /SELECT id, stock, price, "costPrice", "isActive"[\s\S]{0,120}FOR UPDATE/.test(src);
-      check(`${f} — লক-কোয়েরিতে price ও costPrice`, lockSel);
-      check(`${f} — টাকার হিসাবে variant.price ব্যবহার হয় না`,
+      check(`${f} — লক-কোয়েরিতে price ও costPrice`, re.test(src));
+      check(`${f} — টাকার হিসাবে লক-বহির্ভূত variant.price ব্যবহার হয় না`,
         !/round2\(Number\(variant\.price\)\)/.test(src));
     }
   } finally {

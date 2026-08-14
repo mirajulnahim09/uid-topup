@@ -16,17 +16,17 @@
  *      কোনো প্রকৃত গ্রাহককে ban/unban করা হয় না।
  * ═══════════════════════════════════════════════════════════
  */
-import { loadEnvConfig } from '@next/env';
-loadEnvConfig(process.cwd());
+/** ⚠️ `./_db` সবার আগে — env লোড ও লাইভ-DB সুরক্ষা (ওই ফাইলে ব্যাখ্যা) */
+import { db as prisma, BASE, dbLabel } from './_db';
 
 import bcrypt from 'bcryptjs';
 import { encode } from 'next-auth/jwt';
-import { prisma } from '../../src/lib/prisma';
 import { authOptions, SESSION_REVALIDATE_MS } from '../../src/lib/auth';
+import { SESSION_COOKIE_NAME } from '../../src/lib/authCookies';
 
-const BASE = 'http://localhost:3000';
 const SECRET = process.env.NEXTAUTH_SECRET as string;
-const COOKIE = 'next-auth.session-token';   // dev (http) — prod-এ __Secure- প্রিফিক্স
+/** ★ নাম আর হাতে লেখা হয় না — একমাত্র উৎস `authCookies.ts` */
+const COOKIE = SESSION_COOKIE_NAME;
 
 let fail = 0;
 const check = (name: string, ok: boolean, note = '') => {
@@ -43,7 +43,8 @@ const tag = `c5-${Date.now()}`;
 
 (async () => {
   console.log('═══ C5 — ব্যান কার্যকর হওয়া যাচাই ═══\n');
-  console.log(`  পুনঃযাচাই সীমা : ${SESSION_REVALIDATE_MS / 60000} মিনিট\n`);
+  console.log(`  পুনঃযাচাই সীমা : ${SESSION_REVALIDATE_MS / 60000} মিনিট`);
+  console.log(`  DB: ${dbLabel()} · সার্ভার: ${BASE}\n`);
 
   // ── টেস্ট ইউজার ──
   const user = await prisma.user.create({

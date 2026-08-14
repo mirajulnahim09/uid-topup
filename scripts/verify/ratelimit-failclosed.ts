@@ -15,8 +15,13 @@
  *     · প্রকৃত কল-সাইটগুলো সত্যিই `failClosed` পাঠাচ্ছে (সোর্স যাচাই)
  * ═══════════════════════════════════════════════════════════
  */
-import { loadEnvConfig } from '@next/env';
-loadEnvConfig(process.cwd());
+/**
+ * ⚠️ `./_db` **সবার আগে** — env লোড করে ও `DATABASE_URL` স্থানীয়
+ *    ডাটাবেসে স্থির করে। এখানে অ্যাপের নিজের ক্লায়েন্টটাই দরকার
+ *    (নিচে তার `$queryRaw` ভাঙা হয়), তাই সেটি import হওয়ার **আগে**
+ *    env ঠিক হয়ে থাকা চাই — নাহলে বাকেটগুলো লাইভ Neon-এ লেখা হতো।
+ */
+import { dbLabel } from './_db';
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -43,6 +48,7 @@ const KEY_PLAIN = `verify:order:${Date.now()}`;
 
 (async () => {
   console.log('═══ C4 — rate limiter fail-closed যাচাই ═══\n');
+  console.log(`  DB: ${dbLabel()}\n`);
 
   // ── ১. সুস্থ অবস্থায় দুটোই কাজ করে ──
   console.log('── DB সুস্থ ──');
