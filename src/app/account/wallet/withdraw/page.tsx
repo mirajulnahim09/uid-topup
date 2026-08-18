@@ -38,8 +38,18 @@ export default async function WithdrawPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      <Link href="/account/wallet" className="text-sm font-semibold" style={{ color: 'var(--v-mut)' }}>
-        ← ওয়ালেট
+      {/* ★★★ আগে এই লিংকটি `/account/wallet` এ যেত — **সেই রুটটি নেই**
+          (কেবল `wallet/deposit` ও `wallet/withdraw` আছে)। অর্থাৎ টাকা
+          তোলার পাতা থেকে ফেরার একমাত্র লিংকটি গ্রাহককে **৪০৪**-এ
+          ফেলত; অডিটে ১৪ বার ধরা পড়েছে। ব্যালেন্স ও লেনদেন যেখানে
+          আসলে দেখা যায় সেটি `/account`, তাই লিংক ও লেখা দুটোই সেখানে।
+          ★ `min-h-[40px]` — আগে উচ্চতা ছিল ২৩px (ছোট ট্যাপ-টার্গেট)। */}
+      <Link
+        href="/account"
+        className="inline-flex min-h-[40px] items-center text-sm font-semibold"
+        style={{ color: 'var(--v-mut)' }}
+      >
+        ← অ্যাকাউন্ট
       </Link>
 
       <div>

@@ -62,7 +62,10 @@ export default function RestoreForm() {
 
       <div className="mt-4 space-y-3">
         <input type="file" aria-label="ব্যাকআপ JSON ফাইল বাছুন" accept="application/json,.json" onChange={onFile}
-          className="flex min-h-[40px] w-full items-center text-sm text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-[rgba(139,92,246,0.2)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white" />
+          /* ★ `text-sm` (১৪px) ছিল — টাচ-পর্দায় iOS ফাইল-ইনপুটে ফোকাস
+             করলেই পাতা জুম করত (শেষ অবশিষ্ট জুম-ইনপুট, ৭টি হিট)।
+             ১৬px-এ তুললে জুম হয় না; দেখতে প্রায় একই। */
+          className="flex min-h-[40px] w-full items-center text-base text-slate-400 file:mr-3 file:min-h-[40px] file:rounded-lg file:border-0 file:bg-[rgba(139,92,246,0.2)] file:px-4 file:text-sm file:font-semibold file:text-white" />
         {fileName && <p className="text-xs text-emerald-400">✓ {fileName}</p>}
 
         <div>

@@ -347,7 +347,37 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     box-shadow: 0 0 0 3px var(--v-focus-ring-soft);
     background: var(--v-field-focus);
   }
-  @screen sm { .input { font-size: 14px; } }
+  /**
+   * ★★★ ছোট ফন্ট **কেবল মাউস-চালিত পর্দায়**।
+   *
+   *   ── কোন বাগটি এটি সারায় ──
+   *   iOS Safari একটি নিয়ম মানে: ফোকাস পাওয়া ইনপুটের ফন্ট
+   *   ১৬px-এর ছোট হলে সে **পুরো পাতা জুম করে দেয়** — এবং
+   *   নিজে থেকে আর ফিরে আসে না, ব্যবহারকারীকে হাতে zoom-out
+   *   করতে হয়। `.input` এর ভিত্তি ১৬px (নিরাপদ), কিন্তু আগের
+   *   `@screen sm` নিঃশর্তে ৬৪০px+ এ ১৪px বসাত। ফোন **ল্যান্ডস্কেপে**
+   *   (৮৪৪×৩৯০) ও ট্যাবলেটে প্রস্থ ৬৪০ ছাড়ায় — অর্থাৎ ঠিক সেখানেই
+   *   জুম চালু হতো। অডিটে মাপা: ১৯৫টি ইনপুট ঝুঁকিতে, তার মধ্যে
+   *   **`#email` · `#pw` · `#name` · `#otp`** — অর্থাৎ লগইন ও
+   *   রেজিস্ট্রেশন, নতুন গ্রাহকের একেবারে প্রথম অভিজ্ঞতা।
+   *
+   *   `pointer: fine` = মাউস/ট্র্যাকপ্যাড (ডেস্কটপ) — সেখানে জুমের
+   *   নিয়মটিই নেই, তাই ঘন ১৪px রাখা যায়। টাচ-পর্দায় (`coarse`)
+   *   ১৬px থাকে। একই মিডিয়া-কোয়েরি টাচস্ক্রিন ল্যাপটপেও সঠিক।
+   */
+  @media (min-width: 640px) and (pointer: fine) {
+    .input { font-size: 14px; }
+  }
+
+  /**
+   * ★ ঘন রূপ — ন্যাভবারের সার্চের মতো সংকীর্ণ জায়গার জন্য।
+   *   উচ্চতা সবখানেই ৪০px (ছোঁয়ার ন্যূনতম), কিন্তু ছোট ফন্ট
+   *   কেবল মাউস-চালিত পর্দায় — উপরের নিয়মের হুবহু একই কারণে।
+   */
+  .input-compact { min-height: 40px; }
+  @media (min-width: 640px) and (pointer: fine) {
+    .input-compact { font-size: 13px; }
+  }
   .input:disabled { @apply cursor-not-allowed opacity-60; }
   .input[aria-invalid='true'] { border-color: rgba(255,90,60,.65); box-shadow: 0 0 0 3px rgba(255,90,60,.12); }
 

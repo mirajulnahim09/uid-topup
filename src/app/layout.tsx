@@ -92,7 +92,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body>
+      {/**
+        * ★★★ `suppressHydrationWarning` — `<html>` এ যে কারণে আছে,
+        *   `<body>` এও ঠিক সেই কারণে দরকার।
+        *
+        *   অডিটে (৫১৪ পাতা-মাপ) সবচেয়ে বেশিবার আসা কনসোল-বার্তা
+        *   ছিল এটিই — **৩৬৫ বার**, কার্যত প্রতিটি পাতায়:
+        *   `Warning: Extra attributes from the server: style at body`।
+        *
+        *   কারণ: ছয়টি কম্পোনেন্ট স্ক্রল-লক করতে `document.body.style`
+        *   এ হাত দেয় (`Navbar` · `Toast` · `PopupHost` ·
+        *   `StorefrontShell` · `HowToOrder` · `CustomCursor`)। খালি
+        *   মান বসালেও DOM-এ `style=""` অ্যাট্রিবিউটটি থেকে যায়, আর
+        *   হাইড্রেশনের সময় React সেটিকে "সার্ভারের বাড়তি অ্যাট্রিবিউট"
+        *   বলে অভিযোগ করে।
+        *
+        *   ⚠️ এটি **কেবল `<body>` ট্যাগের নিজের অ্যাট্রিবিউট** চাপা
+        *   দেয় — ভিতরের কোনো কম্পোনেন্টের প্রকৃত hydration mismatch
+        *   আগের মতোই ধরা পড়বে। তাই আসল বাগ লুকানোর ঝুঁকি নেই।
+        */}
+      <body suppressHydrationWarning>
         {/* ★ flash-প্রতিরোধ: প্রথম paint এর আগেই সংরক্ষিত থিম বসায়।
             ★★★ H3 — এখানে ইচ্ছাকৃতভাবে `nonce` **বসানো হয় না**।
             প্রথমে nonce বসানো হয়েছিল, কিন্তু nonce প্রতি-অনুরোধে

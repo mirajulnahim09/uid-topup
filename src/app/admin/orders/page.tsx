@@ -119,7 +119,7 @@ export default async function AdminOrders({
           <div className="flex flex-wrap gap-2">
             <Link
               href={status ? `/admin/orders?status=${status}` : '/admin/orders'}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold transition"
+              className="inline-flex min-h-[40px] items-center rounded-lg px-3 text-xs font-semibold transition"
               style={
                 variantFilter
                   ? { background: 'var(--v-void)', color: 'var(--mut)' }
@@ -137,7 +137,7 @@ export default async function AdminOrders({
                 <Link
                   key={g.variantId}
                   href={`/admin/orders?${qs.toString()}`}
-                  className="rounded-lg px-3 py-1.5 text-xs font-semibold transition"
+                  className="inline-flex min-h-[40px] items-center rounded-lg px-3 text-xs font-semibold transition"
                   style={
                     active
                       ? { background: 'var(--gold)', color: '#1a1408' }

@@ -96,6 +96,13 @@ export default function SearchBox({
   return (
     <div ref={boxRef} className="relative w-full">
       {/* ★ আসল `form` + `action` — JS ছাড়াও কাজ করে */}
+      {/* ★★★ সার্চ-বাক্সে আগে ইনলাইন `fontSize: 13` ছিল। ইনলাইন স্টাইল
+          যেকোনো মিডিয়া-কোয়েরিকে হারায়, তাই `.input` এর টাচ-নিরাপদ
+          ১৬px নিয়মটি এই বাক্সে পৌঁছাতই না — ফোন ল্যান্ডস্কেপে ও
+          ট্যাবলেটে হেডারের সার্চে ট্যাপ করলেই iOS পুরো পাতা জুম করে
+          দিত (এবং নিজে থেকে ফিরত না)। ঘন চেহারাটি এখন
+          `.input-compact` ক্লাসে, যা কেবল মাউস-চালিত পর্দায় ছোট
+          ফন্ট বসায় — দেখতে আগের মতোই, টাচে নিরাপদ। */}
       <form onSubmit={submit} action="/search" method="get" role="search">
         <input
           type="search"
@@ -110,8 +117,7 @@ export default function SearchBox({
           autoFocus={autoFocus}
           placeholder="প্রোডাক্ট খুঁজুন…"
           aria-label="প্রোডাক্ট খুঁজুন"
-          className="input w-full"
-          style={compact ? { minHeight: 40, fontSize: 13 } : undefined}
+          className={`input w-full${compact ? ' input-compact' : ''}`}
         />
       </form>
 

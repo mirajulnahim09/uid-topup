@@ -324,8 +324,10 @@ function LogoDrop({ slot, theme, url, busy, onFile, onDelete }: {
             <span className="text-[11.5px]" style={{ color: theme === 'dark' ? '#8b94a7' : '#5b6472' }}>
               টেনে আনুন, বা
             </span>
+            {/* ★ ৩১px → ৪০px। ছবি আপলোডের একমাত্র বোতাম, অথচ
+                ফোনে ঠিকমতো ধরা যেত না (অডিটে ৬০টি হিট)। */}
             <button onClick={() => inputRef.current?.click()}
-              className="rounded px-3 py-1.5 text-[11px] font-bold"
+              className="inline-flex min-h-[40px] items-center rounded px-3 text-[11px] font-bold"
               style={{ background: 'var(--v-volt)', color: 'var(--v-void)' }}>
               ফাইল বাছুন
             </button>

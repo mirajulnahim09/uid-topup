@@ -340,21 +340,29 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                   <td>
                     {/* ★ শুধু চলমান অর্ডার বাছা যায় — ক্লোজড অর্ডারে
                         চেকবক্স থাকলে ভুল প্রত্যাশা তৈরি হতো (3.8) */}
+                    {/* ★ চেকবক্সটি ছিল খালি ১৬px — অ্যাডমিনের অন্য
+                        চেকবক্সগুলো `<label>` এর ভিতরে থাকায় পুরো সারিই
+                        ছোঁয়ার লক্ষ্য হয়, কিন্তু এটির কোনো মোড়ক ছিল না।
+                        এখন ৪০×৪০ লেবেল-মোড়ক ছোঁয়ার লক্ষ্য দেয়, বাক্সটি
+                        নিজে ১৮px — দৃশ্য প্রায় একই, আঙুলের জন্য আড়াই গুণ।
+                        ⚠️ নির্বাচনের যুক্তি (`sel`) হুবহু অপরিবর্তিত। */}
                     {live && (
-                      <input
-                        type="checkbox"
-                        aria-label={`অর্ডার ${o.orderNo} নির্বাচন করুন`}
-                        checked={sel.has(o.id)}
-                        onChange={(e) => {
-                          setSel((prev) => {
-                            const next = new Set(prev);
-                            if (e.target.checked) next.add(o.id);
-                            else next.delete(o.id);
-                            return next;
-                          });
-                        }}
-                        className="h-4 w-4 cursor-pointer accent-emerald-500"
-                      />
+                      <label className="grid h-10 w-10 cursor-pointer place-items-center">
+                        <input
+                          type="checkbox"
+                          aria-label={`অর্ডার ${o.orderNo} নির্বাচন করুন`}
+                          checked={sel.has(o.id)}
+                          onChange={(e) => {
+                            setSel((prev) => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.add(o.id);
+                              else next.delete(o.id);
+                              return next;
+                            });
+                          }}
+                          className="h-[18px] w-[18px] cursor-pointer accent-emerald-500"
+                        />
+                      </label>
                     )}
                   </td>
                   <td data-label="অর্ডার" className="font-mono font-semibold text-rose-600">#{o.orderNo}</td>

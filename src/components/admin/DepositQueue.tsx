@@ -124,12 +124,26 @@ function Row({
   mono?: boolean;
 }) {
   return (
+    /**
+     * ★★★ `truncate` → মোড়ানো।
+     *
+     *   অডিটে ৩২০–৩৭৫px ফোনে ৬টি ক্লিপ ধরা পড়েছে, সবই এখানে:
+     *   লম্বা বাংলা নাম ("মোহাম্মদ আব্দুর রহমান চৌধুরী সিদ…") ও
+     *   TrxID ("TBLSTACKTRX0028A15D7E0F") কেটে যেত এবং **কোথাও
+     *   পুরোটা দেখার উপায় ছিল না**। ঠিক এই দুটি মানই বিরোধ
+     *   নিষ্পত্তির সময় অ্যাডমিনের সবার আগে দরকার হয় — bKash-এর
+     *   এসএমএসের সাথে মিলিয়ে দেখতে হয়।
+     *
+     *   এখন নামটি স্বাভাবিকভাবে পরের লাইনে যায়, আর TrxID
+     *   (`mono`) `break-all` দিয়ে ভাঙে — কারণ ওতে ফাঁকা জায়গা
+     *   নেই বলে সাধারণ wrap কাজ করে না।
+     */
     <div className="flex items-baseline justify-between gap-3 py-1.5">
       <dt className="shrink-0 text-[11px] uppercase" style={{ letterSpacing: '.1em', color: 'var(--mut)' }}>
         {label}
       </dt>
       <dd
-        className={`min-w-0 truncate text-right text-sm font-semibold ${mono ? 'font-mono' : ''}`}
+        className={`min-w-0 text-right text-sm font-semibold ${mono ? 'break-all font-mono' : 'break-words'}`}
         style={{ color: 'var(--ink)' }}
       >
         {children}
@@ -390,9 +404,14 @@ export default function DepositQueue({ deposits }: { deposits: QueueDeposit[] })
                     </span>
                   </Row>
                   <Row label="গ্রাহক">
+                    {/* ★ ২৪px উঁচু ছিল — ডিপোজিট কিউতে এটিই সবচেয়ে বেশি
+                        চাপা লিংক (অডিটে ৭২টি হিট), আর অ্যাডমিন প্রায়ই
+                        ফোন থেকেই অনুমোদন করেন। `inline-flex` +
+                        `min-h-[40px]` লেখাকে বদলায় না, কেবল আঙুলের
+                        জায়গা দেয়। */}
                     <Link
                       href={`/admin/users/${d.user.id}`}
-                      className="underline decoration-dotted underline-offset-2"
+                      className="inline-flex min-h-[40px] items-center justify-end underline decoration-dotted underline-offset-2"
                     >
                       {d.user.name}
                     </Link>

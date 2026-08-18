@@ -71,12 +71,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <ThemeToggle />
             <Link
               href="/"
-              className="inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap text-sm transition-colors"
+              className="inline-flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center whitespace-nowrap px-2 text-sm transition-colors"
               style={{ color: 'var(--mut)' }}
             >
               {/* ★ ৩২০px-এ কেবল তীরচিহ্ন — পুরো লেখাটি রাখলে লগআউটসহ
                   সারিটি ওভারফ্লো করত। sr-only লেবেল থাকায় স্ক্রিনরিডারে
-                  অর্থ অটুট। */}
+                  অর্থ অটুট।
+
+                  ⚠️ `min-w-[40px]` + `px-2` **আবশ্যক**। আগে শুধু
+                  `min-h-[40px]` ছিল, ফলে তীরচিহ্নটির প্রকৃত মাপ
+                  দাঁড়াত **৪০×১২px** — অডিটে ১০০টি "ছোট ট্যাপ-টার্গেট"
+                  হিট। উচ্চতা ঠিক থাকলেই ছোঁয়ার লক্ষ্য ঠিক হয় না;
+                  প্রস্থও লাগে। */}
               <span aria-hidden="true">←</span>
               <span className="ml-1 hidden xs:inline">সাইটে ফিরুন</span>
               <span className="sr-only">সাইটে ফিরুন</span>

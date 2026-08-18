@@ -168,12 +168,22 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
 
                 <td className="ctr">
                   <div className="tbl-actions">
+                    {/* ★ ইমোজি → SVG, আর লক্ষ্য ২৪×৩২ → ৪০×৪০।
+                        দুটোই মাপা ত্রুটি ছিল: অডিটে ৩৫টি "ছোট
+                        ট্যাপ-টার্গেট" হিট, আর ইমোজি প্ল্যাটফর্মভেদে
+                        বদলায় (CLAUDE.md §7 — বাকি অ্যাপ SVG ব্যবহার করে)।
+                        `title` ছিল, কিন্তু স্ক্রিন-রিডারের জন্য
+                        `aria-label`-ই নির্ভরযোগ্য। */}
                     <Link
                       href={`/admin/users/${u.id}`}
                       title="বিস্তারিত"
-                      className="btn-ghost px-2.5 py-1 text-xs"
+                      aria-label={`${u.name || u.email} — বিস্তারিত`}
+                      className="btn-ghost grid h-10 w-10 place-items-center px-0 py-0"
                     >
-                      👁
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
                     </Link>
                     <button
                       disabled={busy === u.id}

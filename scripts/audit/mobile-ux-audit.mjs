@@ -96,7 +96,11 @@ const PUBLIC_ROUTES = [
 ];
 const CUSTOMER_ROUTES = [
   '/account', '/account/orders', '/account/profile', '/account/notifications',
-  '/account/wallet', '/account/wallet/deposit', '/account/wallet/withdraw',
+  /* ⚠️ `/account/wallet` **নেই** — কখনো ছিল না (কেবল `wallet/deposit` ও
+     `wallet/withdraw`)। তালিকায় থাকায় প্রতিটি রানে ১৪টি মিথ্যা ৪০৪
+     গোনা হতো। অ্যাপের একমাত্র লিংকটি (টাকা তোলার পাতার "← ওয়ালেট")
+     ২০২৬-০৮-১৮ তারিখে `/account` এ সরানো হয়েছে। */
+  '/account/wallet/deposit', '/account/wallet/withdraw',
   '/account/tickets', '/account/smm-orders',
 ];
 const ADMIN_ROUTES = [
@@ -309,11 +313,32 @@ const MEASURE = String.raw`(function () {
     /* ⚠️ বাক্যের ভিতরের লিংক বাদ — WCAG 2.5.8 নিজেই এর ছাড় দেয়
        ("inline exception"): অনুচ্ছেদের মাঝের একটি শব্দকে ৪৪px উঁচু
        করা মানে লাইন-উচ্চতা ভেঙে দেওয়া, যা পড়াকেই কঠিন করে।
-       ⚠️ শর্তটি আগে `display === 'inline'` ও ছিল, কিন্তু সাইটের
-       reset কিছু `<a>`-কে inline-flex করে দেয়, তাই বাক্যের ভিতরের
-       লিংকও ধরা পড়ত। অবস্থান (`<p>`/`<li>` এর ভিতরে) বেশি নির্ভরযোগ্য। */
+       ⚠️ শর্তটি আগে 'display === inline' ও ছিল, কিন্তু সাইটের
+       reset কিছু <a>-কে inline-flex করে দেয়, তাই বাক্যের ভিতরের
+       লিংকও ধরা পড়ত। অবস্থান (<p>/<li> এর ভিতরে) বেশি নির্ভরযোগ্য।
+
+       ⚠️⚠️ এই মন্তব্যে **কখনো backtick লিখবেন না** — পুরো ব্লকটি
+       একটি String.raw টেমপ্লেটের ভিতরে, তাই একটি backtick-ই
+       স্ট্রিংটিকে এখানেই শেষ করে দেয় এবং গোটা ফাইল
+       "SyntaxError: Unexpected identifier" নিয়ে চলতেই পারে না।
+       ২০২৬-০৮-১৮ তারিখে ঠিক তাই ঘটেছিল — অডিট স্ক্রিপ্টটি
+       কমিট করা অবস্থাতেই অচল ছিল। */
     if (tt.closest('p, li') && !tt.className) continue;
     if (tt.closest('p') && tcs.display.indexOf('inline') === 0) continue;
+
+    /* ⚠️⚠️ চেকবক্স/রেডিও যদি একটি <label> এর ভিতরে থাকে, তবে
+       ছোঁয়ার প্রকৃত লক্ষ্য **লেবেলটি** — লেবেলের যেকোনো জায়গায়
+       ট্যাপ করলেই টগল হয়। বাক্সটির নিজের ২৪px তখন কেবল আঁকার
+       মাপ, ছোঁয়ার নয়। আগে এটি ধরা হতো না, ফলে অ্যাডমিনের
+       সেটিংস-সারিগুলো (যেগুলো পুরো সারিজুড়ে লেবেল-মোড়ানো)
+       ১২২টি মিথ্যা অভিযোগ তৈরি করত এবং আসল ছোট লক্ষ্যগুলো
+       তালিকায় চাপা পড়ে যেত। লেবেলটি নিজেই ৪০px না হলে
+       অভিযোগটি বহাল থাকে। */
+    var lab = (tt.type === 'checkbox' || tt.type === 'radio') ? tt.closest('label') : null;
+    if (lab) {
+      var lr = lab.getBoundingClientRect();
+      if (lr.height >= 40 && lr.width >= 40) continue;
+    }
     var h = Math.round(trr.height), w = Math.round(trr.width);
     /* ⚠️ দুই ধাপ, কারণ দুটি ভিন্ন মানদণ্ড:
          · < ৪০px = এই প্রকল্পের নিজস্ব নিয়ম ভাঙে (§17) → আসল ত্রুটি
@@ -326,8 +351,17 @@ const MEASURE = String.raw`(function () {
     else if (h < 44) res.nearTaps.push({ selector: sel(tt), w: w, h: h });
   }
 
-  /* ── ৬. iOS ইনপুট-জুম (font-size < 16px) ── */
-  var fields = document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea, select');
+  /* ── ৬. iOS ইনপুট-জুম (font-size < 16px) ──
+     ⚠️ কেবল **টাচ-পর্দায়** অর্থবহ। iOS-এর অটো-জুম নিয়মটি
+     মাউস-চালিত ব্রাউজারে নেই, তাই ডেস্কটপ কনটেক্সটে ১৪px ইনপুট
+     কোনো ত্রুটি নয় — ওটি ইচ্ছাকৃত ঘনত্ব। আগে এই পার্থক্য করা হতো
+     না, ফলে ১৯৫টি হিটের বড় অংশ ছিল ডেস্কটপ সারির মিথ্যা অভিযোগ,
+     আর তাতে ল্যান্ডস্কেপের **আসল** ঘটনাগুলো চাপা পড়ে যেত।
+     (matchMedia হলো একই শর্ত যা CSS-এ ব্যবহার করা হয়েছে।) */
+  var coarse = window.matchMedia('(pointer: coarse)').matches;
+  var fields = coarse
+    ? document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea, select')
+    : [];
   for (var g = 0; g < fields.length; g++) {
     var fi = fields[g], fics = getComputedStyle(fi);
     if (fics.display === 'none' || fics.visibility === 'hidden') continue;
