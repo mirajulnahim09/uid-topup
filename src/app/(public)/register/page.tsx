@@ -262,7 +262,7 @@ function RegisterForm() {
 
         <p className="mt-5 text-center text-sm text-slate-400">
           অ্যাকাউন্ট আছে?{' '}
-          <Link href="/login" className="inline-flex min-h-[24px] items-center font-bold hover:underline" style={{ color: 'var(--v-volt)' }}>
+          <Link href="/login" className="inline-flex min-h-[44px] items-center font-bold hover:underline" style={{ color: 'var(--v-volt)' }}>
             লগইন করুন
           </Link>
         </p>

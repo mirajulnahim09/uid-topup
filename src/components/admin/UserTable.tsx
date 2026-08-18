@@ -111,7 +111,7 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
       </form>
 
       <div className="table-wrap">
-        <table className="tbl">
+        <table className="tbl tbl--stack">
           <thead>
             <tr>
               <th scope="col">ইউজার</th>
@@ -127,7 +127,7 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
           <tbody>
             {users.map((u: (typeof users)[number]) => (
               <tr key={u.id} className={u.isBanned ? 'bg-red-50' : ''}>
-                <td>
+                <td data-label="ইউজার">
                   <div className="flex items-center gap-2">
                     <Link href={`/admin/users/${u.id}`} className="text-sm font-medium text-slate-900 hover:text-rose-600 hover:underline">{u.name}</Link>
                     {u.role === 'ADMIN' && (
@@ -138,7 +138,7 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
                   <div className="font-mono text-xs text-slate-400">{u.phone}</div>
                 </td>
 
-                <td>
+                <td data-label="রেফারেল">
                   <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-purple-700">
                     {u.referralCode}
                   </code>
@@ -149,14 +149,14 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
                   )}
                 </td>
 
-                <td className="whitespace-nowrap num font-bold text-emerald-600">
+                <td data-label="ব্যালেন্স" className="whitespace-nowrap num font-bold text-emerald-600">
                   ৳{u.balance.toFixed(2)}
                 </td>
-                <td className="num text-slate-400">{u.orders}</td>
-                <td className="num text-slate-400">{u.deposits}</td>
-                <td className="whitespace-nowrap text-xs text-slate-400">{fmtDate(u.createdAt)}</td>
+                <td data-label="অর্ডার" className="num text-slate-400">{u.orders}</td>
+                <td data-label="ডিপোজিট" className="num text-slate-400">{u.deposits}</td>
+                <td data-label="যোগদান" className="whitespace-nowrap text-xs text-slate-400">{fmtDate(u.createdAt)}</td>
 
-                <td className="ctr">
+                <td data-label="স্ট্যাটাস" className="ctr">
                   {u.status === 'ACTIVE' ? (
                     <span className="badge border border-emerald-200 bg-emerald-100 text-emerald-700">সক্রিয়</span>
                   ) : u.status === 'SUSPENDED' ? (

@@ -82,7 +82,7 @@ export default function FloatingCard({ cards }: { cards: CampaignItem[] }) {
                 {active.endsAt && <Countdown to={active.endsAt} compact className="mt-1.5 block" style={{ color: th.accent }} />}
                 {active.ctaLink && (
                   <Link href={active.ctaLink} onClick={close}
-                    className="v-hud mt-2 inline-flex min-h-[24px] items-center gap-1 text-[12px] font-bold hover:underline"
+                    className="v-hud mt-2 inline-flex min-h-[44px] items-center gap-1 text-[12px] font-bold hover:underline"
                     style={{ color: th.accent }}>
                     {active.ctaLabel || 'দেখুন'}
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8"><path d="M5 12h13M12 5l7 7-7 7" /></svg>

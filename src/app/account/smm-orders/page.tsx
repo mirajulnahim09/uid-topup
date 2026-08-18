@@ -122,7 +122,7 @@ export default async function SmmOrdersPage() {
                     <td className="num">
                       <Link
                         href={`/account/orders/${o.id}`}
-                        className="inline-flex min-h-[24px] items-center text-xs font-bold hover:underline" style={{ color: 'var(--v-volt)' }}
+                        className="inline-flex min-h-[44px] items-center text-xs font-bold hover:underline" style={{ color: 'var(--v-volt)' }}
                       >
                         দেখুন →
                       </Link>

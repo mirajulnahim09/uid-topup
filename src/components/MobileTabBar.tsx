@@ -146,7 +146,24 @@ export default function MobileTabBar() {
                   href={href}
                   aria-current={active ? 'page' : undefined}
                   aria-label={t.label}
-                  className="group relative flex min-h-[56px] flex-col items-center justify-end gap-1 px-1 pb-1.5"
+                  /**
+                   * ⚠️ `pb-1.5` → `pb-2.5`।
+                   *   ব্রাউজারে মাপা: বাকি চারটি ট্যাবের লেবেল বারের
+                   *   উপর থেকে ৩৬px-এ বসে, কিন্তু এই একটির লেবেল
+                   *   ৪১px-এ — অর্থাৎ **৫px নিচে**, বারের নিচের কিনারা
+                   *   থেকে মাত্র ৬px দূরে (বাকিদের ১০px)। পাঁচটি
+                   *   লেবেলের মধ্যে একটি লাইনচ্যুত থাকা ঠিক সেই ধরনের
+                   *   অসংগতি যা "অগোছালো" মনে করায় অথচ আলাদা করে চোখে
+                   *   পড়ে না। ১০px reserve দিলে পাঁচটিই এক রেখায় আসে।
+                   *
+                   * ⚠️ `mt-8` সরানো হলো — এটি কোনো কাজ করত না।
+                   *   কলামটি `justify-end`, আর বৃত্তটি `position:absolute`
+                   *   (প্রবাহের বাইরে), তাই লেবেলই একমাত্র in-flow সন্তান;
+                   *   justify-end আগেই তাকে নিচে ঠেলে দেয় এবং উপরের
+                   *   margin শূন্য জায়গায় শোষিত হয়। রেখে দিলে পরের
+                   *   ডেভেলপার ভাবতেন এটি অবস্থান নিয়ন্ত্রণ করছে।
+                   */
+                  className="group relative flex min-h-[56px] flex-col items-center justify-end gap-1 px-1 pb-2.5"
                 >
                   {/**
                     * ★★★ `position` ও `top` ইচ্ছাকৃতভাবে **ইনলাইন**।
@@ -184,7 +201,7 @@ export default function MobileTabBar() {
                   >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                   </span>
-                  <span className="v-hud mt-8 text-[10px] font-bold leading-none" style={{ color: active ? 'var(--v-volt)' : 'var(--v-mut)' }}>{t.label}</span>
+                  <span className="v-hud text-[10px] font-bold leading-none" style={{ color: active ? 'var(--v-volt)' : 'var(--v-mut)' }}>{t.label}</span>
                 </Link>
               </li>
             );

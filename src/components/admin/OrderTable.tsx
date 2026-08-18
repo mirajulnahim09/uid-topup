@@ -316,7 +316,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
       )}
 
       <div className="table-wrap">
-        <table className="tbl">
+        <table className="tbl tbl--stack">
           <thead>
             <tr>
               <th scope="col" className="w-8">
@@ -357,16 +357,16 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                       />
                     )}
                   </td>
-                  <td className="font-mono font-semibold text-rose-600">#{o.orderNo}</td>
-                  <td>
+                  <td data-label="অর্ডার" className="font-mono font-semibold text-rose-600">#{o.orderNo}</td>
+                  <td data-label="ইউজার">
                     <div className="text-sm font-medium text-slate-900">{o.user.name}</div>
                     <div className="text-xs text-slate-400">{o.user.phone}</div>
                   </td>
-                  <td>
+                  <td data-label="প্রোডাক্ট">
                     <div className="text-sm font-medium text-slate-900">{o.productName}</div>
                     <div className="text-xs text-rose-600">{o.variantName}</div>
                   </td>
-                  <td>
+                  <td data-label="UID">
                     {/* ★ একই CopyButton — আগে এখানে আলাদা বাস্তবায়ন ছিল,
                         এখন পুরো অ্যাডমিনে একই আচরণ ও একই a11y (3.4) */}
                     <span className="inline-flex items-center gap-1.5">
@@ -379,13 +379,13 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                       <div className="mt-1 text-[11px] text-slate-400">{o.playerName}</div>
                     )}
                   </td>
-                  <td className="whitespace-nowrap num">
+                  <td data-label="মূল্য" className="whitespace-nowrap num">
                     <div className="font-bold text-slate-900">৳{o.price.toFixed(2)}</div>
                     {o.discount > 0 && (
                       <div className="text-[10px] text-emerald-600">−৳{o.discount.toFixed(2)}</div>
                     )}
                   </td>
-                  <td className="ctr">
+                  <td data-label="স্ট্যাটাস" className="ctr">
                     <Badge status={o.status} />
                     {/* ★ কে কাজ করছে (3.7) — স্ট্যাটাসের ঠিক পাশে,
                         কারণ সিদ্ধান্তের মুহূর্তে দুটোই একসাথে লাগে */}
@@ -408,7 +408,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                       <div className="mt-1 max-w-[130px] text-[11px] text-amber-400">🔒 {o.internalNote}</div>
                     )}
                   </td>
-                  <td className="whitespace-nowrap text-xs text-slate-400">
+                  <td data-label="সময়" className="whitespace-nowrap text-xs text-slate-400">
                     {fmtDate(o.createdAt)}
                     {/* ★ SLA অবস্থা (3.9) — সময়ের পাশেই, কারণ
                         দুটো একই প্রশ্নের উত্তর: "কত দেরি হলো?" */}

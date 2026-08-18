@@ -51,7 +51,18 @@ export default function CustomerTimeline({ events }: { events: TimelineEvent[] }
               </div>
               <div className="text-[11px]" style={{ color: 'var(--mut)' }}>{fmtDate(e.at)}</div>
               {e.detail && (
-                <div className="mt-0.5 text-xs" style={{ color: 'var(--mut)' }}>{e.detail}</div>
+                /**
+                 * ⚠️ `break-words` — `e.detail` এ গ্রাহকের নিজের হাতে
+                 *   লেখা TrxID বসে ("TrxID: BKASH9F2ABX…"), আর তাতে
+                 *   ফাঁকা জায়গা থাকে না। প্যারেন্টে `min-w-0` আছে বলে
+                 *   বাক্সটি ছোট হয়, কিন্তু লেখাটি তবু বাইরে বেরিয়ে
+                 *   যেত: ব্রাউজারে মাপা — একটি ৬১-অক্ষরের TrxID-তে
+                 *   ৩২০px ফোনে পুরো পাতা **৪৯২px** চওড়া হয়ে যেত
+                 *   (এই একটি সারি সরালেই ঠিক ৩২০-এ ফিরত)।
+                 *   `break-all` নয় — বাক্যের বাকি অংশ স্বাভাবিকভাবেই
+                 *   গড়াক, কেবল না-ভাঙা টোকেনটিই ভাঙুক।
+                 */
+                <div className="mt-0.5 break-words text-xs" style={{ color: 'var(--mut)' }}>{e.detail}</div>
               )}
             </div>
           </li>

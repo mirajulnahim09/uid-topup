@@ -159,17 +159,19 @@ export default async function CustomerDetail({ params }: { params: { id: string 
           <p className="card p-6 text-center text-slate-400">কোনো অর্ডার নেই</p>
         ) : (
           <div className="table-wrap">
-            <table className="tbl">
+            <table className="tbl tbl--stack">
               <thead><tr><th>অর্ডার</th><th>প্রোডাক্ট</th><th>UID</th><th className="num">মূল্য</th><th>স্ট্যাটাস</th><th>তারিখ</th></tr></thead>
               <tbody>
                 {user.orders.map((o: (typeof user.orders)[number]) => (
                   <tr key={o.id}>
-                    <td className="font-mono font-semibold text-rose-600">#{o.orderNo}</td>
-                    <td><div className="text-sm text-slate-900">{o.productName}</div><div className="text-xs text-slate-400">{o.variantName}</div></td>
-                    <td className="font-mono text-xs text-slate-400">{o.playerUid}</td>
-                    <td className="num font-semibold text-slate-900">{bdt(o.price)}</td>
-                    <td><Badge status={o.status} /></td>
-                    <td className="whitespace-nowrap text-xs text-slate-400">{fmtDate(o.createdAt.toISOString())}</td>
+                    <td data-label="অর্ডার" className="font-mono font-semibold text-rose-600">#{o.orderNo}</td>
+                    {/* ★ ফোনে মান-অংশটি লেবেলের ডানে বসে, তাই দুই লাইনের
+                        প্রোডাক্ট-নামটি ডানে সারিবদ্ধ হওয়াই স্বাভাবিক দেখায় */}
+                    <td data-label="প্রোডাক্ট"><div className="text-sm text-slate-900 max-md:text-right">{o.productName}</div><div className="text-xs text-slate-400 max-md:text-right">{o.variantName}</div></td>
+                    <td data-label="UID" className="font-mono text-xs text-slate-400">{o.playerUid}</td>
+                    <td data-label="মূল্য" className="num font-semibold text-slate-900">{bdt(o.price)}</td>
+                    <td data-label="স্ট্যাটাস"><Badge status={o.status} /></td>
+                    <td data-label="তারিখ" className="whitespace-nowrap text-xs text-slate-400">{fmtDate(o.createdAt.toISOString())}</td>
                   </tr>
                 ))}
               </tbody>
@@ -185,17 +187,20 @@ export default async function CustomerDetail({ params }: { params: { id: string 
           <p className="card p-6 text-center text-slate-400">কোনো রিচার্জ নেই</p>
         ) : (
           <div className="table-wrap">
-            <table className="tbl">
+            <table className="tbl tbl--stack">
               <thead><tr><th>রিচার্জ</th><th>মেথড</th><th className="num">পরিমাণ</th><th>TrxID</th><th>স্ট্যাটাস</th><th>তারিখ</th></tr></thead>
               <tbody>
                 {user.deposits.map((d: (typeof user.deposits)[number]) => (
                   <tr key={d.id}>
-                    <td className="font-mono font-semibold text-rose-600">#{d.depositNo}</td>
-                    <td className="text-sm text-slate-900">{d.method}</td>
-                    <td className="num font-semibold text-emerald-600">{bdt(d.amount)}</td>
-                    <td className="font-mono text-xs text-slate-400">{d.trxId}</td>
-                    <td><Badge status={d.status} /></td>
-                    <td className="whitespace-nowrap text-xs text-slate-400">{fmtDate(d.createdAt.toISOString())}</td>
+                    <td data-label="রিচার্জ" className="font-mono font-semibold text-rose-600">#{d.depositNo}</td>
+                    <td data-label="মেথড" className="text-sm text-slate-900">{d.method}</td>
+                    <td data-label="পরিমাণ" className="num font-semibold text-emerald-600">{bdt(d.amount)}</td>
+                    {/* ⚠️ `break-all` — TrxID-তে ফাঁকা জায়গা নেই, আর ফোনে
+                        লেবেলের পর অবশিষ্ট প্রস্থ ছোট; নাহলে কার্ডের বাইরে
+                        বেরিয়ে যেত */}
+                    <td data-label="TrxID" className="break-all font-mono text-xs text-slate-400">{d.trxId}</td>
+                    <td data-label="স্ট্যাটাস"><Badge status={d.status} /></td>
+                    <td data-label="তারিখ" className="whitespace-nowrap text-xs text-slate-400">{fmtDate(d.createdAt.toISOString())}</td>
                   </tr>
                 ))}
               </tbody>
@@ -211,18 +216,18 @@ export default async function CustomerDetail({ params }: { params: { id: string 
           <p className="card p-6 text-center text-slate-400">কোনো লেনদেন নেই</p>
         ) : (
           <div className="table-wrap">
-            <table className="tbl">
+            <table className="tbl tbl--stack">
               <thead><tr><th>ধরন</th><th className="num">পরিমাণ</th><th className="num">ব্যালেন্স</th><th>নোট</th><th>তারিখ</th></tr></thead>
               <tbody>
                 {user.ledger.map((l: (typeof user.ledger)[number]) => (
                   <tr key={l.id}>
-                    <td className="text-xs font-semibold text-slate-900">{l.type}</td>
-                    <td className={`num font-semibold ${Number(l.amount) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <td data-label="ধরন" className="text-xs font-semibold text-slate-900">{l.type}</td>
+                    <td data-label="পরিমাণ" className={`num font-semibold ${Number(l.amount) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {Number(l.amount) >= 0 ? '+' : ''}{bdt(l.amount)}
                     </td>
-                    <td className="num text-slate-400">{bdt(l.balanceAfter)}</td>
-                    <td className="max-w-[220px] text-xs text-slate-400">{l.note || '—'}</td>
-                    <td className="whitespace-nowrap text-xs text-slate-400">{fmtDate(l.createdAt.toISOString())}</td>
+                    <td data-label="ব্যালেন্স" className="num text-slate-400">{bdt(l.balanceAfter)}</td>
+                    <td data-label="নোট" className="text-xs text-slate-400 md:max-w-[220px]">{l.note || '—'}</td>
+                    <td data-label="তারিখ" className="whitespace-nowrap text-xs text-slate-400">{fmtDate(l.createdAt.toISOString())}</td>
                   </tr>
                 ))}
               </tbody>

@@ -54,7 +54,7 @@ export default async function AdminSite() {
 
       <p className="text-sm text-slate-500">
         🖼️ ব্যানার ছবি বদলাতে{' '}
-        <Link href="/admin/banners" className="inline-flex min-h-[24px] items-center font-bold hover:underline" style={{ color: 'var(--v-ice)' }}>
+        <Link href="/admin/banners" className="inline-flex min-h-[44px] items-center font-bold hover:underline" style={{ color: 'var(--v-ice)' }}>
           ব্যানার ছবি
         </Link>{' '}
         পেজে যান।

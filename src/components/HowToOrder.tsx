@@ -52,9 +52,16 @@ export default function HowToOrder() {
 
   return (
     <>
+      {/* ⚠️ আগে এটি ছিল `bg-white/20 … text-white` — সাদা লেখা ২০%
+          সাদা ফিলের উপর। বসানো হয়েছিল যখন প্রোডাক্ট-হেডার একটি গাঢ়
+          বেগুনি গ্রেডিয়েন্ট ছিল; হেডার পরে হালকা glass-কার্ডে বদলায়
+          আর বোতামটি light থিমে **কার্যত অদৃশ্য** হয়ে যায় (সাদার উপর
+          সাদা, ৩৯০px স্ক্রিনশটে ধরা পড়ে)। এখন টোকেন-চালিত
+          `.sig-chip--ghost` — যেকোনো পৃষ্ঠতলে ও দুই থিমেই পাঠযোগ্য।
+          ★ ট্যাপ-টার্গেট ৪৪px (আগে ৪০) — WCAG 2.5.5। */}
       <button
         onClick={() => setOpen(true)}
-        className="mt-2 inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-white/20 px-3.5 text-xs font-bold text-white backdrop-blur transition hover:bg-white/30 active:scale-95"
+        className="sig-chip sig-chip--ghost mt-2 min-h-[44px] px-3.5 transition active:scale-95"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
           <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />

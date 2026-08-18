@@ -248,7 +248,16 @@ export default function StorefrontShell({
           {featured.length > 0 && (
             <>
               <SecHead title={t('home.popular')} href="#catalog" hrefLabel={t('common.viewAll')} />
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {/**
+                * ⚠️ ঠিক **একটি** ফিচারড পণ্য থাকলে দুই-কলাম গ্রিডে ডান
+                *   ঘরটি ফাঁকা পড়ে থাকত — ৩৯০px স্ক্রিনশটে সেটি "লোড
+                *   হয়নি" বা "ভেঙে গেছে" এর মতো দেখাত। একটি আইটেমের
+                *   সেকশনে ফাঁকা ঘর মানে গ্রিডের স্বাভাবিক আচরণ নয়,
+                *   একটি অসমাপ্ত সারি।
+                *   তাই সংখ্যা ১ হলে কার্ডটি পুরো প্রস্থ নেয় — "সবচেয়ে
+                *   জনপ্রিয়" একটিমাত্র বাছাই হিসেবে এটিই স্বাভাবিক দেখায়।
+                */}
+              <div className={`grid gap-3 sm:grid-cols-3 lg:grid-cols-4 ${featured.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {featured.slice(0, 4).map((p) => (
                   <ProductCard key={p.id} p={p} tone={pal(Math.max(0, catIndex(p.categoryId)))} />
                 ))}
@@ -482,17 +491,42 @@ function StoreHero({ hero, onHamburger }: { hero: { content: HeroContent; highli
     >
       <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-80 w-80 rounded-full"
         style={{ background: 'radial-gradient(circle,rgba(163,230,53,.32),transparent 65%)' }} />
-      {/* মোবাইল হ্যামবার্গার */}
-      <button aria-label="ক্যাটাগরি" onClick={onHamburger}
-        className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-xl lg:hidden"
-        style={{ background: 'rgba(255,255,255,.16)' }}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
-      </button>
+      {/**
+        * ═══ হিরোর উপরের সারি ═══
+        *
+        * ⚠️⚠️ আগে ক্যাটাগরি-বোতামটি `absolute right-4 top-4` ছিল আর
+        *   স্ট্যাটাস-ব্যাজটি স্বাভাবিক প্রবাহে। ৩২০–৩৭৫px ফোনে ব্যাজের
+        *   লেখা দুই লাইনে গড়াত এবং বোতামটির **নিচ দিয়ে চলে যেত** —
+        *   ব্রাউজারে মাপা ওভারল্যাপ ৩২px × ৩২px (৩২০px ভিউপোর্ট,
+        *   ব্যাজ x ৪০–২৮০ · y ২৩৪–২৮৭, বোতাম x ২৪৮–২৮৮ · y ২২৬–২৬৬)।
+        *   অর্থাৎ বাজারের সবচেয়ে সরু ফোনে হিরোর প্রথম বাক্যটির শেষাংশ
+        *   একটি বোতামের নিচে ঢাকা পড়ত।
+        *
+        *   এখন দুটি একই flex সারিতে — জ্যামিতিকভাবে আর কখনো
+        *   একে অপরের উপর পড়তে পারে না, ব্যাজ যত লম্বাই হোক।
+        *
+        * ★ বোতামে এখন লেখাও আছে। কারণ: পাতার উপরেই ন্যাভবারের
+        *   হ্যামবার্গার, আর এখানে দ্বিতীয় একটি **অভিন্ন ☰ গ্লিফ** —
+        *   এক পর্দায় দুটি একরকম চিহ্ন দুটি সম্পূর্ণ আলাদা মেনু খুলত।
+        *   লেবেল দিলে কোনটি কী তা আর অনুমান করতে হয় না।
+        */}
+      <div className="flex items-start justify-between gap-3">
+        <span className="inline-flex min-w-0 items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-bold" style={{ background: 'rgba(255,255,255,.16)' }}>
+          <span className="v-blink inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: '#a3e635', boxShadow: '0 0 8px #a3e635' }} />
+          <span className="min-w-0">{content.status}</span>
+        </span>
 
-      <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-bold" style={{ background: 'rgba(255,255,255,.16)' }}>
-        <span className="v-blink inline-block h-1.5 w-1.5 rounded-full" style={{ background: '#a3e635', boxShadow: '0 0 8px #a3e635' }} />
-        {content.status}
-      </span>
+        {/* মোবাইল/ট্যাবলেট: ক্যাটাগরি ড্রয়ার */}
+        <button aria-label="সব ক্যাটাগরি দেখুন" onClick={onHamburger}
+          className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-xl px-3 text-[12px] font-bold lg:hidden"
+          style={{ background: 'rgba(255,255,255,.16)' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />
+          </svg>
+          <span className="hidden xs:inline">ক্যাটাগরি</span>
+        </button>
+      </div>
 
       <h1 className="mt-4 max-w-xl font-extrabold leading-[1.1]" style={{ fontSize: 'clamp(1.7rem,4vw,2.5rem)', letterSpacing: '-.02em' }}>
         {titleLines.map((l, i) => (
@@ -571,7 +605,10 @@ function SecHead({ title, href, hrefLabel }: { title: string; href?: string; hre
         {title}
       </h2>
       {href && (
-        <Link href={href} className="inline-flex items-center gap-1 text-[13px] font-bold" style={{ color: 'var(--violet)' }}>
+        /* ★ ট্যাপ-টার্গেট ৪৪px — মাপা ছিল ৬৪×**২২**px, অর্থাৎ WCAG 2.5.8
+           (AA, ২৪×২৪) এর নিচে। শিরোনামের পাশে বসে বলে উচ্চতা চোখে পড়ে না,
+           কিন্তু আঙুলে পড়ে। */
+        <Link href={href} className="-mr-2 inline-flex min-h-[44px] items-center gap-1 px-2 text-[13px] font-bold" style={{ color: 'var(--violet)' }}>
           {hrefLabel}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 12h13M12 5l7 7-7 7" /></svg>
         </Link>
@@ -620,7 +657,26 @@ function ProductCard({ p, tone }: { p: SProduct; tone: { bg: string; fg: string;
         )}
       </div>
       <div className="flex flex-1 flex-col p-3.5">
-        <p className="text-[14px] font-bold leading-tight" style={{ color: 'var(--v-ink)' }}>{p.name}</p>
+        {/**
+          * ★ `line-clamp-2` + স্থির দুই-লাইনের উচ্চতা।
+          *
+          *   কেন: নাম আগে যত লাইন লাগে তত নিত। "Free Fire Voucher for
+          *   UniPin" দুই লাইন, "Free Fire Like" এক লাইন — একই সারির দুই
+          *   কার্ডের ভিতরের ছন্দ আলাদা হয়ে যেত, আর কোনো একটি নাম তিন
+          *   লাইনে গেলে **পুরো সারিটি** লম্বা হয়ে গ্রিডের ছন্দ ভাঙত।
+          *   গ্রিডে কার্ডের মাপ অনুমানযোগ্য হওয়া দরকার।
+          *
+          *   ⚠️ `min-height` ব্যবহার করা হয়েছে, `height` নয় — বাংলা
+          *   যুক্তাক্ষরের ascender/descender বেশি জায়গা নেয়, স্থির
+          *   উচ্চতায় সেগুলো কাটা পড়ত।
+          */}
+        <p
+          className="line-clamp-2 text-[14px] font-bold leading-tight"
+          style={{ color: 'var(--v-ink)', minHeight: 'calc(2 * 1.25em)' }}
+          title={p.name}
+        >
+          {p.name}
+        </p>
         <div className="mt-auto flex items-end justify-between pt-3">
           <span>
             <span className="block text-[10px] font-semibold uppercase" style={{ color: 'var(--v-dim)' }}>{t('common.startingAt')}</span>

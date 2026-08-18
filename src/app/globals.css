@@ -168,7 +168,12 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
    a-core)। padding-slide মাইক্রো-ইন্টার‌্যাকশন ও ৪০px উচ্চতা
    অপরিবর্তিত। */
 .fnav {
-  display:inline-flex; align-items:center; min-height:40px;
+  display:inline-flex; align-items:center; min-height:44px;
+  /* ⚠️ `min-width` ছাড়া ছোট লেবেলের হিট-এরিয়া লেখার সমান হয়ে যেত।
+     মাপা: ফুটারের "প্রশ্ন" লিংকটি ছিল **১৬px চওড়া** — WCAG 2.5.8
+     (AA, ২৪×২৪) এর নিচে, আর বুড়ো আঙুলে কার্যত অলক্ষ্য। লেখা
+     বাঁয়েই থাকে (flex-start), কেবল ক্লিকযোগ্য এলাকা বাড়ে। */
+  min-width:44px;
   color:var(--v-mut); font-size:.8125rem; line-height:1.2;
   transition:color var(--dur-fast) var(--ease), padding var(--dur-fast) var(--ease);
 }
@@ -298,6 +303,47 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
   }
 
+  /* ═══════════ ★★★ সংকেত-চিপ (`.sig-chip`) ═══════════
+     ছোট, ভূমিকা-রঙের লেবেল — "ডেলিভারি ১৫ মিনিটে", "কিভাবে অর্ডার
+     করবেন?" ইত্যাদি।
+
+     ⚠️ কেন এটি দরকার হলো: এই চিপগুলো আগে **হার্ডকোড করা গাঢ়-থিমের
+     রঙে** ইনলাইনে লেখা ছিল (`color:'#bef264'`, `bg-white/20
+     text-white`)। সেগুলো বসানো হয়েছিল যখন প্রোডাক্ট-হেডার একটি
+     গাঢ় বেগুনি গ্রেডিয়েন্ট ছিল। হেডার পরে হালকা glass-কার্ডে
+     বদলায়, কিন্তু চিপের রঙ পিছিয়ে থাকে — ফলে light থিমে
+     "ডেলিভারি: …" এর কনট্রাস্ট মাপা হয় **১.৪:১** আর "কিভাবে অর্ডার
+     করবেন?" কার্যত **অদৃশ্য** (সাদার উপর সাদা)। দুটোই টাকার
+     পাতায়, অর্থাৎ যেখানে গ্রাহক সিদ্ধান্ত নেন।
+
+     এখন রঙ আসে `--sem-*` টোকেন থেকে, তাই দুই থিমেই ভূমিকা এক আর
+     কনট্রাস্ট AA পার করে। নতুন কোডে ইনলাইন hex লিখবেন না। */
+  .sig-chip {
+    @apply inline-flex items-center gap-1.5 px-2.5 text-[11.5px] font-bold;
+    min-height: 32px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    line-height: 1.25;
+  }
+  .sig-chip--success {
+    color: var(--sem-success);
+    background: color-mix(in srgb, var(--sem-success) 12%, transparent);
+    border-color: color-mix(in srgb, var(--sem-success) 32%, transparent);
+  }
+  .sig-chip--info {
+    color: var(--sem-info);
+    background: color-mix(in srgb, var(--sem-info) 12%, transparent);
+    border-color: color-mix(in srgb, var(--sem-info) 32%, transparent);
+  }
+  /* ★ নিরপেক্ষ — "আরও জানুন" ধরনের গৌণ কাজ; পৃষ্ঠতলের উপর নির্ভর
+     করে না, তাই যেকোনো কার্ডে বসানো নিরাপদ। */
+  .sig-chip--ghost {
+    color: var(--v-ink);
+    background: var(--v-fill2);
+    border-color: var(--v-edge2);
+  }
+  .sig-chip--ghost:hover { background: var(--v-steel); border-color: var(--v-edge-field); }
+
   /* ─── টেবিল ───
      ⚠️ `table.tbl` সবসময় `.table-wrap` এর ভেতরে থাকে যাতে সরু পর্দায়
      টেবিলটি নিজে গড়ায়, পুরো পাতা নয় (CLAUDE.md §17)। */
@@ -365,6 +411,118 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   table.tbl td:has(> .tbl-actions) { text-align: center; }
   .tbl-actions { display: inline-flex; align-items: center; gap: .375rem; justify-content: center; }
   .tbl-clip { display: inline-block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+
+  /* ═══════════ ★★★ `.tbl--stack` — টেবিলের মোবাইল রূপ ═══════════
+
+     ── সমস্যা ──
+     ৯টি টেবিল — অ্যাডমিনের ৮টি (অর্ডার · ডিপোজিট · ইউজার · কুপন ·
+     রিসেলার-কী · লগ, আর ইউজার-বিস্তারিত পাতার অর্ডার/রিচার্জ/খতিয়ান)
+     এবং গ্রাহকের `/account` খতিয়ান — মোবাইলে ছিল হুবহু ডেস্কটপ টেবিল, কেবল
+     `min-width:640px` নিয়ে একটি অনুভূমিক স্ক্রলারের ভিতরে। পাতা
+     উপচাত না (ভালো), কিন্তু ৩৯০px ফোনে একবারে ৩টি কলাম দেখা যেত —
+     অর্থাৎ অ্যাডমিনকে প্রতিটি সারির জন্য দু-বার ডানে-বাঁয়ে টানতে হতো।
+     সবচেয়ে খারাপ ছিল **খালি অবস্থা**: `colSpan` সেলটি ৬৪০px টেবিলের
+     কেন্দ্রে বসত, তাই "কোনো অর্ডার নেই" লেখাটি পর্দার **বাইরে** থাকত
+     (৩৯০px স্ক্রিনশটে ধরা পড়ে — অর্ধেক কাটা)।
+
+     ── কেন কার্ড-মার্কআপ নকল করা হয়নি ──
+     গ্রাহকের তিনটি পাতা (`/account/orders`, `/account/wallet/deposit`,
+     `/account/smm-orders`) মোবাইলে আলাদা কার্ড-মার্কআপ রাখে
+     (`md:hidden` + `hidden md:block`) — সেগুলো অপরিবর্তিত। অ্যাডমিনে
+     সেই পথ **বিপজ্জনক**: ওই সেলগুলোয় সম্পন্ন/বাতিল/আংশিক-ফেরত
+     বোতাম আছে — টাকা নড়ে। দ্বিতীয় একটি কপি মানে প্রতিটি মিউটেশনের
+     দুটি কল-সাইট, অর্থাৎ ডাবল-সাবমিশন গার্ড ও নিশ্চিতকরণ-ডায়ালগ
+     দু-জায়গায় ঠিক রাখতে হতো। একটিতে ঠিক করে অন্যটি ভুলে যাওয়াই
+     স্বাভাবিক পরিণতি।
+
+     তাই মার্কআপ **একটাই** থাকে; CSS সেটিকে ফোনে কার্ডে রূপান্তর করে।
+     প্রতিটি সেল তার হেডার-লেবেল পায় `data-label` থেকে, আর `thead`
+     স্ক্রিন-রিডারের জন্য টিকে থাকে (সরানো হয় না — নাহলে টেবিলের
+     শব্দার্থ ভাঙত)।
+
+     ⚠️ ব্যবহারের নিয়ম: `<table className="tbl tbl--stack">` আর প্রতিটি
+     `<td>`-তে `data-label="<হেডারের লেখা>"`। লেবেল ছাড়া `<td>`
+     (চেকবক্স/অ্যাকশন) পুরো প্রস্থ পায়। ═══════════ */
+  .tbl--stack tbody td::before { content: none; }
+}
+
+@media (max-width: 767px) {
+  /* টেবিলের ৬৪০px ন্যূনতম প্রস্থ আর দরকার নেই — কার্ড প্রস্থে বসে */
+  table.tbl--stack { min-width: 0; display: block; }
+
+  /* ♿ হেডার থেকে যায়, কেবল দৃশ্য থেকে সরে — প্রতিটি সেল নিজের
+     লেবেল `data-label` থেকে নিজেই দেখায় */
+  .tbl--stack thead {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
+  }
+
+  .tbl--stack tbody { display: block; }
+
+  /* একটি সারি = একটি কার্ড */
+  .tbl--stack tbody tr {
+    display: block;
+    padding: .85rem 1rem;
+    border-top: 1px solid var(--v-edge2);
+  }
+  .tbl--stack tbody tr:first-child { border-top: 0; }
+  .tbl--stack tbody tr:hover { background: transparent; }
+
+  .tbl--stack tbody td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .3rem 0;
+    border-top: 0;
+  }
+  /* ⚠️ নির্দিষ্টতা ইচ্ছাকৃতভাবে `table.tbl td.num` (০,২,২) এর সমান ও
+     ফাইলে পরে — নাহলে `.num`/`.ctr` এর alignment এখানেও বহাল থাকত
+     আর মান-অংশটি লেবেলের নিচে ভুল দিকে সরে যেত। */
+  table.tbl--stack tbody td.num,
+  table.tbl--stack tbody td.ctr,
+  table.tbl--stack tbody td:has(> .tbl-actions) { text-align: right; }
+
+  .tbl--stack tbody td[data-label]::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    padding-top: .15rem;
+    text-align: left;
+    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+    font-size: 10px; font-weight: 700;
+    /* ⚠️ `.08em` — `.hud` এর বাংলা-নিরাপদ মান (নিচে সেই সিদ্ধান্তের
+       ব্যাখ্যা)। এখানকার প্রতিটি `data-label` বাংলা, আর বাংলা
+       যুক্তাক্ষর ক্লাস্টার হিসেবে বসে; বেশি ব্যবধানে ক্লাস্টার ভেঙে
+       যায়। এই এক জায়গায় `.1em` লিখলে ঠিক সেই ভুলটিই ফিরে আসত। */
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--v-ice);
+  }
+
+  /* লেবেল-বিহীন সেল = চেকবক্স বা অ্যাকশন-সারি → পুরো প্রস্থ */
+  .tbl--stack tbody td:not([data-label]) { justify-content: flex-end; }
+  .tbl--stack tbody td:empty { display: none; }
+
+  /* ★ খালি অবস্থা — `colspan` সেলটি এখন ব্লক, তাই কার্ডের ভিতরেই
+     কেন্দ্রে বসে; আগে ৬৪০px টেবিলের কেন্দ্রে গিয়ে পর্দার বাইরে
+     চলে যেত।
+
+     ⚠️ নির্বাচকের `table` উপসর্গটি **আবশ্যক**, শোভা নয়। খালি-অবস্থার
+     সেলগুলো প্রায় সবই `class="… ctr"` নিয়ে লেখা, আর উপরের
+     `table.tbl--stack tbody td.ctr` নিয়মটির নির্দিষ্টতা (০,২,৩)
+     `.tbl--stack tbody td[colspan]` (০,২,২) এর চেয়ে বেশি — তাই
+     উপসর্গ ছাড়া `text-align:right` জিতত আর "কোনো অর্ডার নেই" লেখাটি
+     কার্ডের ডান কিনারায় ঝুলে থাকত। ব্রাউজারে মাপা (৩২০px): উপসর্গ
+     ছাড়া computed `text-align` = `right`, সহ = `center`।
+     উপসর্গ দিলে নির্দিষ্টতা সমান হয় আর ফাইলে পরে থাকায় এটিই জেতে। */
+  table.tbl--stack tbody td[colspan] { display: block; text-align: center; }
+
+  /* ★ অ্যাকশন-গুচ্ছ ফোনে গড়িয়ে যেতে পারে — একটিও বোতাম যেন
+     কার্ডের বাইরে না যায় */
+  .tbl--stack .tbl-actions { flex-wrap: wrap; justify-content: flex-end; }
+}
+
+@layer components {
 
   /* ─── বার্তা ───
      প্রতিটি রঙ ভূমিকা মেনে: ত্রুটি = heat, সফল = volt, সতর্কতা = amber।

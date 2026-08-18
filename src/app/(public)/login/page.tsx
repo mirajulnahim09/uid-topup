@@ -221,7 +221,7 @@ function LoginForm() {
 
         <p className="mt-5 text-center text-sm text-slate-400">
           অ্যাকাউন্ট নেই?{' '}
-          <Link href="/register" className="inline-flex min-h-[24px] items-center font-bold hover:underline" style={{ color: 'var(--v-volt)' }}>
+          <Link href="/register" className="inline-flex min-h-[44px] items-center font-bold hover:underline" style={{ color: 'var(--v-volt)' }}>
             রেজিস্টার করুন
           </Link>
         </p>

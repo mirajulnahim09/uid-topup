@@ -1,0 +1,1428 @@
+{
+  "base": "http://localhost:3000",
+  "at": "2026-08-15T10:22:05.340Z",
+  "theme": "default",
+  "auth": {},
+  "viewports": {
+    "anon-mobile@320x568": [
+      {
+        "route": "/",
+        "status": 200,
+        "landedOn": "/",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.inline-flex.items-center.gap-1",
+            "path": "div.grid.gap-5.lg:grid-cols-[240px_1fr] > main.min-w-0 > div.mb-4.mt-8.flex > a.inline-flex.items-center.gap-1",
+            "w": 64,
+            "h": 22,
+            "text": "সব দেখুন"
+          },
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.absolute.right-4.top-4",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.shrink-0.whitespace-nowrap.rounded-full",
+            "w": 49,
+            "h": 40
+          },
+          {
+            "selector": "button.shrink-0.whitespace-nowrap.rounded-full",
+            "w": 90,
+            "h": 40
+          },
+          {
+            "selector": "button.shrink-0.whitespace-nowrap.rounded-full",
+            "w": 195,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/login",
+        "status": 200,
+        "landedOn": "/login",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.inline-flex.min-h-[24px].items-center",
+            "path": "div.mx-auto.max-w-md.page-x > div.card.p-6.sm:p-7 > p.mt-5.text-center.text-sm > a.inline-flex.min-h-[24px].items-center",
+            "w": 82,
+            "h": 24,
+            "text": "রেজিস্টার করুন"
+          },
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.absolute.right-2.top-1/2",
+            "w": 32,
+            "h": 43
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 124,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/register",
+        "status": 200,
+        "landedOn": "/register",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.inline-flex.min-h-[24px].items-center",
+            "path": "div.mx-auto.max-w-md.page-x > div.card.p-6.sm:p-7 > p.mt-5.text-center.text-sm > a.inline-flex.min-h-[24px].items-center",
+            "w": 68,
+            "h": 24,
+            "text": "লগইন করুন"
+          },
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.absolute.right-2.top-1/2",
+            "w": 32,
+            "h": 43
+          },
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/forgot-password",
+        "status": 200,
+        "landedOn": "/forgot-password",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.inline-flex.min-h-[24px].items-center",
+            "path": "div.mx-auto.max-w-md.page-x > div.card.p-6.sm:p-7 > p.mt-5.text-center.text-sm > a.inline-flex.min-h-[24px].items-center",
+            "w": 68,
+            "h": 24,
+            "text": "লগইন করুন"
+          },
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/search?q=diamond",
+        "status": 200,
+        "landedOn": "/search",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.underline",
+            "path": "div.mx-auto.w-full.max-w-5xl > div.card.mt-8.p-8 > p.mt-2.text-sm > a.underline",
+            "w": 58,
+            "h": 24,
+            "text": "সব প্রোডাক্ট"
+          },
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/track",
+        "status": 200,
+        "landedOn": "/track",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/contact",
+        "status": 200,
+        "landedOn": "/contact",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.mt-2.inline-flex.min-h-[40px]",
+            "w": 111,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/faq",
+        "status": 200,
+        "landedOn": "/faq",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 142,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 76,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 97,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/terms",
+        "status": 200,
+        "landedOn": "/terms",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/privacy",
+        "status": 200,
+        "landedOn": "/privacy",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/refund",
+        "status": 200,
+        "landedOn": "/refund",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/product/1/free-fire-bd-server",
+        "status": 200,
+        "landedOn": "/product/1/free-fire-bd-server",
+        "bouncedToLogin": false,
+        "vw": 320,
+        "rawScrollWidth": 320,
+        "trueScrollWidth": 320,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.mt-2.inline-flex.min-h-[40px]",
+            "w": 158,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      }
+    ],
+    "anon-mobile@390x844": [
+      {
+        "route": "/",
+        "status": 200,
+        "landedOn": "/",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.inline-flex.items-center.gap-1",
+            "path": "div.grid.gap-5.lg:grid-cols-[240px_1fr] > main.min-w-0 > div.mb-4.mt-8.flex > a.inline-flex.items-center.gap-1",
+            "w": 64,
+            "h": 22,
+            "text": "সব দেখুন"
+          },
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.absolute.right-4.top-4",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.shrink-0.whitespace-nowrap.rounded-full",
+            "w": 49,
+            "h": 40
+          },
+          {
+            "selector": "button.shrink-0.whitespace-nowrap.rounded-full",
+            "w": 90,
+            "h": 40
+          },
+          {
+            "selector": "button.shrink-0.whitespace-nowrap.rounded-full",
+            "w": 195,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/login",
+        "status": 200,
+        "landedOn": "/login",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.inline-flex.min-h-[24px].items-center",
+            "path": "div.mx-auto.max-w-md.page-x > div.card.p-6.sm:p-7 > p.mt-5.text-center.text-sm > a.inline-flex.min-h-[24px].items-center",
+            "w": 82,
+            "h": 24,
+            "text": "রেজিস্টার করুন"
+          },
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.absolute.right-2.top-1/2",
+            "w": 32,
+            "h": 43
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 124,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/register",
+        "status": 200,
+        "landedOn": "/register",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.inline-flex.min-h-[24px].items-center",
+            "path": "div.mx-auto.max-w-md.page-x > div.card.p-6.sm:p-7 > p.mt-5.text-center.text-sm > a.inline-flex.min-h-[24px].items-center",
+            "w": 68,
+            "h": 24,
+            "text": "লগইন করুন"
+          },
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.absolute.right-2.top-1/2",
+            "w": 32,
+            "h": 43
+          },
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/forgot-password",
+        "status": 200,
+        "landedOn": "/forgot-password",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.inline-flex.min-h-[24px].items-center",
+            "path": "div.mx-auto.max-w-md.page-x > div.card.p-6.sm:p-7 > p.mt-5.text-center.text-sm > a.inline-flex.min-h-[24px].items-center",
+            "w": 68,
+            "h": 24,
+            "text": "লগইন করুন"
+          },
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/search?q=diamond",
+        "status": 200,
+        "landedOn": "/search",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.underline",
+            "path": "div.mx-auto.w-full.max-w-5xl > div.card.mt-8.p-8 > p.mt-2.text-sm > a.underline",
+            "w": 58,
+            "h": 24,
+            "text": "সব প্রোডাক্ট"
+          },
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/track",
+        "status": 200,
+        "landedOn": "/track",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/contact",
+        "status": 200,
+        "landedOn": "/contact",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.mt-2.inline-flex.min-h-[40px]",
+            "w": 111,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/faq",
+        "status": 200,
+        "landedOn": "/faq",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 142,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 76,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 97,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/terms",
+        "status": 200,
+        "landedOn": "/terms",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/privacy",
+        "status": 200,
+        "landedOn": "/privacy",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/refund",
+        "status": 200,
+        "landedOn": "/refund",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 39,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/product/1/free-fire-bd-server",
+        "status": 200,
+        "landedOn": "/product/1/free-fire-bd-server",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.fnav",
+            "path": "div.lg:col-span-2 > ul.mt-4.space-y-0.5 > li > a.fnav",
+            "w": 16,
+            "h": 40,
+            "text": "প্রশ্ন"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.mt-2.inline-flex.min-h-[40px]",
+            "w": 158,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 53,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 58,
+            "h": 40
+          },
+          {
+            "selector": "a.fnav",
+            "w": 66,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": {
+          "barHeight": 57,
+          "reserve": 57,
+          "short": 0
+        },
+        "consoleErrors": [
+          "Warning: Extra attributes from the server: %s%s style \n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist"
+        ],
+        "failedRequests": [],
+        "notSettled": false
+      }
+    ]
+  },
+  "summary": {
+    "pages": 24,
+    "bounced": 0,
+    "overflowPages": 0,
+    "clippedPages": 0,
+    "coveredPages": 0,
+    "floatOverlapPages": 0,
+    "smallTapPages": 24,
+    "zoomInputPages": 0,
+    "consoleErrorPages": 18,
+    "failedRequestPages": 0,
+    "notSettled": 0,
+    "bottomShortPages": 0
+  }
+}

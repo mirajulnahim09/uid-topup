@@ -1,0 +1,901 @@
+{
+ "at": "2026-08-17T13:37:16.167Z",
+ "base": "https://localhost:3443",
+ "results": [
+  {
+   "page": "admin/logs",
+   "vw": 320,
+   "stackExpected": true,
+   "rawScrollWidth": 320,
+   "trueScrollWidth": 320,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 300,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 2100,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 122346,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/logs",
+   "vw": 390,
+   "stackExpected": true,
+   "rawScrollWidth": 390,
+   "trueScrollWidth": 390,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 300,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 2100,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 120283,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/logs",
+   "vw": 430,
+   "stackExpected": true,
+   "rawScrollWidth": 430,
+   "trueScrollWidth": 430,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 300,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 2100,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 119461,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/logs",
+   "vw": 768,
+   "stackExpected": false,
+   "rawScrollWidth": 768,
+   "trueScrollWidth": 768,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 300,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 22333,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/logs",
+   "vw": 1024,
+   "stackExpected": false,
+   "rawScrollWidth": 1024,
+   "trueScrollWidth": 1024,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 300,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 22247,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/logs",
+   "vw": 1366,
+   "stackExpected": false,
+   "rawScrollWidth": 1366,
+   "trueScrollWidth": 1366,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 300,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 22247,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/logs?empty",
+   "vw": 320,
+   "stackExpected": true,
+   "rawScrollWidth": 320,
+   "trueScrollWidth": 320,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 1,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [
+    {
+     "text": "এই ফিল্টারে কোনো লগ নেই",
+     "align": "center",
+     "display": "block",
+     "left": 33,
+     "right": 287,
+     "insideViewport": true
+    }
+   ],
+   "longestCellText": "",
+   "scrollHeight": 1111,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/logs?empty",
+   "vw": 390,
+   "stackExpected": true,
+   "rawScrollWidth": 390,
+   "trueScrollWidth": 390,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 1,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [
+    {
+     "text": "এই ফিল্টারে কোনো লগ নেই",
+     "align": "center",
+     "display": "block",
+     "left": 33,
+     "right": 357,
+     "insideViewport": true
+    }
+   ],
+   "longestCellText": "",
+   "scrollHeight": 1024,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/logs?empty",
+   "vw": 430,
+   "stackExpected": true,
+   "rawScrollWidth": 430,
+   "trueScrollWidth": 430,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 1,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [
+    {
+     "text": "এই ফিল্টারে কোনো লগ নেই",
+     "align": "center",
+     "display": "block",
+     "left": 33,
+     "right": 397,
+     "insideViewport": true
+    }
+   ],
+   "longestCellText": "",
+   "scrollHeight": 957,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/logs?empty",
+   "vw": 768,
+   "stackExpected": false,
+   "rawScrollWidth": 768,
+   "trueScrollWidth": 768,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 1,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [
+    {
+     "text": "এই ফিল্টারে কোনো লগ নেই",
+     "align": "center",
+     "display": "table-cell",
+     "left": 25,
+     "right": 743,
+     "insideViewport": true
+    }
+   ],
+   "longestCellText": "",
+   "scrollHeight": 900,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/logs?empty",
+   "vw": 1024,
+   "stackExpected": false,
+   "rawScrollWidth": 1024,
+   "trueScrollWidth": 1024,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 1,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [
+    {
+     "text": "এই ফিল্টারে কোনো লগ নেই",
+     "align": "center",
+     "display": "table-cell",
+     "left": 25,
+     "right": 999,
+     "insideViewport": true
+    }
+   ],
+   "longestCellText": "",
+   "scrollHeight": 900,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/logs?empty",
+   "vw": 1366,
+   "stackExpected": false,
+   "rawScrollWidth": 1366,
+   "trueScrollWidth": 1366,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 1,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [
+    {
+     "text": "এই ফিল্টারে কোনো লগ নেই",
+     "align": "center",
+     "display": "table-cell",
+     "left": 68,
+     "right": 1298,
+     "insideViewport": true
+    }
+   ],
+   "longestCellText": "",
+   "scrollHeight": 900,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/heavy",
+   "vw": 320,
+   "stackExpected": true,
+   "rawScrollWidth": 320,
+   "trueScrollWidth": 320,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 2,
+     "theadClipped": true,
+     "deskUnchanged": null
+    },
+    {
+     "i": 1,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 25,
+     "theadClipped": true,
+     "deskUnchanged": null
+    },
+    {
+     "i": 2,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 25,
+     "theadClipped": true,
+     "deskUnchanged": null
+    },
+    {
+     "i": 3,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 40,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 510,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "Free Fire [BD SERVER] — বাংলাদেশ সার্ভার (তাৎক্ষণিক ডেলিভারি)100 Diamond",
+   "scrollHeight": 40465,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/heavy",
+   "vw": 390,
+   "stackExpected": true,
+   "rawScrollWidth": 390,
+   "trueScrollWidth": 390,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 2,
+     "theadClipped": true,
+     "deskUnchanged": null
+    },
+    {
+     "i": 1,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 25,
+     "theadClipped": true,
+     "deskUnchanged": null
+    },
+    {
+     "i": 2,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 25,
+     "theadClipped": true,
+     "deskUnchanged": null
+    },
+    {
+     "i": 3,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 40,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 510,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "Free Fire [BD SERVER] — বাংলাদেশ সার্ভার (তাৎক্ষণিক ডেলিভারি)100 Diamond",
+   "scrollHeight": 37915,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/heavy",
+   "vw": 430,
+   "stackExpected": true,
+   "rawScrollWidth": 430,
+   "trueScrollWidth": 430,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 2,
+     "theadClipped": true,
+     "deskUnchanged": null
+    },
+    {
+     "i": 1,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 25,
+     "theadClipped": true,
+     "deskUnchanged": null
+    },
+    {
+     "i": 2,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 25,
+     "theadClipped": true,
+     "deskUnchanged": null
+    },
+    {
+     "i": 3,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 40,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 510,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "Free Fire [BD SERVER] — বাংলাদেশ সার্ভার (তাৎক্ষণিক ডেলিভারি)100 Diamond",
+   "scrollHeight": 37505,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/heavy",
+   "vw": 768,
+   "stackExpected": false,
+   "rawScrollWidth": 768,
+   "trueScrollWidth": 768,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 2,
+     "theadClipped": false,
+     "deskUnchanged": true
+    },
+    {
+     "i": 1,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 25,
+     "theadClipped": false,
+     "deskUnchanged": true
+    },
+    {
+     "i": 2,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 25,
+     "theadClipped": false,
+     "deskUnchanged": true
+    },
+    {
+     "i": 3,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 40,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "Free Fire [BD SERVER] — বাংলাদেশ সার্ভার (তাৎক্ষণিক ডেলিভারি)100 Diamond",
+   "scrollHeight": 14195,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/heavy",
+   "vw": 1024,
+   "stackExpected": false,
+   "rawScrollWidth": 1024,
+   "trueScrollWidth": 1024,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 2,
+     "theadClipped": false,
+     "deskUnchanged": true
+    },
+    {
+     "i": 1,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 25,
+     "theadClipped": false,
+     "deskUnchanged": true
+    },
+    {
+     "i": 2,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 25,
+     "theadClipped": false,
+     "deskUnchanged": true
+    },
+    {
+     "i": 3,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 40,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "Free Fire [BD SERVER] — বাংলাদেশ সার্ভার (তাৎক্ষণিক ডেলিভারি)100 Diamond",
+   "scrollHeight": 13355,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/heavy",
+   "vw": 1366,
+   "stackExpected": false,
+   "rawScrollWidth": 1366,
+   "trueScrollWidth": 1366,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 2,
+     "theadClipped": false,
+     "deskUnchanged": true
+    },
+    {
+     "i": 1,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 25,
+     "theadClipped": false,
+     "deskUnchanged": true
+    },
+    {
+     "i": 2,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 25,
+     "theadClipped": false,
+     "deskUnchanged": true
+    },
+    {
+     "i": 3,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 40,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "Free Fire [BD SERVER] — বাংলাদেশ সার্ভার (তাৎক্ষণিক ডেলিভারি)100 Diamond",
+   "scrollHeight": 13277,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/empty",
+   "vw": 320,
+   "stackExpected": true,
+   "rawScrollWidth": 320,
+   "trueScrollWidth": 320,
+   "geomOverflow": [],
+   "tables": [],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "",
+   "scrollHeight": 2071,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/empty",
+   "vw": 390,
+   "stackExpected": true,
+   "rawScrollWidth": 390,
+   "trueScrollWidth": 390,
+   "geomOverflow": [],
+   "tables": [],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "",
+   "scrollHeight": 2001,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/empty",
+   "vw": 430,
+   "stackExpected": true,
+   "rawScrollWidth": 430,
+   "trueScrollWidth": 430,
+   "geomOverflow": [],
+   "tables": [],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "",
+   "scrollHeight": 2001,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/empty",
+   "vw": 768,
+   "stackExpected": false,
+   "rawScrollWidth": 768,
+   "trueScrollWidth": 768,
+   "geomOverflow": [],
+   "tables": [],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "",
+   "scrollHeight": 1562,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/empty",
+   "vw": 1024,
+   "stackExpected": false,
+   "rawScrollWidth": 1024,
+   "trueScrollWidth": 1024,
+   "geomOverflow": [],
+   "tables": [],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "",
+   "scrollHeight": 1350,
+   "innerHeight": 900
+  },
+  {
+   "page": "admin/users/empty",
+   "vw": 1366,
+   "stackExpected": false,
+   "rawScrollWidth": 1366,
+   "trueScrollWidth": 1366,
+   "geomOverflow": [],
+   "tables": [],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "",
+   "scrollHeight": 1350,
+   "innerHeight": 900
+  },
+  {
+   "page": "account/ledger",
+   "vw": 320,
+   "stackExpected": true,
+   "rawScrollWidth": 320,
+   "trueScrollWidth": 320,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 20,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 100,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK অর্ডার — Free Fire [BD SERVER]",
+   "scrollHeight": 8493,
+   "innerHeight": 900
+  },
+  {
+   "page": "account/ledger",
+   "vw": 390,
+   "stackExpected": true,
+   "rawScrollWidth": 390,
+   "trueScrollWidth": 390,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 20,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 100,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK অর্ডার — Free Fire [BD SERVER]",
+   "scrollHeight": 8160,
+   "innerHeight": 900
+  },
+  {
+   "page": "account/ledger",
+   "vw": 430,
+   "stackExpected": true,
+   "rawScrollWidth": 430,
+   "trueScrollWidth": 430,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "block",
+     "minWidth": "0px",
+     "rows": 20,
+     "theadClipped": true,
+     "deskUnchanged": null
+    }
+   ],
+   "labelsRendered": 100,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK অর্ডার — Free Fire [BD SERVER]",
+   "scrollHeight": 8138,
+   "innerHeight": 900
+  },
+  {
+   "page": "account/ledger",
+   "vw": 768,
+   "stackExpected": false,
+   "rawScrollWidth": 768,
+   "trueScrollWidth": 768,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 20,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK অর্ডার — Free Fire [BD SERVER]",
+   "scrollHeight": 3398,
+   "innerHeight": 900
+  },
+  {
+   "page": "account/ledger",
+   "vw": 1024,
+   "stackExpected": false,
+   "rawScrollWidth": 1024,
+   "trueScrollWidth": 1024,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 20,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK অর্ডার — Free Fire [BD SERVER]",
+   "scrollHeight": 2741,
+   "innerHeight": 900
+  },
+  {
+   "page": "account/ledger",
+   "vw": 1366,
+   "stackExpected": false,
+   "rawScrollWidth": 1366,
+   "trueScrollWidth": 1366,
+   "geomOverflow": [],
+   "tables": [
+    {
+     "i": 0,
+     "display": "table",
+     "minWidth": "640px",
+     "rows": 20,
+     "theadClipped": false,
+     "deskUnchanged": true
+    }
+   ],
+   "labelsRendered": 0,
+   "labelsMissing": [],
+   "cellOverflow": [],
+   "emptyStates": [],
+   "longestCellText": "TBLSTACK অর্ডার — Free Fire [BD SERVER]",
+   "scrollHeight": 2745,
+   "innerHeight": 900
+  }
+ ],
+ "findings": []
+}

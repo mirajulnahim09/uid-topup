@@ -175,7 +175,7 @@ export default function Navbar({
             *   (নিচে `truncate`), নামটি উধাও হয় না — ৩৯০px ফোনে নাম
             *   লুকিয়ে ফেলার পুরনো ভুলটি ফিরিয়ে আনা হয়নি।
             */}
-          <Link href="/" className="group flex min-h-[44px] min-w-0 items-center gap-2.5" aria-label={siteName}>
+          <Link href="/" className="group flex min-h-[44px] min-w-0 items-center gap-2 sm:gap-2.5" aria-label={siteName}>
             {/* ★★★ অ্যাডমিনের আপলোড করা লোগো (থিম-সচেতন) সর্বোচ্চ অগ্রাধিকার।
                 লোগো থাকলে শুধু সেটিই — পাশে সাইটের নাম আবার লিখলে
                 বেশিরভাগ ওয়ার্ডমার্কে নামটি দুবার দেখাত। */}
@@ -186,7 +186,12 @@ export default function Navbar({
               <img src={logo} alt={siteName} className="h-10 w-auto" />
             ) : (
               <>
-                <VoltMark size={36} uid="nav" />
+                {/* ★★★ চিহ্নটি এখন CSS-এ মাপা, `size` prop-এ নয়।
+                    `size` একটি ধ্রুবক সংখ্যা, তাই সেটি responsive হতে
+                    পারে না; svg-এর width/height অ্যাট্রিবিউটকে CSS
+                    ওভাররাইড করে, তাই ক্লাস দিয়েই মাপ বদলানো যায়।
+                    ৩২px (ফোন) → ৩৬px (≥৬৪০px)। */}
+                <VoltMark size={36} uid="nav" className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
                 {/* ⚠️ আগে এটি `hidden xs:block` ছিল (xs = 400px), অর্থাৎ
                     ৩৯০px চওড়া ফোনে — অর্থাৎ বাজারের সবচেয়ে সাধারণ
                     পর্দায় — সাইটের নামটাই উধাও হয়ে যেত, পড়ে থাকত
@@ -197,9 +202,26 @@ export default function Navbar({
                       ⚠️ অ্যাডমিন নিজের নাম বসালে এটি প্রযোজ্য নয় — তখন তাদের
                       নাম এক রঙেই দেখানো হয় (এটি আমাদের ব্র্যান্ড, তাদের নয়)। */}
                   <span
-                    /* ★ `truncate` — জায়গা না কুলালে নামের লেজ কাটা পড়ে,
-                       পাতা অনুভূমিকভাবে স্ক্রলযোগ্য হয় না (উপরে ব্যাখ্যা) */
-                    className="v-dsp block truncate text-[15px] font-extrabold uppercase leading-none xs:text-[17px]"
+                    /**
+                     * ★ `truncate` শেষ রক্ষা — জায়গা না কুলালে নামের লেজ
+                     *   কাটা পড়ে, পাতা অনুভূমিকভাবে স্ক্রলযোগ্য হয় না।
+                     *
+                     * ⚠️⚠️ কিন্তু **কাটা পড়াই লক্ষ্য নয়** — সেটি একটি
+                     *   ব্যর্থতা। মোবাইলে লগইন/রেজিস্টার বোতাম যোগ করার
+                     *   পর ৩৯০px-এ ওয়ার্ডমার্ক "SS · UID TO…" হয়ে যেত,
+                     *   অর্থাৎ ব্র্যান্ডের নামই কাটা। তাই ফন্ট-মাপ এখন
+                     *   ধাপে ধাপে, প্রতিটি ধাপ ব্রাউজারে মেপে বসানো:
+                     *
+                     *     প্রস্থ   ডান-গুচ্ছ   ব্র্যান্ডের জায়গা   ফন্ট
+                     *     ৩২০px    ১০২px       ১৭৪px             ১৩.৫px
+                     *     ৩৯০px    ১৮৩px       ১৬৩px             ১৩.৫px
+                     *     ৪৩০px    ১৮৩px       ২০৩px             ১৫px
+                     *     ≥৬৪০px   ১৮৩px       ৪১৩px             ১৭px
+                     *
+                     *   ১৩.৫px-এ পূর্ণ নাম ~১২১px, তাই সবচেয়ে সরু
+                     *   ক্ষেত্রেও (১৬৩px) কিছুই কাটে না।
+                     */
+                    className="v-dsp block truncate text-[13.5px] font-extrabold uppercase leading-none min-[420px]:text-[15px] sm:text-[17px]"
                     style={{ color: 'var(--v-ink)', letterSpacing: '-.02em' }}
                   >
                     {isDefaultBrand(siteName) ? (
@@ -210,7 +232,12 @@ export default function Navbar({
                       </>
                     ) : siteName}
                   </span>
-                  <span className="hud hud-wide mt-1 hidden xs:block">
+                  {/* ★ ট্যাগলাইন `xs` (৪০০px) → `sm` (৬৪০px)।
+                      ঠিক ৪০০–৬৩৯px পরিসরেই বারটি সবচেয়ে ঠাসা (লগইন +
+                      রেজিস্টার + হ্যামবার্গার সবই দৃশ্যমান), আর ট্যাগলাইন
+                      সেখানে ব্র্যান্ড-ব্লককে চওড়া করে নামটিকে কাটার দিকে
+                      ঠেলত। ট্যাগলাইন গৌণ, নাম নয়। */}
+                  <span className="hud hud-wide mt-1 hidden sm:block">
                     {BRAND.tagline.replace(/ /g, ' ')}
                   </span>
                 </span>
@@ -391,27 +418,82 @@ export default function Navbar({
             )}
           </div>
 
-          {/* ── মোবাইল / ছোট-ল্যাপটপ ── */}
-          <div className={`flex items-center gap-2 ${navHidden}`}>
-            {authed && (
+          {/* ═══════════ মোবাইল / ছোট-ল্যাপটপ ═══════════
+              ★★★ এটি ডেস্কটপ বারের সংকুচিত রূপ **নয়** — মোবাইলের
+              জন্য আলাদা করে সাজানো একটি বিন্যাস।
+
+              ⚠️ আগে অতিথি এখানে **কেবল একটি হ্যামবার্গার** দেখতেন।
+              অর্থাৎ এই সাইটের সবচেয়ে গুরুত্বপূর্ণ দুটি কাজ — লগইন ও
+              রেজিস্টার — মোবাইলে ভিউপোর্টের ভিতরে **দৃশ্যমানই ছিল না**,
+              একটি অজ্ঞাত চিহ্নের পিছনে লুকানো ছিল। ট্রাফিকের প্রায়
+              পুরোটাই মোবাইল, তাই এটি নিছক সৌন্দর্যের প্রশ্ন নয়।
+
+              এখন প্রস্থ অনুযায়ী দুই ধাপ, কারণ ৩২০px-এ সবকিছু একসাথে
+              ব্র্যান্ডকে চেপে ফেলত (মাপা: ডান পাশের পূর্ণ সেট ১৯৪px,
+              অথচ ৩২০px-এ ব্যবহারযোগ্য প্রস্থ ২৮৮px):
+                · সব প্রস্থে      → "লগইন" (ফিরে আসা গ্রাহকের কাজ)
+                · ≥৪০০px (xs) থেকে → সাথে "শুরু করুন" অ্যাকসেন্ট বোতাম
+              দুটিই মেনুর ভিতরেও পূর্ণ আকারে থাকে, তাই কিছুই হারায় না। */}
+          <div className={`flex items-center gap-1.5 ${navHidden}`}>
+            {authed ? (
               <Link
                 href="/account/wallet/deposit"
-                className="v-hud inline-flex min-h-[40px] items-center px-3 text-xs font-bold"
+                /* ⚠️ `max-w` + `truncate` — ব্যালেন্স বড় হলে (৳১,২৫,০০০.০০)
+                   চিপটি আগে যত জায়গা লাগে নিত আর ৩২০px-এ ব্র্যান্ডের
+                   ওয়ার্ডমার্ককে শূন্যে চেপে দিত। এখন চিপই কাটা পড়ে। */
+                className="v-hud inline-flex min-h-[44px] max-w-[112px] items-center px-2.5 text-xs font-bold"
                 style={{
                   border: '1px solid rgba(125,211,252,.32)',
                   background: 'rgba(125,211,252,.12)',
                   color: 'var(--v-ice)',
                   borderRadius: 2,
                 }}
+                aria-label={`ব্যালেন্স ৳${balance ?? '—'} — টাকা যোগ করুন`}
               >
-                ৳{balance ?? '···'}
+                <span className="truncate">৳{balance ?? '···'}</span>
               </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="inline-flex min-h-[44px] items-center px-2.5 text-[13px] font-bold transition-colors"
+                  style={{ color: 'var(--v-mut)', borderRadius: 2 }}
+                >
+                  {t('nav.login')}
+                </Link>
+                {/**
+                  * ⚠️⚠️ `hidden` ক্লাসটি **মোড়কে**, বোতামে নয়।
+                  *   `.v-btn` নিজে `display:inline-flex` বসায় এবং
+                  *   `globals.css`-এ Tailwind utilities-এর **পরে**
+                  *   থাকে; নির্দিষ্টতা সমান (০,১,০) হওয়ায় সে-ই জিতত,
+                  *   অর্থাৎ `hidden` লিখলেও বোতামটি লুকাত না। ঠিক
+                  *   এই cascade-ফাঁদেই একবার বটম-বারের FAB ভেঙেছিল
+                  *   (`MobileTabBar.tsx` দ্রষ্টব্য)। মোড়কটি সাধারণ
+                  *   `<span>`, তাই সেখানে `hidden` নির্বিঘ্নে চলে।
+                  */}
+                {/* ★ সীমা `xs` (৪০০px) নয়, **৩৯০px** — কারণ iPhone
+                    12/13/14/15 ঠিক ৩৯০px, অর্থাৎ এই বাজারের সবচেয়ে
+                    সাধারণ আধুনিক ফোন। ব্রাউজারে মাপা: ব্র্যান্ড ১৬৬px
+                    + ডান-গুচ্ছ ১৮৯px + দুই পাশের ১৬px গাটার = ৩৮৭px,
+                    ৩৯০px-এ ৩px অবশিষ্ট। ব্র্যান্ডে `min-w-0 truncate`
+                    আছে, তাই সীমানায় সবচেয়ে খারাপ ফল ওয়ার্ডমার্কের
+                    লেজ কাটা পড়া — কখনোই অনুভূমিক ওভারফ্লো নয়। */}
+                <span className="hidden min-[390px]:flex">
+                  <Link
+                    href="/register"
+                    className="v-btn v-btn--volt"
+                    style={{ minHeight: 44, paddingInline: 14, fontSize: 13 }}
+                  >
+                    {t('nav.register')}
+                  </Link>
+                </span>
+              </>
             )}
             <button
               onClick={() => setMenu(!menu)}
               aria-label={menu ? 'মেনু বন্ধ করুন' : 'মেনু খুলুন'}
               aria-expanded={menu}
-              className="grid h-11 w-11 place-items-center transition-colors"
+              className="grid h-11 w-11 shrink-0 place-items-center transition-colors"
               style={{ color: 'var(--v-ink)', border: '1px solid var(--v-edge)', borderRadius: 2 }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">

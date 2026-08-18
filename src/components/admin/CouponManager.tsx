@@ -208,7 +208,7 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
 
       {/* ── কুপন তালিকা ── */}
       <div className="table-wrap">
-        <table className="tbl">
+        <table className="tbl tbl--stack">
           <thead>
             <tr>
               <th scope="col">কোড</th>
@@ -228,12 +228,12 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
 
               return (
                 <tr key={c.id}>
-                  <td>
+                  <td data-label="কোড">
                     <code className="rounded bg-slate-100 px-2 py-1 font-mono text-sm font-bold text-purple-700">
                       {c.code}
                     </code>
                   </td>
-                  <td className="text-sm font-semibold text-emerald-600">
+                  <td data-label="ছাড়" className="text-sm font-semibold text-emerald-600">
                     {c.type === 'PERCENT' ? (
                       <>
                         {c.value}%
@@ -247,17 +247,17 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
                       `৳${c.value.toFixed(2)}`
                     )}
                   </td>
-                  <td className="whitespace-nowrap num text-slate-400">
+                  <td data-label="সর্বনিম্ন অর্ডার" className="whitespace-nowrap num text-slate-400">
                     {c.minOrder > 0 ? `৳${c.minOrder.toFixed(2)}` : '—'}
                   </td>
-                  <td className="whitespace-nowrap num">
+                  <td data-label="ব্যবহার" className="whitespace-nowrap num">
                     <span className={exhausted ? 'text-red-600' : 'text-slate-900'}>
                       {c.usageCount}
                     </span>
                     <span className="text-slate-400"> / {c.usageLimit ?? '∞'}</span>
                   </td>
-                  <td className="num text-slate-400">{c.perUserLimit}</td>
-                  <td className="whitespace-nowrap text-xs">
+                  <td data-label="প্রতি ইউজার" className="num text-slate-400">{c.perUserLimit}</td>
+                  <td data-label="মেয়াদ" className="whitespace-nowrap text-xs">
                     {c.expiresAt ? (
                       <span className={expired ? 'text-red-600' : 'text-slate-400'}>
                         {fmtDay(c.expiresAt)}
@@ -267,7 +267,7 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
                       <span className="text-slate-400">—</span>
                     )}
                   </td>
-                  <td className="ctr">
+                  <td data-label="স্ট্যাটাস" className="ctr">
                     <button
                       disabled={busy === c.id}
                       onClick={() => toggle(c)}

@@ -931,7 +931,7 @@ export default function OrderForm({
                 </Link>
                 <p className="text-center text-xs text-slate-500">
                   অ্যাকাউন্ট নেই?{' '}
-                  <Link href="/register" className="inline-flex min-h-[24px] items-center font-bold hover:underline" style={{ color: 'var(--v-volt)' }}>
+                  <Link href="/register" className="inline-flex min-h-[44px] items-center font-bold hover:underline" style={{ color: 'var(--v-volt)' }}>
                     রেজিস্টার করুন
                   </Link>
                 </p>

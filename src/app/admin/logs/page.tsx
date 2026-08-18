@@ -85,7 +85,7 @@ export default async function AdminLogs({
       </form>
 
       <div className="table-wrap">
-        <table className="tbl">
+        <table className="tbl tbl--stack">
           <thead>
             <tr>
               <th scope="col">কখন</th>
@@ -103,15 +103,19 @@ export default async function AdminLogs({
               const device = (l.userAgent || '').match(/(Chrome|Firefox|Safari|Edg|Mobile|Android|iPhone)/i)?.[0] || '';
               return (
                 <tr key={l.id}>
-                  <td className="whitespace-nowrap text-xs" style={{ color: 'var(--v-mut)' }}>{fmtDate(l.createdAt)}</td>
-                  <td className="whitespace-nowrap">
+                  <td data-label="কখন" className="whitespace-nowrap text-xs" style={{ color: 'var(--v-mut)' }}>{fmtDate(l.createdAt)}</td>
+                  <td data-label="অভিনেতা" className="whitespace-nowrap">
                     <span className="badge" style={{ background: 'var(--v-fill2)', color: 'var(--v-mut)' }}>{ACTOR_LABEL[l.actorType] || l.actorType}</span>
                   </td>
-                  <td className="whitespace-nowrap text-sm font-semibold" style={{ color: 'var(--v-ink)' }}>{l.adminName}</td>
-                  <td><span className={`badge whitespace-nowrap ${m.cls}`}>{m.text}</span></td>
-                  <td className="whitespace-nowrap num font-bold" style={{ color: 'var(--v-ink)' }}>{l.amount !== null ? bdt(l.amount) : '—'}</td>
-                  <td className="max-w-[260px] text-xs" style={{ color: 'var(--v-mut)' }}>{l.detail || '—'}</td>
-                  <td className="whitespace-nowrap font-mono text-[11px]" style={{ color: 'var(--v-dim)' }}>
+                  <td data-label="কে" className="whitespace-nowrap text-sm font-semibold" style={{ color: 'var(--v-ink)' }}>{l.adminName}</td>
+                  <td data-label="কী করল"><span className={`badge whitespace-nowrap ${m.cls}`}>{m.text}</span></td>
+                  <td data-label="টাকা" className="whitespace-nowrap num font-bold" style={{ color: 'var(--v-ink)' }}>{l.amount !== null ? bdt(l.amount) : '—'}</td>
+                  {/* ⚠️ ফোনে `max-w-[260px]` উঠে যায় — কার্ডের ভিতরে সেলটি
+                      নিজেই flex, তাই লেবেলের পাশে বাকি জায়গাটুকুই সীমা।
+                      ডেস্কটপে সীমাটি বহাল, নাহলে একটি লম্বা `detail`
+                      বাকি কলামগুলোকে চেপে ধরত। */}
+                  <td data-label="বিস্তারিত" className="text-xs md:max-w-[260px]" style={{ color: 'var(--v-mut)' }}>{l.detail || '—'}</td>
+                  <td data-label="IP · ডিভাইস" className="whitespace-nowrap font-mono text-[11px]" style={{ color: 'var(--v-dim)' }}>
                     {l.ip || '—'}{device ? ` · ${device}` : ''}
                   </td>
                 </tr>

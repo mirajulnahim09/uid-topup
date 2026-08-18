@@ -144,28 +144,33 @@ export default function ResellerPanel({
 
       {isReseller && keys.length > 0 && (
         <div className="table-wrap mt-4">
-          <table className="tbl">
+          <table className="tbl tbl--stack">
             <thead>
               <tr><th>নাম</th><th>কী</th><th>শেষ ব্যবহার</th><th>তৈরি</th><th>অবস্থা</th><th></th></tr>
             </thead>
             <tbody>
               {keys.map((k) => (
                 <tr key={k.id}>
-                  <td className="text-sm text-slate-900">{k.label}</td>
+                  <td data-label="নাম" className="text-sm text-slate-900">{k.label}</td>
                   {/* ⚠️ কেবল উপসর্গ — পুরো মান সার্ভার কখনো ফেরত দেয় না */}
-                  <td className="font-mono text-xs text-slate-400">{k.prefix}…</td>
-                  <td className="whitespace-nowrap text-xs text-slate-400">
+                  <td data-label="কী" className="font-mono text-xs text-slate-400">{k.prefix}…</td>
+                  <td data-label="শেষ ব্যবহার" className="whitespace-nowrap text-xs text-slate-400">
                     {k.lastUsedAt ? fmtDate(k.lastUsedAt) : 'কখনো নয়'}
                   </td>
-                  <td className="whitespace-nowrap text-xs text-slate-400">
+                  <td data-label="তৈরি" className="whitespace-nowrap text-xs text-slate-400">
                     {fmtDate(k.createdAt)}
                     {k.createdByName ? ` · ${k.createdByName}` : ''}
                   </td>
-                  <td>
+                  <td data-label="অবস্থা">
                     {k.revokedAt
                       ? <span className="badge border border-red-200 bg-red-100 text-red-700">প্রত্যাহৃত</span>
                       : <span className="badge border border-emerald-200 bg-emerald-100 text-emerald-700">সক্রিয়</span>}
                   </td>
+                  {/* ⚠️ লেবেল নেই — শেষ কলামের `<th>` ও খালি। ফোনে
+                      `justify-content:flex-end` পড়ে, তাই বোতামটি কার্ডের
+                      ডান কিনারায় বসে। কী প্রত্যাহার করলে ওই কী দিয়ে করা
+                      অর্ডার সাথে সাথে বন্ধ হয়, তাই এটি বাঁয়ে অন্য
+                      টেক্সটের সাথে মিশে যাওয়া উচিত নয়। */}
                   <td>
                     {!k.revokedAt && (
                       <button disabled={busy} onClick={() => setRevokeId(k.id)}

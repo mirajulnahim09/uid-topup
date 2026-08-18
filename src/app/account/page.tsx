@@ -52,12 +52,28 @@ export default async function AccountPage() {
     <div className="space-y-6">
       <h1 className="lux-text text-2xl font-medium sm:text-[27px]">আমার প্রোফাইল</h1>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/**
+        * ═══ পরিসংখ্যান গ্রিড ═══
+        *
+        * ⚠️⚠️ আগে এটি ছিল `grid gap-4 sm:grid-cols-2 lg:grid-cols-4` —
+        *   অর্থাৎ ৬৪০px-এর **নিচে একটিই কলাম**। ফলে ফোনে চারটি কার্ড
+        *   একটির নিচে আরেকটি, প্রতিটি ~৩৪০px উঁচু। মাপা: ৩৯০px ফোনে
+        *   `/account` পাতার মোট উচ্চতা **৩৪৭৪px** — মূলত পাঁচটি সংখ্যা
+        *   দেখানোর জন্য। এটিই "ডেস্কটপ পাতা ফোনে চেপে ঢোকানো" এর
+        *   পাঠ্যপুস্তকীয় উদাহরণ: বিন্যাসটি ভাঙে না, কিন্তু কেউ এটিকে
+        *   ফোনের জন্য নকশা করেনি।
+        *
+        *   এখন ফোনেও **দুই কলাম**। ব্যালেন্স পুরো প্রস্থ জুড়ে থাকে,
+        *   কারণ (ক) এটিই সবচেয়ে গুরুত্বপূর্ণ সংখ্যা, আর (খ) ৳১,২৫,০০০.০০
+        *   জাতীয় মান অর্ধেক কলামে (৩২০px-এ ১০৬px কনটেন্ট-প্রস্থ)
+        *   আঁটতই না।
+        */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {/* ★ ব্যালেন্স — সবচেয়ে গুরুত্বপূর্ণ সংখ্যা, তাই সোনালি
             উচ্চারণ (Phase 6)। Tailwind gradient bridge দিয়ে ঠিক
             হয় না, তাই সরাসরি টোকেনে। */}
         <div
-          className="card p-5"
+          className="card col-span-2 p-5 lg:col-span-1"
           style={{ background: 'linear-gradient(140deg, rgba(230,197,132,.16), var(--v-void))' }}
         >
           <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>
@@ -67,16 +83,28 @@ export default async function AccountPage() {
           <Link href="/account/wallet/deposit" className="btn-primary mt-3 w-full">টাকা যোগ করুন</Link>
         </div>
 
-        <div className="card p-5">
+        {/**
+          * ★ পুরো কার্ডটিই এখন লিংক, ভিতরে আলাদা বোতাম নেই।
+          *
+          *   কেন: অর্ধেক-প্রস্থ কার্ডে ৩২০px ফোনে কনটেন্টের জায়গা
+          *   ৯৮px, অথচ `.btn` এর নিজস্ব `px-6` (৪৮px) বাদ দিলে
+          *   "অর্ডার দেখুন" লেখার জন্য থাকত ৫০px — লেখা ভেঙে যেত।
+          *   গন্তব্য অপরিবর্তিত (`/account/orders`), কেবল আঘাত-এলাকা
+          *   এখন গোটা কার্ড — মোবাইলে এটিই বড় ও সহজ লক্ষ্য।
+          */}
+        <Link href="/account/orders" className="card block p-4 transition hover:-translate-y-0.5 sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">মোট অর্ডার</p>
-          <p className="mt-1 text-3xl font-bold text-slate-900">{user._count.orders}</p>
-          <Link href="/account/orders" className="btn-ghost mt-3 w-full">অর্ডার দেখুন</Link>
-        </div>
+          <p className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">{user._count.orders}</p>
+          <p className="mt-3 inline-flex items-center gap-1 text-xs font-bold" style={{ color: 'var(--v-ice)' }}>
+            অর্ডার দেখুন
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7" /></svg>
+          </p>
+        </Link>
 
-        <div className="card p-5">
+        <div className="card p-4 sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">ডিপোজিট</p>
-          <p className="mt-1 text-3xl font-bold text-slate-900">{user._count.deposits}</p>
-          <p className="mt-4 text-xs text-slate-400">
+          <p className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">{user._count.deposits}</p>
+          <p className="mt-3 text-xs text-slate-400">
             সদস্য: {fmtDay(user.createdAt)}
           </p>
         </div>
@@ -86,16 +114,16 @@ export default async function AccountPage() {
             যা theme bridge দিয়ে ঠিক করা যায় না (bridge কেবল
             background-color বদলায়, gradient নয়)। তাই সরাসরি টোকেনে। */}
         <div
-          className="card p-5"
+          className="card col-span-2 p-4 sm:p-5 lg:col-span-1"
           style={{ background: 'linear-gradient(140deg, rgba(154,140,247,.14), rgba(230,197,132,.07))' }}
         >
           <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--violet)' }}>
             রেফারেল আয়
           </p>
-          <p className="dsp mt-1 text-3xl font-bold" style={{ color: 'var(--ink)' }}>
+          <p className="dsp mt-1 text-2xl font-bold sm:text-3xl" style={{ color: 'var(--ink)' }}>
             {bdt(refEarn._sum.amount ?? 0)}
           </p>
-          <p className="mt-4 text-xs" style={{ color: 'var(--mut)' }}>
+          <p className="mt-3 text-xs" style={{ color: 'var(--mut)' }}>
             {user._count.referrals} জন রেফার করেছেন
           </p>
         </div>
@@ -160,8 +188,21 @@ export default async function AccountPage() {
 
       <section>
         <h2 className="mb-3 font-semibold text-slate-900">লেনদেনের ইতিহাস</h2>
+        {/**
+          * ⚠️ বাকি তিনটি গ্রাহক-তালিকা (`/account/orders`,
+          *   `/account/wallet/deposit`, `/account/smm-orders`) মোবাইলে
+          *   আলাদা কার্ড-মার্কআপ রাখে (`md:hidden` + `hidden md:block`),
+          *   কিন্তু **এটি রাখত না** — এখানে ছিল কেবল একটি ৬৪০px চওড়া
+          *   টেবিল একটি অনুভূমিক স্ক্রলারে। অর্থাৎ গ্রাহকের নিজের
+          *   খতিয়ান — যেখানে তিনি দেখেন টাকা কোথায় গেল — ফোনে
+          *   ডানে-বাঁয়ে না টানলে পড়াই যেত না।
+          *
+          *   এখানে দ্বিতীয় মার্কআপ লেখা হয়নি, `.tbl--stack` দেওয়া
+          *   হয়েছে — সারিগুলো কেবল পড়ার জন্য, কোনো বোতাম নেই, তাই
+          *   CSS-রূপান্তরই যথেষ্ট (globals.css-এ বিস্তারিত)।
+          */}
         <div className="table-wrap">
-          <table className="tbl">
+          <table className="tbl tbl--stack">
             <thead>
               <tr>
                 <th scope="col">তারিখ</th>
@@ -176,15 +217,17 @@ export default async function AccountPage() {
                 const amt = Number(l.amount);
                 return (
                   <tr key={l.id}>
-                    <td className="whitespace-nowrap text-xs text-slate-400">{fmtDate(l.createdAt)}</td>
-                    <td className="text-xs">{l.type}</td>
-                    <td className="text-xs text-slate-400">{l.note}</td>
-                    <td className={`whitespace-nowrap num font-semibold ${
+                    <td data-label="তারিখ" className="whitespace-nowrap text-xs text-slate-400">{fmtDate(l.createdAt)}</td>
+                    <td data-label="ধরন" className="text-xs">{l.type}</td>
+                    {/* ★ ফোনে নোটটি লেবেলের ডানে বসে, তাই ডান-সারিবদ্ধ —
+                        নাহলে লম্বা নোট দুই লাইনে ভেঙে বাঁয়ে ঝুলে থাকত */}
+                    <td data-label="বিবরণ" className="text-xs text-slate-400 max-md:text-right">{l.note}</td>
+                    <td data-label="পরিমাণ" className={`whitespace-nowrap num font-semibold ${
                       amt >= 0 ? 'text-emerald-600' : 'text-red-600'
                     }`}>
                       {amt >= 0 ? '+' : ''}{bdt(l.amount)}
                     </td>
-                    <td className="whitespace-nowrap num text-slate-400">
+                    <td data-label="ব্যালেন্স" className="whitespace-nowrap num text-slate-400">
                       {bdt(l.balanceAfter)}
                     </td>
                   </tr>

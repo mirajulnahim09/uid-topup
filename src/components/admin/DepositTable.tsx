@@ -90,7 +90,7 @@ export default function DepositTable({ deposits, current }: { deposits: D[]; cur
       </div>
 
       <div className="table-wrap">
-        <table className="tbl">
+        <table className="tbl tbl--stack">
           <thead>
             <tr>
               <th scope="col">#</th>
@@ -108,19 +108,19 @@ export default function DepositTable({ deposits, current }: { deposits: D[]; cur
           <tbody>
             {deposits.map((d: (typeof deposits)[number]) => (
               <tr key={d.id} className={d.status === 'PENDING' ? 'bg-amber-50' : ''}>
-                <td className="font-mono font-semibold text-rose-600">#{d.depositNo}</td>
-                <td>
+                <td data-label="ডিপোজিট" className="font-mono font-semibold text-rose-600">#{d.depositNo}</td>
+                <td data-label="ইউজার">
                   <div className="text-sm font-medium text-slate-900">{d.user.name}</div>
                   <div className="text-xs text-slate-400">{d.user.phone}</div>
                   <div className="text-[11px] text-emerald-600/70">
                     ব্যালেন্স ৳{d.user.balance.toFixed(2)}
                   </div>
                 </td>
-                <td className="text-xs font-bold">{d.method}</td>
-                <td className="whitespace-nowrap num text-base font-bold text-emerald-600">
+                <td data-label="মাধ্যম" className="text-xs font-bold">{d.method}</td>
+                <td data-label="পরিমাণ" className="whitespace-nowrap num text-base font-bold text-emerald-600">
                   ৳{d.amount.toFixed(2)}
                 </td>
-                <td>
+                <td data-label="TrxID">
                   {/* ★ ইতিহাসেও কপি দরকার — পুরনো লেনদেন যাচাই করতে (3.4) */}
                   <span className="inline-flex items-center gap-1.5">
                     <code className="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-amber-700">
@@ -129,8 +129,8 @@ export default function DepositTable({ deposits, current }: { deposits: D[]; cur
                     <CopyButton value={d.trxId} label="TrxID" />
                   </span>
                 </td>
-                <td className="font-mono text-xs">{d.senderNo}</td>
-                <td>
+                <td data-label="প্রেরক" className="font-mono text-xs">{d.senderNo}</td>
+                <td data-label="প্রমাণ">
                   {d.screenshot ? (
                     <button
                       onClick={() => setZoom(d.screenshot)}
@@ -144,13 +144,13 @@ export default function DepositTable({ deposits, current }: { deposits: D[]; cur
                     <span className="text-xs text-slate-400">—</span>
                   )}
                 </td>
-                <td className="ctr">
+                <td data-label="স্ট্যাটাস" className="ctr">
                   <Badge status={d.status} />
                   {d.adminNote && (
                     <div className="mt-1 max-w-[130px] text-[11px] text-slate-400">{d.adminNote}</div>
                   )}
                 </td>
-                <td className="whitespace-nowrap text-xs text-slate-400">{fmtDate(d.createdAt)}</td>
+                <td data-label="সময়" className="whitespace-nowrap text-xs text-slate-400">{fmtDate(d.createdAt)}</td>
                 <td className="ctr">
                   {d.status === 'PENDING' ? (
                     <div className="tbl-actions">

@@ -192,11 +192,13 @@ export default async function ProductPage({
             {product.description && (
               <p className="mt-1 text-xs sm:text-sm" style={{ color: 'var(--mut)' }}>{product.description}</p>
             )}
-            {/* ★ ডেলিভারির সৎ প্রতিশ্রুতি — কেনার আগেই স্পষ্ট */}
-            <p
-              className="mt-2 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold backdrop-blur sm:text-xs"
-              style={{ background: 'rgba(163,230,53,.14)', border: '1px solid rgba(163,230,53,.32)', color: '#bef264' }}
-            >
+            {/* ★ ডেলিভারির সৎ প্রতিশ্রুতি — কেনার আগেই স্পষ্ট।
+                ⚠️ রঙ আগে হার্ডকোড `#bef264` ছিল — গাঢ়-থিমের লাইম, যা
+                এই হালকা glass-কার্ডে **১.৪:১** কনট্রাস্টে কার্যত
+                অপাঠ্য ছিল (৩৯০px স্ক্রিনশটে ধরা পড়ে)। এখন
+                `.sig-chip--success`, যার রঙ `--sem-success` টোকেন
+                থেকে আসে ও দুই থিমেই AA পার করে। */}
+            <p className="sig-chip sig-chip--success mt-2">
               <span aria-hidden="true">⏱</span>
               ডেলিভারি: {slaPromiseText(sla)}
             </p>

@@ -85,9 +85,24 @@ export default async function Footer() {
       />
 
       <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-14 sm:px-6">
-        <div className="grid gap-10 lg:grid-cols-12">
+        {/**
+          * ═══ ফুটার গ্রিড ═══
+          *
+          * ⚠️⚠️ আগে `grid gap-10 lg:grid-cols-12` — অর্থাৎ ১০২৪px-এর
+          *   নিচে **একটিই কলাম**, প্রতিটি ব্লকের মাঝে ৪০px ফাঁক।
+          *   ফলে ফোনে ফুটারটি ১০টি লিংক + সাপোর্ট-ব্লক মিলিয়ে
+          *   **~১৫০০px লম্বা** হয়ে যেত (৩৯০px-এ মাপা: লিংকগুলো
+          *   y ৫৭৯৭ থেকে ৬৩৯৩)। ব্যবহারকারী শর্তাবলী খুঁজতে গিয়ে
+          *   দুই পর্দা স্ক্রল করতেন।
+          *
+          *   এখন ফোনে **২×২ গ্রিড** — চারটি ব্লক (প্রোডাক্ট · সহায়তা ·
+          *   তথ্য · সাপোর্ট) ঠিক দুই সারিতে বসে, তাই একটিও ফাঁকা ঘর
+          *   থাকে না। ব্র্যান্ড-ব্লক পুরো প্রস্থে, কারণ তাতে বর্ণনা ও
+          *   সোশ্যাল আইকন আছে।
+          */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-9 lg:grid-cols-12 lg:gap-10">
           {/* ═══ ব্র্যান্ড ═══ */}
-          <div className="lg:col-span-4">
+          <div className="col-span-2 lg:col-span-4">
             <div className="flex items-center gap-3">
               {/* ★ অ্যাডমিনের সেকেন্ডারি লোগো থাকলে সেটিই (থিম-সচেতন),
                   নাহলে বিদ্যমান VoltMark + নাম */}
@@ -158,7 +173,11 @@ export default async function Footer() {
               {settings?.support_email && (
                 <li className="leading-snug">
                   <span className="hud-mut hud block">ইমেইল</span>
-                  <a href={`mailto:${settings.support_email}`} className="fnav">{settings.support_email}</a>
+                  {/* ⚠️ `break-all` — ইমেইলে ফাঁকা জায়গা নেই, তাই সাধারণ
+                    wrap কাজ করে না। মোবাইলের অর্ধেক কলামে (৩২০px-এ
+                    ১৩৬px) একটি লম্বা ঠিকানা নাহলে কলামের বাইরে বেরিয়ে
+                    যেত। */}
+                <a href={`mailto:${settings.support_email}`} className="fnav break-all">{settings.support_email}</a>
                 </li>
               )}
               {settings?.support_phone && (
