@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
@@ -119,9 +119,46 @@ function LoginForm() {
 
       ok = true;
       toast.success('লগইন সফল');
+
+      /**
+       * ★★★ গন্তব্য এখন **role-সচেতন**।
+       *
+       *   ── আগে কী হতো ──
+       *   `router.push(back ?? '/')` — অর্থাৎ ভূমিকা যাই হোক, সবাই
+       *   স্টোরফ্রন্টের হোমপেজে নামত। অ্যাডমিন লগইন করলে সেশনে
+       *   `role: 'ADMIN'` ঠিকই থাকত (ব্রাউজারে মাপা), কিন্তু তিনি
+       *   গ্রাহকের পাতায় গ্রাহকের ন্যাভবার ও বটম-বার দেখতেন —
+       *   ব্যবহারিকভাবে "অ্যাডমিনকে গ্রাহক হিসেবে দেখানো"।
+       *   ফোনে ব্যাপারটা আরও খারাপ ছিল: `/admin`-এ যাওয়ার একমাত্র
+       *   লিংকটি হ্যামবার্গার মেনুর নিচে, আর সেটি বটম-বারের নিচে
+       *   ঢাকা পড়ে থাকত (নিচে Navbar/globals.css এর ঠিক করা হয়েছে)।
+       *
+       *   ── এখন ──
+       *   স্পষ্ট `callbackUrl` থাকলে সেটিই সর্বোচ্চ অগ্রাধিকার পায়
+       *   (যেমন middleware `/account/orders` থেকে ফেরত পাঠিয়েছিল)।
+       *   না থাকলে সেশন থেকে ভূমিকা পড়ে গন্তব্য ঠিক হয়।
+       *
+       *   ⚠️ ভূমিকা **সার্ভারের সেশন থেকেই** আসে (`getSession()` →
+       *   `/api/auth/session`), ক্লায়েন্টের কোনো অনুমান থেকে নয়।
+       *   এটি কেবল **গন্তব্য** ঠিক করে — কোনো অনুমতি দেয় না।
+       *   `/admin`-এর আসল পাহারা আগের মতোই তিন স্তরে: `middleware.ts`,
+       *   `admin/layout.tsx` ও প্রতিটি রুটের `requireAdmin()`। তাই
+       *   গ্রাহক এখানে যা-ই ঘটাক, `/admin` তার জন্য বন্ধই থাকে।
+       */
       const back = params.get('callbackUrl');
-      // ★ Open redirect আটকানো — শুধু relative path
-      router.push(back && back.startsWith('/') ? back : '/');
+      // ★ Open redirect আটকানো — শুধু নিজের সাইটের relative path।
+      //   ⚠️ `//evil.com` ও `/` দিয়ে শুরু হয় কিন্তু সেটি protocol-relative
+      //   URL, অর্থাৎ ভিন্ন origin — তাই আলাদা করে বাদ দিতে হয়।
+      const safeBack = back && back.startsWith('/') && !back.startsWith('//') ? back : null;
+
+      let dest = safeBack;
+      if (!dest) {
+        // ★ সেশন না পড়া গেলে (নেটওয়ার্ক সমস্যা) হোমপেজই নিরাপদ ডিফল্ট
+        const s = await getSession().catch(() => null);
+        dest = s?.user?.role === 'ADMIN' ? '/admin' : '/';
+      }
+
+      router.push(dest);
       router.refresh();
     } catch {
       const msg = 'লগইন করা যায়নি। আবার চেষ্টা করুন।';

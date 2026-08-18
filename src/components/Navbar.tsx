@@ -503,9 +503,15 @@ export default function Navbar({
           </div>
         </div>
 
+        {/* ★★★ `nav-menu-scroll` — মেনুটি ভিউপোর্টের ভেতরে আটকে থাকে
+            ও নিজেই স্ক্রল করে। আগে এটি ৮৯৫px লম্বা হয়ে ৮৪৪px পর্দার
+            বাইরে গড়িয়ে যেত, অথচ মেনু খোলা থাকলে `body` স্ক্রল-লক
+            থাকায় নিচের আইটেমগুলোয় (লগআউট, অ্যাডমিন প্যানেল, তথ্য ও
+            পাসওয়ার্ড, নোটিফিকেশন) পৌঁছানোই যেত না। হিসাব ও মাপ
+            `globals.css`-এ। */}
         {menu && (
           <nav
-            className={`stagger space-y-1 pb-4 pt-3 ${navHidden}`}
+            className={`nav-menu-scroll stagger space-y-1 pb-4 pt-3 ${navHidden}`}
             style={{ borderTop: '1px solid var(--v-edge)' }}
             aria-label="মোবাইল মেনু"
           >

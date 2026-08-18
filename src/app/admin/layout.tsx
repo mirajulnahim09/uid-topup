@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import AdminNav from '@/components/admin/AdminNav';
 import AdminSearch from '@/components/admin/AdminSearch';
+import LogoutButton from '@/components/LogoutButton';
 import ThemeToggle from '@/components/theme/ThemeToggle';
 import BrandLogo from '@/components/brand/BrandLogo';
 import { getBranding } from '@/lib/branding';
@@ -64,15 +65,24 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               কন্ট্রোল প্যানেল
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          {/* ★ gap 3 → 2: লগআউট যোগ হওয়ায় ৩২০px ফোনে সারিটি আঁটসাঁট।
+              তিনটিই `shrink-0`, তাই কিছু চেপে গিয়ে অপাঠ্য হয় না। */}
+          <div className="flex shrink-0 items-center gap-2">
             <ThemeToggle />
             <Link
               href="/"
-              className="inline-flex min-h-[40px] items-center whitespace-nowrap text-sm transition-colors"
+              className="inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap text-sm transition-colors"
               style={{ color: 'var(--mut)' }}
             >
-              ← সাইটে ফিরুন
+              {/* ★ ৩২০px-এ কেবল তীরচিহ্ন — পুরো লেখাটি রাখলে লগআউটসহ
+                  সারিটি ওভারফ্লো করত। sr-only লেবেল থাকায় স্ক্রিনরিডারে
+                  অর্থ অটুট। */}
+              <span aria-hidden="true">←</span>
+              <span className="ml-1 hidden xs:inline">সাইটে ফিরুন</span>
+              <span className="sr-only">সাইটে ফিরুন</span>
             </Link>
+            {/* ★★★ অ্যাডমিনের লগআউট — আগে এই হেডারে কোনো লগআউটই ছিল না */}
+            <LogoutButton compact />
           </div>
         </div>
       </header>

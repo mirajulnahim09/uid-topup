@@ -9,6 +9,7 @@ import ReferralCard from '@/components/ReferralCard';
 import DataUnavailable from '@/components/DataUnavailable';
 import Icon from '@/components/fx/Icon';
 import EmptyState from '@/components/EmptyState';
+import LogoutButton from '@/components/LogoutButton';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'প্রোফাইল' };
@@ -50,7 +51,17 @@ export default async function AccountPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="lux-text text-2xl font-medium sm:text-[27px]">আমার প্রোফাইল</h1>
+      {/* ★★★ শিরোনামের পাশেই লগআউট।
+          কেন এখানে: বটম-বারের "প্রোফাইল" ট্যাপ করলে ব্যবহারকারী ঠিক
+          এই পাতাতেই আসেন, তাই ফোনে বেরোনোর পথটি এখানেই সবচেয়ে
+          স্বাভাবিক। আগে লগআউট ছিল কেবল হ্যামবার্গার মেনুর একদম নিচে,
+          যেটি ফোনে বটম-বারের আড়ালে ঢাকা পড়ত (Navbar.tsx দ্রষ্টব্য)।
+          ⚠️ "সব ডিভাইস থেকে সাইন-আউট" আলাদা ও ভিন্ন কাজ — সেটি
+          `/account/profile` এ যেমন ছিল তেমনই আছে। */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">আমার প্রোফাইল</h1>
+        <LogoutButton />
+      </div>
 
       {/**
         * ═══ পরিসংখ্যান গ্রিড ═══
