@@ -108,7 +108,10 @@ export default function ReadinessPanel() {
             <button
               onClick={() => toggleFlag(f.key, !f.enabled)}
               disabled={saving === f.key}
-              className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+              /* ★ ২৪×৪৩ ছিল (অডিটে ৫৫ হিট) — এটি একটি **ফিচার ফ্ল্যাগ
+                 টগল**, অর্থাৎ চাপলে সাইটের আচরণ বদলায়। ছোট লক্ষ্যে ভুল
+                 ট্যাপের দাম এখানে বেশি। মাপ বাড়ল, চেহারা নয়। */
+              className={`inline-flex min-h-[40px] min-w-[56px] items-center justify-center rounded-full px-3 text-xs font-bold transition ${
                 f.enabled ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-500'
               }`}
             >

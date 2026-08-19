@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
 import type { ProviderInfo, IntegrationCategory } from '@/lib/integrations/types';
+import Switch from '@/components/admin/Switch';
 
 /**
  * ★ Integration Hub — অ্যাডমিন কনফিগ। প্রতিটি ক্যাটাগরির প্রোভাইডার
@@ -75,7 +76,8 @@ export default function IntegrationsManager({ initial }: { initial: ProviderInfo
               <h2 className="text-lg font-bold" style={{ color: 'var(--v-ink)' }}>{CAT_LABEL[cat]}</h2>
               {!managed && (
                 <span className="text-[11px]" style={{ color: 'var(--v-dim)' }}>
-                  {cat === 'payment' ? <Link href="/admin/payments" className="font-semibold" style={{ color: 'var(--v-ice)' }}>/admin/payments-এ পরিচালিত →</Link> : 'STORAGE_DRIVER env দিয়ে সেট'}
+                  {/* ★ ১৮px উঁচু ছিল — পেমেন্ট কনফিগে যাওয়ার একমাত্র লিংক */}
+                  {cat === 'payment' ? <Link href="/admin/payments" className="inline-flex min-h-[40px] items-center font-semibold" style={{ color: 'var(--v-ice)' }}>/admin/payments-এ পরিচালিত →</Link> : 'STORAGE_DRIVER env দিয়ে সেট'}
                 </span>
               )}
             </div>
@@ -99,12 +101,11 @@ export default function IntegrationsManager({ initial }: { initial: ProviderInfo
                         style={p.active ? { borderColor: 'var(--violet)', color: 'var(--violet)', background: 'var(--tint-violet)' } : undefined}>
                         {p.active ? 'Active' : 'Active করুন'}
                       </button>
-                      <button type="button" role="switch" aria-checked={p.enabled} aria-label={`${p.label} চালু/বন্ধ`}
+                      <Switch
+                        on={p.enabled}
+                        label={`${p.label} চালু/বন্ধ`}
                         onClick={() => toggle(cat, p.id)}
-                        className="relative h-7 w-12 shrink-0 rounded-full transition-colors"
-                        style={{ background: p.enabled ? '#7c3aed' : 'var(--v-edge2)' }}>
-                        <span className="absolute top-1 h-5 w-5 rounded-full bg-white transition-all" style={{ left: p.enabled ? 26 : 4 }} />
-                      </button>
+                      />
                     </div>
                   ) : (
                     <span className="badge" style={{ background: p.active || p.enabled ? 'var(--tint-volt)' : 'var(--v-fill2)', color: p.active || p.enabled ? 'var(--v-volt)' : 'var(--v-dim)' }}>

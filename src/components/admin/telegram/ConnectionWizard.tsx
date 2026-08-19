@@ -562,8 +562,10 @@ export default function ConnectionWizard({
         )}
       </div>
 
+      {/* ★ ২০px উঁচু ছিল — উইজার্ড থেকে বেরোনোর একমাত্র পথ, তাই
+          ছোট লক্ষ্য মানে অ্যাডমিন আটকে আছেন বলে মনে হওয়া। */}
       {step < 5 && onClose && (
-        <button onClick={onClose} className="mx-auto block text-[11.5px] underline"
+        <button onClick={onClose} className="mx-auto flex min-h-[40px] items-center px-3 text-[11.5px] underline"
           style={{ color: 'var(--v-dim)' }}>
           পরে করব — উইজার্ড বন্ধ করুন
         </button>

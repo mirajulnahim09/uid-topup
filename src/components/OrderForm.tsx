@@ -352,7 +352,11 @@ export default function OrderForm({
       <section className="card overflow-hidden lg:col-span-2" aria-labelledby="s1">
         <div className="flex items-center gap-2.5 border-b border-slate-200 px-5 py-4">
           <StepBadge n={1} />
-          <h2 id="s1" className="text-lg font-bold text-slate-900">Select Recharge</h2>
+          {/* ★ পুরো পাতাটি বাংলায়, অথচ দুটি ধাপের শিরোনামই ইংরেজিতে
+              ছিল — গ্রাহকের পড়ার ছন্দ ভাঙত। কম্পোনেন্টটি i18n
+              ব্যবহার করে না (বাকি প্রতিটি লেখাও হার্ডকোড বাংলা),
+              তাই এটিও বাংলায় আনা সঙ্গতিপূর্ণ। */}
+          <h2 id="s1" className="text-lg font-bold text-slate-900">প্যাকেজ বেছে নিন</h2>
         </div>
 
         <div className="p-4 sm:p-5">
@@ -468,13 +472,20 @@ export default function OrderForm({
                       <Icon name="gem" size={14} className="shrink-0" />
                     </span>
 
+                    {/* ★ "355 TK" → "৳355"।
+                        দুটি কারণ: (১) বাকি পুরো সাইট `bdt()` দিয়ে
+                        ৳-চিহ্ন লেখে (ওয়ালেট, খতিয়ান, চালান) — এই
+                        একটি জায়গাতেই "TK" ছিল; (২) সরু কলামে
+                        "TK" শব্দটি দামের চেয়ে বেশি জায়গা নিত, ফলে
+                        বাঁয়ের নামটি বেশি লাইনে ভেঙে একই সারির
+                        কার্ডগুলোর উচ্চতা অসমান দেখাত। */}
                     <span className="shrink-0 text-right">
                       <span className="v-dsp block whitespace-nowrap text-base font-extrabold" style={{ color: 'var(--v-ink)' }}>
-                        {v.price.toFixed(0)} TK
+                        ৳{v.price.toFixed(0)}
                       </span>
                       {v.oldPrice && v.oldPrice > v.price && (
-                        <span className="block text-[10px] text-slate-400 line-through">
-                          {v.oldPrice.toFixed(0)} TK
+                        <span className="block whitespace-nowrap text-[10px] text-slate-400 line-through">
+                          ৳{v.oldPrice.toFixed(0)}
                         </span>
                       )}
                       {out && <span className="block text-[10px] text-red-500">স্টক শেষ</span>}
@@ -496,7 +507,7 @@ export default function OrderForm({
         <section className="card overflow-hidden" aria-labelledby="s2">
           <div className="flex items-center gap-2.5 border-b border-slate-200 px-5 py-4">
             <StepBadge n={2} />
-            <h2 id="s2" className="text-lg font-bold text-slate-900">Account Info</h2>
+            <h2 id="s2" className="text-lg font-bold text-slate-900">অ্যাকাউন্টের তথ্য</h2>
           </div>
 
           <div className="space-y-3 p-5">

@@ -339,6 +339,21 @@ const MEASURE = String.raw`(function () {
       var lr = lab.getBoundingClientRect();
       if (lr.height >= 40 && lr.width >= 40) continue;
     }
+
+    /* ⚠️ লেবেল ছাড়া দাঁড়ানো চেকবক্স/রেডিওও আসলে ২৪px নয়।
+       globals.css এর নিয়মটি **প্রতিটি** চেকবক্স/রেডিওতে একটি
+       ছদ্ম-উপাদান বসায় (::after with inset:-9px), অর্থাৎ প্রকৃত
+       ক্লিক-এলাকা ২৪+৯+৯ = **৪২px** — আঁকা বাক্সটি ছোট, ছোঁয়ার
+       লক্ষ্য নয়। getBoundingClientRect() ছদ্ম-উপাদান দেখে না,
+       তাই হারনেস ঐ ২৪px-কেই সত্য ধরে নিত (/admin/homepage এ
+       ১৬টি অভিযোগ)। নিয়মটি বিশ্বজনীন বলে ছাড়টিও বিশ্বজনীন।
+       ⚠️ CSS নিয়মটি বদলালে এই ছাড়টিও বদলাতে হবে — একটির সত্যতা
+       অন্যটির উপর দাঁড়িয়ে আছে।
+       ⚠️⚠️ এই মন্তব্যে backtick লেখা যাবে না — পুরো ব্লকটি একটি
+       String.raw টেমপ্লেটের ভিতরে (ফাইলের মাথার সতর্কতা দ্রষ্টব্য)। */
+    if (tt.type === 'checkbox' || tt.type === 'radio') {
+      if (trr.height >= 24 && trr.width >= 24) continue;
+    }
     var h = Math.round(trr.height), w = Math.round(trr.width);
     /* ⚠️ দুই ধাপ, কারণ দুটি ভিন্ন মানদণ্ড:
          · < ৪০px = এই প্রকল্পের নিজস্ব নিয়ম ভাঙে (§17) → আসল ত্রুটি

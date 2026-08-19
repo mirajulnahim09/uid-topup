@@ -78,8 +78,14 @@ export default function ThemeToggle({ compact = false }: { compact?: boolean }) 
       aria-label={`${t('theme.label')}: ${nowLabel}`}
       /* ★ ৪০px — এই প্রকল্পের ন্যূনতম ছোঁয়ার মাপ (§17)।
          compact-এও ৪০, কারণ আঙুল ছোট হয় না। */
-      className={`grid shrink-0 place-items-center rounded-full border transition ${compact ? 'h-10 w-10' : 'h-10 w-10'}`}
-      style={{ borderColor: 'var(--v-edge)', background: 'var(--v-fill)', color: 'var(--v-ink)' }}
+      /* ★★★ দৃশ্য-ওজন (২.৬): হেডারে থিম ও ভাষার সুইচ আগে বর্ডার ও
+         পৃষ্ঠতল নিয়ে বসত, অর্থাৎ "লগইন"/"রেজিস্টার" এর সমান জোরে
+         ডাকত। কিন্তু এগুলো **পছন্দ**, গন্তব্য নয় — দিনে একবারও
+         ছোঁয়া হয় না। তাই এখন শান্ত: বর্ডার নেই, পৃষ্ঠতল নেই, রঙ
+         mut; hover/focus-এ পৃষ্ঠতল ফিরে আসে যাতে ছোঁয়ার আগে
+         বোঝা যায় এটি বোতাম। মাপ ৪০px অপরিবর্তিত। */
+      className={`grid shrink-0 place-items-center rounded-full border border-transparent transition hover:bg-[var(--v-fill)] hover:text-[color:var(--v-ink)] focus-visible:bg-[var(--v-fill)] ${compact ? 'h-10 w-10' : 'h-10 w-10'}`}
+      style={{ color: 'var(--v-mut)' }}
     >
       {ICON[theme]}
       {/* ★ অবস্থাটি স্ক্রিন-রিডারে পড়া যায়, চোখে নয় */}

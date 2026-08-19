@@ -35,10 +35,12 @@ export default function LanguageToggle({ compact = false }: { compact?: boolean 
       title={`${LOCALE_LABEL[locale]} → ${LOCALE_LABEL[next]}`}
       aria-label={`ভাষা / Language: ${LOCALE_LABEL[locale]}`}
       /* ★ ৪০px ন্যূনতম — ThemeToggle এর সাথে হুবহু এক মাপ */
-      className={`grid h-10 shrink-0 place-items-center rounded-full border font-bold transition ${
+      /* ★ দৃশ্য-ওজন — ThemeToggle এর সাথে হুবহু একই যুক্তি (২.৬):
+         পছন্দের সুইচ auth-CTA-র সমান জোরে ডাকবে না। */
+      className={`grid h-10 shrink-0 place-items-center rounded-full border border-transparent font-bold transition hover:bg-[var(--v-fill)] hover:text-[color:var(--v-ink)] focus-visible:bg-[var(--v-fill)] ${
         compact ? 'min-w-[40px] px-2 text-[11px]' : 'min-w-[40px] px-2.5 text-xs'
       }`}
-      style={{ borderColor: 'var(--v-edge)', background: 'var(--v-fill)', color: 'var(--v-ink)' }}
+      style={{ color: 'var(--v-mut)' }}
     >
       {shortOf(next)}
       <span className="sr-only">{LOCALE_LABEL[locale]}</span>

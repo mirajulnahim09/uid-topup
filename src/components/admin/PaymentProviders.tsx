@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useToast } from '@/components/Toast';
 import type { ProviderInfo, ProviderHealth, ProviderMode } from '@/lib/payments/types';
+import Switch from '@/components/admin/Switch';
 
 /**
  * ★ পেমেন্ট প্রোভাইডার ক্রেডেনশিয়াল ব্যবস্থাপনা (অ্যাডমিন)।
@@ -117,10 +118,12 @@ export default function PaymentProviders({ initialProviders }: { initialProvider
             <div key={p.id} className="rounded-lg border" style={{ borderColor: 'var(--v-edge)', background: 'var(--v-fill)' }}>
               {/* সারি হেডার */}
               <div className="flex flex-wrap items-center justify-between gap-3 p-3">
+                {/* ★ ২৫px উঁচু ছিল — অথচ এটিই গেটওয়ের কনফিগ খোলার
+                    একমাত্র পথ (৭টি প্রোভাইডারে ৭ বার)। */}
                 <button
                   type="button"
                   onClick={() => patch(p.id, (r) => ({ ...r, open: !r.open }))}
-                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  className="flex min-h-[40px] min-w-0 flex-1 items-center gap-2 text-left"
                   aria-expanded={p.open}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
@@ -134,13 +137,12 @@ export default function PaymentProviders({ initialProviders }: { initialProvider
                   </span>
                 </button>
 
-                {/* enable switch */}
-                <button type="button" role="switch" aria-checked={p.enabled} aria-label={`${p.label} চালু/বন্ধ`}
+                {/* enable switch — শেয়ার্ড কম্পোনেন্ট (৪০px ট্যাপ-লক্ষ্য) */}
+                <Switch
+                  on={p.enabled}
+                  label={`${p.label} চালু/বন্ধ`}
                   onClick={() => patch(p.id, (r) => ({ ...r, enabled: !r.enabled }))}
-                  className="relative h-7 w-12 shrink-0 rounded-full transition-colors"
-                  style={{ background: p.enabled ? '#7c3aed' : 'var(--v-edge2)' }}>
-                  <span className="absolute top-1 h-5 w-5 rounded-full bg-white transition-all" style={{ left: p.enabled ? 26 : 4 }} />
-                </button>
+                />
               </div>
 
               {/* ক্রেডেনশিয়াল ফর্ম */}
@@ -151,10 +153,12 @@ export default function PaymentProviders({ initialProviders }: { initialProvider
                     <span className="text-[12px] font-semibold" style={{ color: 'var(--v-mut)' }}>পরিবেশ:</span>
                     <div className="inline-flex rounded-lg border p-0.5" style={{ borderColor: 'var(--v-edge2)' }} role="group" aria-label="পরিবেশ">
                       {(['test', 'live'] as ProviderMode[]).map((m) => (
+                        /* ★ টেস্ট/লাইভ — টাকার পথ বদলায়, তাই ভুল ট্যাপের
+                           দাম সবচেয়ে বেশি এখানেই। ৩৪px → ৪০px। */
                         <button key={m} type="button" onClick={() => patch(p.id, (r) => ({ ...r, mode: m }))}
                           aria-pressed={p.mode === m}
-                          className="rounded-md px-3 py-1 text-[12px] font-bold transition"
-                          style={p.mode === m ? { background: '#7c3aed', color: '#fff' } : { color: 'var(--v-mut)' }}>
+                          className="inline-flex min-h-[40px] items-center rounded-md px-3 text-[12px] font-bold transition"
+                          style={p.mode === m ? { background: 'var(--violet)', color: '#fff' } : { color: 'var(--v-mut)' }}>
                           {m === 'test' ? 'টেস্ট' : 'লাইভ'}
                         </button>
                       ))}

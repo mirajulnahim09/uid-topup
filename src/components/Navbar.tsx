@@ -397,6 +397,7 @@ export default function Navbar({
 
                 <ThemeToggle />
                 <LanguageToggle />
+                <span className="mx-1 h-5 w-px shrink-0" style={{ background: 'var(--v-edge2)' }} aria-hidden="true" />
 
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
@@ -410,6 +411,12 @@ export default function Navbar({
               <>
                 <ThemeToggle />
                 <LanguageToggle />
+                {/* ★ পছন্দ ও গন্তব্যের মাঝে একটি চুলচেরা রেখা (২.৬)।
+                    হেডারের ডান দিকে দশটি নিয়ন্ত্রণ একসাথে দাঁড়ালে
+                    কোনটি কী কাজের তা চোখে আলাদা হয় না; রেখাটি
+                    "সেটিংস" আর "লগইন/রেজিস্টার" কে দুটি দলে ভাগ করে।
+                    কিছুই সরানো হয়নি — কেবল গোষ্ঠীবদ্ধ। */}
+                <span className="mx-1 h-5 w-px shrink-0" style={{ background: 'var(--v-edge2)' }} aria-hidden="true" />
                 <Link href="/login" className="v-nav">{t('nav.login')}</Link>
                 <Link href="/register" className="v-btn v-btn--volt" style={{ minHeight: 42 }}>
                   {t('nav.register')}

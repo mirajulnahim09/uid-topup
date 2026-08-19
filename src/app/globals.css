@@ -1317,9 +1317,13 @@ details > summary::-webkit-details-marker { display:none; }
 .hud-mut  { color:var(--v-mut); }
 
 /* ─────────── চিপ ─────────── */
+/* ⚠️ ৩৬px ছিল — অডিটে ধরা পড়ে (`/admin/integrations` ৩৬×৬৭,
+   `/admin/media` ৩৬×৭৫)। চিপগুলো **বোতাম**, লেখার ভেতরের লিংক নয়,
+   তাই এদের জন্য প্রকল্পের নিয়ম ৪০px (globals.css §ট্যাপ-টার্গেট,
+   CLAUDE.md §17)। চার পিক্সেল — ঘনত্বে চোখে পড়ে না, আঙুলে পড়ে। */
 .v-chip {
   display:inline-flex; align-items:center; gap:.5rem;
-  min-height:36px; padding:0 .85rem;
+  min-height:40px; padding:0 .85rem;
   border:1px solid var(--v-edge); border-radius:2px;
   background:var(--v-fill);
   font-family:'Chakra Petch','Hind Siliguri',system-ui,sans-serif;

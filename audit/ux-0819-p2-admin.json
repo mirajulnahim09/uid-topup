@@ -1,0 +1,1852 @@
+{
+  "base": "http://localhost:3000",
+  "at": "2026-08-19T15:49:33.632Z",
+  "theme": "dark",
+  "auth": {
+    "admin-mobile": {
+      "landedOn": "/admin",
+      "expected": "/admin",
+      "PASS": true,
+      "sessionRole": "ADMIN"
+    },
+    "admin-desktop": {
+      "landedOn": "/admin",
+      "expected": "/admin",
+      "PASS": true,
+      "sessionRole": "ADMIN"
+    }
+  },
+  "viewports": {
+    "admin-mobile@390x844": [
+      {
+        "route": "/admin",
+        "status": 200,
+        "landedOn": "/admin",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.min-h-[40px].items-center",
+            "w": 89,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/orders",
+        "status": 200,
+        "landedOn": "/admin/orders",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 59,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/deposits",
+        "status": 200,
+        "landedOn": "/admin/deposits",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 85,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/users",
+        "status": 200,
+        "landedOn": "/admin/users",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.text-sm.font-medium.text-slate-900",
+            "path": "tr > td > div.flex.items-center.gap-2 > a.text-sm.font-medium.text-slate-900",
+            "w": 40,
+            "h": 24,
+            "text": "Admin"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "a.text-sm.font-medium.text-slate-900",
+            "w": 63,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/products",
+        "status": 200,
+        "landedOn": "/admin/products",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.badge.border.border-slate-200",
+            "w": 73,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/coupons",
+        "status": 200,
+        "landedOn": "/admin/coupons",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.badge.border.border-slate-200",
+            "w": 50,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/banners",
+        "status": 200,
+        "landedOn": "/admin/banners",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/tickets",
+        "status": 200,
+        "landedOn": "/admin/tickets",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/withdrawals",
+        "status": 200,
+        "landedOn": "/admin/withdrawals",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/reports",
+        "status": 200,
+        "landedOn": "/admin/reports",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/site",
+        "status": 200,
+        "landedOn": "/admin/site",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.shrink-0.whitespace-nowrap.border-b-2",
+            "w": 94,
+            "h": 42
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/telegram",
+        "status": 200,
+        "landedOn": "/admin/telegram",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.mx-auto.flex.min-h-[40px]",
+            "w": 154,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/media",
+        "status": 200,
+        "landedOn": "/admin/media",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.v-chip",
+            "w": 75,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/integrations",
+        "status": 200,
+        "landedOn": "/admin/integrations",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 157,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/payments",
+        "status": 200,
+        "landedOn": "/admin/payments",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 230,
+            "h": 25,
+            "text": "bKash API কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 230,
+            "h": 25,
+            "text": "Nagad API কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 230,
+            "h": 25,
+            "text": "Rocket API কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 230,
+            "h": 25,
+            "text": "SSLCommerz কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 230,
+            "h": 25,
+            "text": "Stripe কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 230,
+            "h": 25,
+            "text": "PayPal কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 230,
+            "h": 25,
+            "text": "Razorpay কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.rounded-md.px-3.py-1.5",
+            "path": "div.grid.gap-4.sm:grid-cols-2 > div > div.inline-flex.rounded-lg.border > button.rounded-md.px-3.py-1.5",
+            "w": 68,
+            "h": 34,
+            "text": "ম্যানুয়াল"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.grid.h-10.w-12",
+            "w": 48,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/otp",
+        "status": 200,
+        "landedOn": "/admin/otp",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/logs",
+        "status": 200,
+        "landedOn": "/admin/logs",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/branding",
+        "status": 200,
+        "landedOn": "/admin/branding",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "button.rounded-lg.px-3.py-2",
+            "path": "div.space-y-5 > div.card.p-2 > div.flex.flex-wrap.gap-1 > button.rounded-lg.px-3.py-2",
+            "w": 74,
+            "h": 36,
+            "text": "🖼️ লোগো"
+          },
+          {
+            "selector": "button.rounded-lg.px-3.py-2",
+            "path": "div.space-y-5 > div.card.p-2 > div.flex.flex-wrap.gap-1 > button.rounded-lg.px-3.py-2",
+            "w": 89,
+            "h": 36,
+            "text": "✍️ ব্র্যান্ড তথ্য"
+          },
+          {
+            "selector": "button.rounded-lg.px-3.py-2",
+            "path": "div.space-y-5 > div.card.p-2 > div.flex.flex-wrap.gap-1 > button.rounded-lg.px-3.py-2",
+            "w": 103,
+            "h": 36,
+            "text": "👁️ লাইভ প্রিভিউ"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.min-h-[40px].items-center",
+            "w": 75,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/homepage",
+        "status": 200,
+        "landedOn": "/admin/homepage",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/tools",
+        "status": 200,
+        "landedOn": "/admin/tools",
+        "bouncedToLogin": false,
+        "vw": 390,
+        "rawScrollWidth": 390,
+        "trueScrollWidth": 390,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "input.flex.min-h-[40px].w-full",
+            "w": 316,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      }
+    ],
+    "admin-desktop@1440x900": [
+      {
+        "route": "/admin",
+        "status": 200,
+        "landedOn": "/admin",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.min-h-[40px].items-center",
+            "w": 89,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/orders",
+        "status": 200,
+        "landedOn": "/admin/orders",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 59,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/deposits",
+        "status": 200,
+        "landedOn": "/admin/deposits",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 85,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/users",
+        "status": 200,
+        "landedOn": "/admin/users",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "a.text-sm.font-medium.text-slate-900",
+            "path": "tr > td > div.flex.items-center.gap-2 > a.text-sm.font-medium.text-slate-900",
+            "w": 86,
+            "h": 24,
+            "text": "খালি অ্যাকাউন্ট"
+          },
+          {
+            "selector": "a.text-sm.font-medium.text-slate-900",
+            "path": "tr > td > div.flex.items-center.gap-2 > a.text-sm.font-medium.text-slate-900",
+            "w": 267,
+            "h": 24,
+            "text": "মোহাম্মদ আব্দুর রহমান চৌধুরী স"
+          },
+          {
+            "selector": "a.text-sm.font-medium.text-slate-900",
+            "path": "tr > td > div.flex.items-center.gap-2 > a.text-sm.font-medium.text-slate-900",
+            "w": 53,
+            "h": 24,
+            "text": "টেস্ট গ্রাহক"
+          },
+          {
+            "selector": "a.text-sm.font-medium.text-slate-900",
+            "path": "tr > td > div.flex.items-center.gap-2 > a.text-sm.font-medium.text-slate-900",
+            "w": 40,
+            "h": 24,
+            "text": "Admin"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "a.btn-ghost.grid.h-10",
+            "w": 40,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": true
+      },
+      {
+        "route": "/admin/products",
+        "status": 200,
+        "landedOn": "/admin/products",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.min-w-0.flex-1.text-left",
+            "w": 913,
+            "h": 43
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/coupons",
+        "status": 200,
+        "landedOn": "/admin/coupons",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.badge.border.border-slate-200",
+            "w": 50,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": true
+      },
+      {
+        "route": "/admin/banners",
+        "status": 200,
+        "landedOn": "/admin/banners",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [
+          "[next-auth][error][CLIENT_FETCH_ERROR] \nhttps://next-auth.js.org/errors#client_fetch_error Failed to fetch {error: Object, url: /api/auth/session, message: Failed to fetch}"
+        ],
+        "failedRequests": [
+          "net::ERR_ABORTED http://localhost:3000/api/auth/session"
+        ],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/tickets",
+        "status": 200,
+        "landedOn": "/admin/tickets",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": true
+      },
+      {
+        "route": "/admin/withdrawals",
+        "status": 200,
+        "landedOn": "/admin/withdrawals",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": true
+      },
+      {
+        "route": "/admin/reports",
+        "status": 200,
+        "landedOn": "/admin/reports",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [
+          "[next-auth][error][CLIENT_FETCH_ERROR] \nhttps://next-auth.js.org/errors#client_fetch_error Failed to fetch {error: Object, url: /api/auth/session, message: Failed to fetch}"
+        ],
+        "failedRequests": [
+          "net::ERR_ABORTED http://localhost:3000/api/auth/session"
+        ],
+        "notSettled": true
+      },
+      {
+        "route": "/admin/site",
+        "status": 200,
+        "landedOn": "/admin/site",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.shrink-0.whitespace-nowrap.border-b-2",
+            "w": 94,
+            "h": 42
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/telegram",
+        "status": 200,
+        "landedOn": "/admin/telegram",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.mx-auto.flex.min-h-[40px]",
+            "w": 154,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/media",
+        "status": 200,
+        "landedOn": "/admin/media",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.v-chip",
+            "w": 75,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": true
+      },
+      {
+        "route": "/admin/integrations",
+        "status": 200,
+        "landedOn": "/admin/integrations",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].items-center",
+            "w": 157,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/payments",
+        "status": 200,
+        "landedOn": "/admin/payments",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 1104,
+            "h": 25,
+            "text": "bKash API কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 1104,
+            "h": 25,
+            "text": "Nagad API কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 1104,
+            "h": 25,
+            "text": "Rocket API কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 1104,
+            "h": 25,
+            "text": "SSLCommerz কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 1104,
+            "h": 25,
+            "text": "Stripe কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 1104,
+            "h": 25,
+            "text": "PayPal কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.flex.min-w-0.flex-1",
+            "path": "div.space-y-2.5 > div.rounded-lg.border > div.flex.flex-wrap.items-center > button.flex.min-w-0.flex-1",
+            "w": 1104,
+            "h": 25,
+            "text": "Razorpay কী নেই টেস্ট"
+          },
+          {
+            "selector": "button.rounded-md.px-3.py-1.5",
+            "path": "div.grid.gap-4.sm:grid-cols-2 > div > div.inline-flex.rounded-lg.border > button.rounded-md.px-3.py-1.5",
+            "w": 68,
+            "h": 34,
+            "text": "ম্যানুয়াল"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.grid.h-10.w-12",
+            "w": 48,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/otp",
+        "status": 200,
+        "landedOn": "/admin/otp",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": true
+      },
+      {
+        "route": "/admin/logs",
+        "status": 200,
+        "landedOn": "/admin/logs",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/branding",
+        "status": 200,
+        "landedOn": "/admin/branding",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [
+          {
+            "selector": "button.rounded-lg.px-3.py-2",
+            "path": "div.space-y-5 > div.card.p-2 > div.flex.flex-wrap.gap-1 > button.rounded-lg.px-3.py-2",
+            "w": 74,
+            "h": 36,
+            "text": "🖼️ লোগো"
+          },
+          {
+            "selector": "button.rounded-lg.px-3.py-2",
+            "path": "div.space-y-5 > div.card.p-2 > div.flex.flex-wrap.gap-1 > button.rounded-lg.px-3.py-2",
+            "w": 89,
+            "h": 36,
+            "text": "✍️ ব্র্যান্ড তথ্য"
+          },
+          {
+            "selector": "button.rounded-lg.px-3.py-2",
+            "path": "div.space-y-5 > div.card.p-2 > div.flex.flex-wrap.gap-1 > button.rounded-lg.px-3.py-2",
+            "w": 103,
+            "h": 36,
+            "text": "👁️ লাইভ প্রিভিউ"
+          }
+        ],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.min-h-[40px].items-center",
+            "w": 75,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/homepage",
+        "status": 200,
+        "landedOn": "/admin/homepage",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      },
+      {
+        "route": "/admin/tools",
+        "status": 200,
+        "landedOn": "/admin/tools",
+        "bouncedToLogin": false,
+        "vw": 1440,
+        "rawScrollWidth": 1440,
+        "trueScrollWidth": 1440,
+        "overflowing": false,
+        "offenders": [],
+        "clipped": [],
+        "covered": [],
+        "floatOverlap": [],
+        "smallTaps": [],
+        "nearTaps": [
+          {
+            "selector": "button.grid.shrink-0.place-items-center",
+            "w": 40,
+            "h": 40
+          },
+          {
+            "selector": "a.inline-flex.min-h-[40px].min-w-[40px]",
+            "w": 98,
+            "h": 40
+          },
+          {
+            "selector": "button.inline-flex.shrink-0.items-center",
+            "w": 96,
+            "h": 40
+          },
+          {
+            "selector": "input.flex.min-h-[40px].w-full",
+            "w": 1190,
+            "h": 40
+          }
+        ],
+        "zoomInputs": [],
+        "bottomGap": null,
+        "consoleErrors": [],
+        "failedRequests": [],
+        "notSettled": false
+      }
+    ]
+  },
+  "summary": {
+    "pages": 40,
+    "bounced": 0,
+    "overflowPages": 0,
+    "clippedPages": 0,
+    "coveredPages": 0,
+    "floatOverlapPages": 0,
+    "smallTapPages": 6,
+    "zoomInputPages": 0,
+    "consoleErrorPages": 2,
+    "failedRequestPages": 2,
+    "notSettled": 7,
+    "bottomShortPages": 0
+  }
+}

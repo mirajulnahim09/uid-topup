@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useToast, ConfirmDialog } from '@/components/Toast';
 import { processImage } from '@/lib/imageProcess';
 import type { LogoSlot, LogoSlotKey, BrandTheme, Branding } from '@/lib/branding';
+import Icon from '@/components/fx/Icon';
 
 /**
  * ★★★ ব্র্যান্ড আইডেন্টিটি ব্যবস্থাপনা।
@@ -110,13 +111,17 @@ export default function BrandingManager({ initial, raw, slots, fields }: Props) 
       {/* ═══ ট্যাব ═══ */}
       <div className="card p-2" role="tablist" aria-label="ব্র্যান্ডিং বিভাগ">
         <div className="flex flex-wrap gap-1">
-          {([['logos', '🖼️ লোগো'], ['text', '✍️ ব্র্যান্ড তথ্য'], ['preview', '👁️ লাইভ প্রিভিউ']] as const).map(([id, label]) => (
+          {/* ★ ইমোজি → Icon সেট (AdminNav-এর সাথে একই কারণে), আর
+              ৩৬px → ৪০px। ইমোজি প্ল্যাটফর্মভেদে বদলায় ও নিজের রঙ
+              আনে, তাই সক্রিয় ট্যাবের রঙ চিহ্নে পৌঁছাত না। */}
+          {([['logos', 'image', 'লোগো'], ['text', 'pencil', 'ব্র্যান্ড তথ্য'], ['preview', 'play', 'লাইভ প্রিভিউ']] as const).map(([id, icon, label]) => (
             <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
-              className="rounded-lg px-3 py-2 text-[12px] font-bold transition"
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg px-3 text-[12px] font-bold transition"
               style={{
                 background: tab === id ? 'var(--v-volt)' : 'transparent',
                 color: tab === id ? 'var(--v-void)' : 'var(--v-mut)',
               }}>
+              <Icon name={icon} size={15} />
               {label}
             </button>
           ))}
@@ -221,7 +226,7 @@ export default function BrandingManager({ initial, raw, slots, fields }: Props) 
             <span className="text-[12px] font-bold" style={{ color: 'var(--v-ink)' }}>ডিভাইস</span>
             {(['desktop', 'mobile'] as const).map((d) => (
               <button key={d} onClick={() => setPreviewDevice(d)} aria-pressed={previewDevice === d}
-                className="rounded-full px-3 py-1.5 text-[11.5px] font-semibold"
+                className="inline-flex min-h-[40px] items-center rounded-full px-3 text-[11.5px] font-semibold"
                 style={{
                   background: previewDevice === d ? 'var(--v-volt)' : 'var(--v-steel)',
                   color: previewDevice === d ? 'var(--v-void)' : 'var(--v-mut)',
@@ -232,7 +237,7 @@ export default function BrandingManager({ initial, raw, slots, fields }: Props) 
             <span className="ml-3 text-[12px] font-bold" style={{ color: 'var(--v-ink)' }}>থিম</span>
             {THEMES.map((t) => (
               <button key={t} onClick={() => setPreviewTheme(t)} aria-pressed={previewTheme === t}
-                className="rounded-full px-3 py-1.5 text-[11.5px] font-semibold"
+                className="inline-flex min-h-[40px] items-center rounded-full px-3 text-[11.5px] font-semibold"
                 style={{
                   background: previewTheme === t ? 'var(--v-volt)' : 'var(--v-steel)',
                   color: previewTheme === t ? 'var(--v-void)' : 'var(--v-mut)',
