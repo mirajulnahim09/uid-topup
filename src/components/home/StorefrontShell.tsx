@@ -123,12 +123,16 @@ function CatIcon({ name }: { name?: string | null }) {
 
 export default function StorefrontShell({
   hero,
+  opsLevel,
   categories,
   featured,
   deliveries,
   supportHours,
 }: {
   hero: { content: HeroContent; highlights: string[] };
+  /** ★ প্রকৃত পরিচালন-অবস্থা — হিরোর ব্যাজের বিন্দুটি এখান থেকেই রঙ পায়,
+   *  যাতে লেখা ও রঙ কখনো আলাদা কথা না বলে (page.tsx দ্রষ্টব্য)। */
+  opsLevel?: 'open' | 'busy' | 'closed' | null;
   categories: SCat[];
   featured: SProduct[];
   deliveries: Delivery[];
@@ -224,7 +228,7 @@ export default function StorefrontShell({
 
         {/* ─────────── মাঝের কলাম ─────────── */}
         <main className="min-w-0">
-          <StoreHero hero={hero} onHamburger={() => setDrawer(true)} />
+          <StoreHero hero={hero} opsLevel={opsLevel ?? null} onHamburger={() => setDrawer(true)} />
 
           {/* প্রমো স্ট্রিপ */}
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -481,12 +485,22 @@ function CatRow({
   );
 }
 
-function StoreHero({ hero, onHamburger }: { hero: { content: HeroContent; highlights: string[] }; onHamburger: () => void }) {
+function StoreHero({
+  hero, opsLevel, onHamburger,
+}: {
+  hero: { content: HeroContent; highlights: string[] };
+  opsLevel: 'open' | 'busy' | 'closed' | null;
+  onHamburger: () => void;
+}) {
   const { content } = hero;
   const titleLines = (content.title || '').split('\n');
+  // ★ বিন্দুর রঙ ও স্পন্দন অবস্থার সাথে মেলে — "ব্যস্ত" লেখার পাশে
+  //   সবুজ জ্বলজ্বলে বিন্দু থাকলে চোখ লেখাটি বিশ্বাস করে না।
+  const dot = opsLevel === 'busy' ? '#fbbf24' : opsLevel === 'closed' ? 'rgba(255,255,255,.55)' : '#a3e635';
+  const live = opsLevel !== 'closed';
   return (
     <div
-      className="relative overflow-hidden rounded-[20px] p-6 text-white sm:p-8"
+      className="relative overflow-hidden rounded-[20px] p-5 text-white sm:p-8"
       style={{ background: 'linear-gradient(120deg,#4c1d95 0%,#6d28d9 42%,#8b5cf6 100%)', boxShadow: '0 12px 40px -12px rgba(109,40,217,.4)' }}
     >
       <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-80 w-80 rounded-full"
@@ -512,7 +526,10 @@ function StoreHero({ hero, onHamburger }: { hero: { content: HeroContent; highli
         */}
       <div className="flex items-start justify-between gap-3">
         <span className="inline-flex min-w-0 items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-bold" style={{ background: 'rgba(255,255,255,.16)' }}>
-          <span className="v-blink inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: '#a3e635', boxShadow: '0 0 8px #a3e635' }} />
+          <span
+            className={`${live ? 'v-blink ' : ''}inline-block h-1.5 w-1.5 shrink-0 rounded-full`}
+            style={{ background: dot, boxShadow: live ? `0 0 8px ${dot}` : undefined }}
+          />
           <span className="min-w-0">{content.status}</span>
         </span>
 
@@ -528,32 +545,49 @@ function StoreHero({ hero, onHamburger }: { hero: { content: HeroContent; highli
         </button>
       </div>
 
-      <h1 className="mt-4 max-w-xl font-extrabold leading-[1.1]" style={{ fontSize: 'clamp(1.7rem,4vw,2.5rem)', letterSpacing: '-.02em' }}>
+      {/**
+        * ═══ ভাঁজের বাজেট (২.৩) ═══
+        *
+        * মাপা ছিল: ৩৯০×৮৪৪ ফোনে হিরো একাই ≈**৮৭০px** — অর্থাৎ পুরো
+        * প্রথম পর্দা একটি ব্যানার, আর দোকানের আসল জিনিস (প্রোডাক্ট
+        * গ্রিড) বহু নিচে। কিছুই মোছা হয়নি; কেবল ফোনে ঘনত্ব বেড়েছে:
+        *   • প্যাডিং ২৪→২০ · শিরোনামের ন্যূনতম মাপ ও মার্জিন ছোট
+        *   • সাবটাইটেল ১৫→১৪px, সর্বোচ্চ ৩ লাইন (লম্বা লেখা এখন
+        *     হিরোকে অসীম লম্বা করতে পারে না — অ্যাডমিন যা-ই লিখুন)
+        *   • **প্রাথমিক কাজ একটাই** — দুটি প্রায়-সমান বোতাম ছিল, তাই
+        *     কোনটি মূল পথ তা বোঝা যেত না। "কিভাবে অর্ডার করবেন" এখন
+        *     শান্ত গৌণ লিংক; গন্তব্য (#how) অপরিবর্তিত।
+        *   • হাইলাইট ফোনে ২টি (sm+ এ চারটিই) — বাকিগুলো `sm:` এ ফেরে
+        */}
+      <h1 className="mt-3.5 max-w-xl font-extrabold leading-[1.12] sm:mt-4" style={{ fontSize: 'clamp(1.45rem,4.6vw,2.5rem)', letterSpacing: '-.02em' }}>
         {titleLines.map((l, i) => (
           <span key={i} className="block" style={i === titleLines.length - 1 ? { color: 'var(--accent-2)' } : undefined}>{l}</span>
         ))}
       </h1>
 
-      <p className="mt-3.5 max-w-md text-[15px] leading-relaxed" style={{ opacity: 0.9 }}>{content.subtitle}</p>
+      <p className="mt-2.5 line-clamp-3 max-w-md text-[13.5px] leading-relaxed sm:mt-3.5 sm:text-[15px]" style={{ opacity: 0.9 }}>{content.subtitle}</p>
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 sm:mt-5">
         <Link href={content.ctaLink || '#catalog'}
-          className="inline-flex min-h-[46px] items-center gap-2 rounded-xl px-6 text-[14px] font-bold"
+          className="inline-flex min-h-[46px] items-center gap-2 rounded-xl px-5 text-[14px] font-bold sm:px-6"
           style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}>
           {content.ctaLabel}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 12h13M12 5l7 7-7 7" /></svg>
         </Link>
         <Link href="#how"
-          className="inline-flex min-h-[46px] items-center rounded-xl px-6 text-[14px] font-bold"
-          style={{ background: 'rgba(255,255,255,.15)', border: '1.5px solid rgba(255,255,255,.25)' }}>
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl px-3 text-[13px] font-bold underline-offset-4 hover:underline"
+          style={{ color: 'rgba(255,255,255,.88)' }}>
           কিভাবে অর্ডার করবেন
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7" /></svg>
         </Link>
       </div>
 
       {hero.highlights.length > 0 && (
-        <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 sm:mt-6 sm:gap-x-6 sm:gap-y-2">
           {hero.highlights.slice(0, 4).map((h, i) => (
-            <span key={i} className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ opacity: 0.92 }}>
+            <span key={i}
+              className={`items-center gap-1.5 text-[12.5px] font-semibold ${i < 2 ? 'inline-flex' : 'hidden sm:inline-flex'}`}
+              style={{ opacity: 0.92 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a3e635" strokeWidth="3"><path d="M4 12.5l5.5 5.5L20 7" /></svg>
               {h}
             </span>

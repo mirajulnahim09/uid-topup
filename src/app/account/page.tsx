@@ -79,12 +79,25 @@ export default async function AccountPage() {
         *   জাতীয় মান অর্ধেক কলামে (৩২০px-এ ১০৬px কনটেন্ট-প্রস্থ)
         *   আঁটতই না।
         */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      {/**
+        * ═══ পরিসংখ্যান (২.৪) ═══
+        *
+        * ⚠️ আগে চারটি সংখ্যা মানে **চারটি বড় কার্ড** — প্রতিটিতে একটি
+        *   সংখ্যা, নিজস্ব প্যাডিং, নিজস্ব CTA। ফোনে চারটি সংখ্যা দেখতে
+        *   প্রায় দুই পর্দা স্ক্রল লাগত, অথচ তথ্যের ঘনত্ব কার্ডপ্রতি
+        *   একটি লাইন।
+        *
+        *   এখন **শ্রেণিবিন্যাস**: ব্যালেন্স একাই একটি কার্ড (এটিই
+        *   পাতার কারণ — কত টাকা আছে ও কীভাবে বাড়াবেন), আর বাকি
+        *   তিনটি সংখ্যা একটি কার্ডের ভিতরে তিনটি ঘর।
+        *   একটিও সংখ্যা বা গন্তব্য হারায়নি — কেবল ওজন বদলেছে।
+        */}
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
         {/* ★ ব্যালেন্স — সবচেয়ে গুরুত্বপূর্ণ সংখ্যা, তাই সোনালি
             উচ্চারণ (Phase 6)। Tailwind gradient bridge দিয়ে ঠিক
             হয় না, তাই সরাসরি টোকেনে। */}
         <div
-          className="card col-span-2 p-5 lg:col-span-1"
+          className="card p-5"
           style={{ background: 'linear-gradient(140deg, rgba(230,197,132,.16), var(--v-void))' }}
         >
           <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>
@@ -95,56 +108,76 @@ export default async function AccountPage() {
         </div>
 
         {/**
-          * ★ পুরো কার্ডটিই এখন লিংক, ভিতরে আলাদা বোতাম নেই।
-          *
-          *   কেন: অর্ধেক-প্রস্থ কার্ডে ৩২০px ফোনে কনটেন্টের জায়গা
-          *   ৯৮px, অথচ `.btn` এর নিজস্ব `px-6` (৪৮px) বাদ দিলে
-          *   "অর্ডার দেখুন" লেখার জন্য থাকত ৫০px — লেখা ভেঙে যেত।
-          *   গন্তব্য অপরিবর্তিত (`/account/orders`), কেবল আঘাত-এলাকা
-          *   এখন গোটা কার্ড — মোবাইলে এটিই বড় ও সহজ লক্ষ্য।
+          * ★ তিনটি ঘর, একটি কার্ড। অর্ডারের ঘরটি লিংক — আঘাত-এলাকা
+          *   পুরো ঘর, তাই ফোনেও লক্ষ্যটি বড়। বাকি দুটি কেবল তথ্য,
+          *   তাই লিংক নয় (যেখানে যাওয়ার জায়গা নেই, সেখানে লিংকের
+          *   ভান করলে ট্যাপ করে কিছুই হয় না — সেটিই বেশি বিরক্তিকর)।
           */}
-        <Link href="/account/orders" className="card block p-4 transition hover:-translate-y-0.5 sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">মোট অর্ডার</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">{user._count.orders}</p>
-          <p className="mt-3 inline-flex items-center gap-1 text-xs font-bold" style={{ color: 'var(--v-ice)' }}>
-            অর্ডার দেখুন
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7" /></svg>
-          </p>
-        </Link>
+        {/**
+          * ⚠️ ফোনে **তিন কলাম নয়** — ৩২০px পর্দায় প্রতিটি ঘর ~৯৬px,
+          *   আর ৳১,২৫,০০০.০০ জাতীয় মান তাতে আঁটে না (কাটা পড়া বা
+          *   ভেঙে যাওয়া — দুটোই টাকার সংখ্যার জন্য অগ্রহণযোগ্য)।
+          *   তাই ফোনে তিনটি **সরু সারি** (বাঁয়ে নাম, ডানে মান),
+          *   sm+ এ তিনটি কলাম। উভয় ক্ষেত্রেই একটি কার্ড, তিনটি নয়।
+          */}
+        <div className="card p-0 sm:grid sm:grid-cols-3">
+          <Link
+            href="/account/orders"
+            className="flex items-center justify-between gap-2 p-3.5 transition hover:opacity-80 sm:flex-col sm:items-start sm:justify-center sm:gap-0.5 sm:p-4"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">মোট অর্ডার</p>
+            <span className="flex items-center gap-2 sm:block">
+              <span className="block text-xl font-bold text-slate-900 sm:text-2xl">{user._count.orders}</span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold" style={{ color: 'var(--v-ice)' }}>
+                দেখুন
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7" /></svg>
+              </span>
+            </span>
+          </Link>
 
-        <div className="card p-4 sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">ডিপোজিট</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">{user._count.deposits}</p>
-          <p className="mt-3 text-xs text-slate-400">
-            সদস্য: {fmtDay(user.createdAt)}
-          </p>
-        </div>
+          <div
+            className="flex items-center justify-between gap-2 border-t p-3.5 sm:flex-col sm:items-start sm:justify-center sm:gap-0.5 sm:border-l sm:border-t-0 sm:p-4"
+            style={{ borderColor: 'var(--v-edge)' }}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">ডিপোজিট</p>
+            <span className="text-right sm:text-left">
+              <span className="block text-xl font-bold text-slate-900 sm:text-2xl">{user._count.deposits}</span>
+              <span className="block text-[11px] text-slate-400">সদস্য: {fmtDay(user.createdAt)}</span>
+            </span>
+          </div>
 
-        {/* ★ Maison রেফারেল কার্ড (Phase 6)
-            আগে ছিল `from-purple-50 to-purple-100` — Tailwind gradient,
-            যা theme bridge দিয়ে ঠিক করা যায় না (bridge কেবল
-            background-color বদলায়, gradient নয়)। তাই সরাসরি টোকেনে। */}
-        <div
-          className="card col-span-2 p-4 sm:p-5 lg:col-span-1"
-          style={{ background: 'linear-gradient(140deg, rgba(154,140,247,.14), rgba(230,197,132,.07))' }}
-        >
-          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--violet)' }}>
-            রেফারেল আয়
-          </p>
-          <p className="dsp mt-1 text-2xl font-bold sm:text-3xl" style={{ color: 'var(--ink)' }}>
-            {bdt(refEarn._sum.amount ?? 0)}
-          </p>
-          <p className="mt-3 text-xs" style={{ color: 'var(--mut)' }}>
-            {user._count.referrals} জন রেফার করেছেন
-          </p>
+          <div
+            className="flex items-center justify-between gap-2 border-t p-3.5 sm:flex-col sm:items-start sm:justify-center sm:gap-0.5 sm:border-l sm:border-t-0 sm:p-4"
+            style={{ borderColor: 'var(--v-edge)' }}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--violet)' }}>
+              রেফারেল আয়
+            </p>
+            <span className="text-right sm:text-left">
+              <span className="dsp block text-xl font-bold sm:text-2xl" style={{ color: 'var(--ink)' }}>
+                {bdt(refEarn._sum.amount ?? 0)}
+              </span>
+              <span className="block text-[11px]" style={{ color: 'var(--mut)' }}>
+                {user._count.referrals} জন রেফার
+              </span>
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* দ্রুত লিংক */}
+      {/**
+        * দ্রুত লিংক
+        *
+        * ⚠️ "টাকা যোগ" এখান থেকে **সরানো হয়েছে**, কারণ একই গন্তব্য
+        *   এক পাতায় তিনবার ছিল: ব্যালেন্স কার্ডের প্রধান বোতাম,
+        *   এই টাইল, আর ফোনের বটম-বারের ভাসমান বোতাম। একই কাজের
+        *   তিনটি সমান-ওজনের প্রবেশপথ মানে কোনটিই প্রধান নয়।
+        *   গন্তব্য (`/account/wallet/deposit`) অক্ষত ও এখনো দুই
+        *   জায়গা থেকে পৌঁছানো যায় — কেবল পুনরাবৃত্তিটি গেল।
+        */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { href: '/account/orders', icon: 'box' as const, label: 'অর্ডার' },
-          { href: '/account/wallet/deposit', icon: 'wallet' as const, label: 'টাকা যোগ' },
           { href: '/account/notifications', icon: 'bell' as const, label: 'নোটিফিকেশন' },
           // ★ Group I (৪) — সাপোর্ট টিকিট
           { href: '/account/tickets', icon: 'chat' as const, label: 'সাপোর্ট' },
@@ -173,7 +206,10 @@ export default async function AccountPage() {
       <section className="card p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold text-slate-900">অ্যাকাউন্ট তথ্য</h2>
-          <a href="/account/profile" className="inline-flex min-h-[40px] items-center text-sm font-bold hover:underline" style={{ color: 'var(--v-volt)' }}>
+          {/* ★ মাপা: ৩০×৪০ — উচ্চতা ঠিক, **প্রস্থ** নয় (P0-এর অ্যাডমিন
+              তীরচিহ্নের হুবহু একই ভুল)। `min-w` + `px` ছাড়া
+              `min-h` একা ট্যাপ-লক্ষ্য বড় করে না। */}
+          <a href="/account/profile" className="-mr-2 inline-flex min-h-[40px] min-w-[44px] items-center justify-center px-2 text-sm font-bold hover:underline" style={{ color: 'var(--v-volt)' }}>
             এডিট
           </a>
         </div>

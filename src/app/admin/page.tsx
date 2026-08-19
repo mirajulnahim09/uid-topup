@@ -5,6 +5,7 @@ import { bdt } from '@/lib/money';
 import QuickActions from '@/components/admin/QuickActions';
 import SetupChecklist from '@/components/admin/SetupChecklist';
 import OpsMetricsPanel from '@/components/admin/OpsMetrics';
+import Icon from '@/components/fx/Icon';
 import { getOpsMetrics } from '@/lib/opsMetrics';
 
 export const dynamic = 'force-dynamic';
@@ -213,22 +214,27 @@ export default async function AdminDashboard() {
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">
           দ্রুত যান
         </h2>
+        {/* ★ ইমোজির বদলে একই লাইন-আইকন সেট (২.৫) — AdminNav-এর সাথে
+            মিলিয়ে, যাতে এক পাতায় দুই রকম চিহ্ন-ভাষা না থাকে। */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {[
-            { href: '/admin/banners', icon: '🖼️', label: 'ব্যানার ছবি' },
-            { href: '/admin/products', icon: '🏷️', label: 'দাম বদলান' },
-            { href: '/admin/coupons', icon: '🎟️', label: 'কুপন' },
-            { href: '/admin/users', icon: '👤', label: 'ইউজার' },
-            { href: '/admin/site', icon: '⚙️', label: 'সেটিংস' },
-          ].map((l) => (
+          {([
+            { href: '/admin/banners', icon: 'image' as const, label: 'ব্যানার ছবি' },
+            { href: '/admin/products', icon: 'tag' as const, label: 'দাম বদলান' },
+            { href: '/admin/coupons', icon: 'gift' as const, label: 'কুপন' },
+            { href: '/admin/users', icon: 'user' as const, label: 'ইউজার' },
+            { href: '/admin/site', icon: 'gear' as const, label: 'সেটিংস' },
+          ]).map((l) => (
             <Link
               key={l.href}
               href={l.href}
               prefetch
               className="card p-4 text-center transition hover:-translate-y-1 hover:border-purple-300 hover:shadow-md"
             >
-              <p className="text-2xl" aria-hidden="true">{l.icon}</p>
-              <p className="mt-1 text-xs font-bold text-slate-700">{l.label}</p>
+              <span className="mx-auto grid h-10 w-10 place-items-center rounded-[11px]"
+                style={{ background: 'var(--v-fill2)', color: 'var(--violet)' }}>
+                <Icon name={l.icon} size={19} />
+              </span>
+              <p className="mt-1.5 text-xs font-bold text-slate-700">{l.label}</p>
             </Link>
           ))}
         </div>

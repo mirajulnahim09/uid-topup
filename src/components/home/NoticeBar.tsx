@@ -33,10 +33,21 @@ export default function NoticeBar({ notices }: { notices: CampaignItem[] }) {
 
   if (notices.length === 0 || dismissed) return null;
 
+  /**
+   * ⚠️ রঙ চারটি হার্ডকোড হেক্স ছিল (`#ff8f78`, `#7de3ff` …) — ডার্ক
+   *   পটভূমির জন্য বাছা উজ্জ্বল মান। হালকা থিমে ঐ ফ্যাকাশে আকাশি
+   *   লেখা প্রায় সাদা কাগজের উপর বসত। এখন সেমান্টিক টোকেন, যেগুলোর
+   *   দুই থিমে আলাদা মান আছে (C3)।
+   *
+   *   🔑 ব্যাজের **লেখার** রঙ `--v-void` (পাতার পটভূমি) — কারণ ব্যাজের
+   *   পটভূমি accent নিজেই। ডার্কে void কালো (উজ্জ্বল accent-এর উপর),
+   *   লাইটে প্রায় সাদা (গাঢ় accent-এর উপর) — অর্থাৎ বৈপরীত্য
+   *   দুই থিমেই আপনা-আপনি ঠিক থাকে, আলাদা শর্ত লেখার দরকার নেই।
+   */
   const breaking = notices.some((n) => n.kind === 'WARNING');
-  const accent = breaking ? '#ff8f78' : '#7de3ff';
-  const soft = breaking ? 'rgba(255,90,60,.1)' : 'rgba(125,227,255,.08)';
-  const edge = breaking ? 'rgba(255,90,60,.28)' : 'rgba(125,227,255,.24)';
+  const accent = breaking ? 'var(--sem-danger)' : 'var(--v-ice)';
+  const soft = `color-mix(in srgb, ${accent} 9%, transparent)`;
+  const edge = `color-mix(in srgb, ${accent} 26%, transparent)`;
   const tag = breaking ? 'ব্রেকিং' : 'নোটিশ';
 
   // প্রতিটি নোটিশ একটি আইটেম; লিংক থাকলে ক্লিকযোগ্য
@@ -47,7 +58,7 @@ export default function NoticeBar({ notices }: { notices: CampaignItem[] }) {
     <span key={n.id} className="inline-flex items-center px-6">
       {n.badge && (
         <span className="v-hud mr-2 px-1.5 py-0.5 text-[10px] font-bold uppercase"
-          style={{ color: '#0a0400', background: accent, borderRadius: 2 }}>
+          style={{ color: 'var(--v-void)', background: accent, borderRadius: 2 }}>
           {n.badge}
         </span>
       )}

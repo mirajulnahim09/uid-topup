@@ -74,7 +74,7 @@ function settingOrNull(v: string | undefined, seed: string): string | null {
   return !t || t === seed ? null : t;
 }
 
-async function buildHero(settings: Record<string, string>): Promise<{ content: HeroContent; highlights: string[] }> {
+async function buildHero(settings: Record<string, string>): Promise<{ content: HeroContent; highlights: string[]; adminBadge: boolean }> {
   // read-only, নিজে-গার্ডেড: DB সমস্যা হলে খালি/null ফেরে (throw নয়)
   const [hc, strips] = await Promise.all([getHeroCampaign(), getCampaigns('STRIP', 4)]);
 
@@ -91,7 +91,14 @@ async function buildHero(settings: Record<string, string>): Promise<{ content: H
     .map((s) => (s.title || '').trim())
     .filter(Boolean);
 
-  return { content, highlights: highlights.length ? highlights : DEFAULT_HIGHLIGHTS };
+  // ★ ব্যাজটি অ্যাডমিন নিজে লিখেছেন কি না — নিচে (HomePage) এই
+  //   তথ্যটিই ঠিক করে ব্যাজে অ্যাডমিনের কথা থাকবে, নাকি সিস্টেমের
+  //   মাপা পরিচালন-অবস্থা। অ্যাডমিনের কথা সবসময় জেতে।
+  return {
+    content,
+    highlights: highlights.length ? highlights : DEFAULT_HIGHLIGHTS,
+    adminBadge: Boolean(hc?.badge?.trim()),
+  };
 }
 
 export default async function HomePage() {
@@ -148,6 +155,22 @@ export default async function HomePage() {
     getFloatingCards(),
     liveOn ? getRecentDeliveries(liveCount) : Promise.resolve([]),
   ]);
+  /**
+   * ★★★ এক পর্দায় দুটি পরস্পরবিরোধী দাবি — সারানো হলো।
+   *
+   *   মাপা অবস্থা (২০২৬-০৮-১৮, ডেস্কটপ): ops-ব্যানার বলছে
+   *   "ব্যস্ত — ডেলিভারিতে বেশি সময় লাগছে", আর ঠিক ১৫০px নিচে
+   *   হিরোর ব্যাজ বলছে "অপারেটর অনলাইন — অর্ডার এলে এখনই যাচাই"।
+   *   কারণ ব্যাজটি ছিল একটি **স্থির ধ্রুবক**, আর ব্যানারটি
+   *   ডাটাবেস থেকে হিসাব করা।
+   *
+   *   এখন উৎস একটিই (`getOpsStatus`)। অগ্রাধিকার অপরিবর্তিত ও
+   *   অ্যাডমিন-প্রথম: Campaign(HERO)-এর ব্যাজ লেখা থাকলে সেটিই
+   *   জেতে (অ্যাডমিন ইচ্ছে করে কিছু বলতে চাইলে সিস্টেম বাধা দেয়
+   *   না); নাহলে মাপা অবস্থা; দুটোর একটিও না থাকলে আগের ডিফল্ট।
+   */
+  if (!hero.adminBadge && opsStatus) hero.content.status = opsStatus.short;
+
   // ভাসমান যোগাযোগ — মাধ্যম সেট থাকলে ও লিংক নিরাপদ হলে (defense-in-depth)
   const contactType = (settings.float_contact_type || '').trim();
   const contactUrl = settings.float_contact_value ? safeUrl(settings.float_contact_value) : null;
@@ -184,16 +207,24 @@ export default async function HomePage() {
       {notices.length > 0 ? (
         <NoticeBar notices={notices} />
       ) : notice ? (
+        /**
+          * ⚠️ এখানে রঙ চারটি **হার্ডকোড হেক্স** ছিল (`#f2fbe6`,
+          *   `#dcefc4`, `#4d7c0f`, `#3f6212`) — হালকা থিমের জন্য বাছা।
+          *   ফলে ডার্ক থিমে কালো পাতার উপর একটি সাদাটে সবুজ ব্যান্ড
+          *   বসত, যেটি স্ক্রিনশটে সবচেয়ে আগে চোখে পড়ে।
+          *   CLAUDE.md §1: "রঙ কেবল টোকেনে, JSX-এ নয়"। নোটিশ একটি
+          *   **তথ্য**-সংকেত, তাই `--sem-info`।
+          */
         <div
           style={{
-            borderBottom: '1px solid #dcefc4',
-            background: 'linear-gradient(90deg, #f2fbe6, #fbfef5)',
+            borderBottom: '1px solid color-mix(in srgb, var(--sem-info) 26%, transparent)',
+            background: 'color-mix(in srgb, var(--sem-info) 7%, transparent)',
           }}
         >
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 sm:px-6">
-            <span className="hud shrink-0" style={{ color: '#4d7c0f' }}>নোটিশ</span>
-            <span className="hidden h-3 w-px shrink-0 sm:block" style={{ background: '#c3e393' }} aria-hidden="true" />
-            <p className="text-xs leading-relaxed sm:text-[13px]" style={{ color: '#3f6212' }}>{notice}</p>
+            <span className="hud shrink-0" style={{ color: 'var(--sem-info)' }}>নোটিশ</span>
+            <span className="hidden h-3 w-px shrink-0 sm:block" style={{ background: 'var(--v-edge2)' }} aria-hidden="true" />
+            <p className="text-xs leading-relaxed sm:text-[13px]" style={{ color: 'var(--v-ink)' }}>{notice}</p>
           </div>
         </div>
       ) : null}
@@ -214,6 +245,7 @@ export default async function HomePage() {
           admin-নিয়ন্ত্রিত ও সৎ — shell নিজে কোনো DB call করে না। ═══ */}
       <StorefrontShell
         hero={hero}
+        opsLevel={opsStatus?.level ?? null}
         categories={showcaseCats}
         featured={featured}
         deliveries={deliveries}
