@@ -406,12 +406,20 @@ export default function DepositQueue({ deposits }: { deposits: QueueDeposit[] })
                   <Row label="গ্রাহক">
                     {/* ★ ২৪px উঁচু ছিল — ডিপোজিট কিউতে এটিই সবচেয়ে বেশি
                         চাপা লিংক (অডিটে ৭২টি হিট), আর অ্যাডমিন প্রায়ই
-                        ফোন থেকেই অনুমোদন করেন। `inline-flex` +
-                        `min-h-[40px]` লেখাকে বদলায় না, কেবল আঙুলের
-                        জায়গা দেয়। */}
+                        ফোন থেকেই অনুমোদন করেন।
+
+                        ⚠️⚠️ `min-h-[40px]` ইউটিলিটিটি এখানে **কাজ করত না**,
+                        আর সেটি নীরবে: `globals.css` এর
+                        `.card a.underline { min-height:24px }` নিয়মটির
+                        specificity (0,2,1) Tailwind-এর একক ক্লাসকে (0,1,0)
+                        হারিয়ে দেয়। ব্রাউজারে মাপা computed মান ছিল
+                        **24px**, যদিও ক্লাসটি মার্কআপে ছিল — অর্থাৎ ফিক্সটি
+                        লেখা হয়েছিল, প্রয়োগ হয়নি। ইনলাইন স্টাইল ঐ নিয়মকে
+                        হারায় **`!important` ছাড়াই** (CLAUDE.md §5)। */}
                     <Link
                       href={`/admin/users/${d.user.id}`}
-                      className="inline-flex min-h-[40px] items-center justify-end underline decoration-dotted underline-offset-2"
+                      style={{ minHeight: 40 }}
+                      className="inline-flex items-center justify-end underline decoration-dotted underline-offset-2"
                     >
                       {d.user.name}
                     </Link>

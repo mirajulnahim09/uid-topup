@@ -119,7 +119,9 @@ export async function getOpsStatus(cfg: SlaConfig): Promise<OpsStatus | null> {
 
     return {
       level: 'open',
-      message: `এখন সরাসরি প্রসেসিং চলছে — সাধারণত ${formatDuration(cfg.typicalMinutes)}ে ডেলিভারি।`,
+      // ⚠️ "…মিনিটে ডেলিভারি" লেখা যায় না — একক ঘন্টা হলে "২ ঘন্টাে"
+      //   দাঁড়াত (sla.ts এ একই কারণ লেখা আছে)। তাই ক্রম উল্টে দেওয়া।
+      message: `এখন সরাসরি প্রসেসিং চলছে — সাধারণত ডেলিভারি ${formatDuration(cfg.typicalMinutes)}।`,
       short: 'অপারেটর অনলাইন — এখনই যাচাই',
     };
   } catch (e) {
