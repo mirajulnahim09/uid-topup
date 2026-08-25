@@ -120,16 +120,32 @@ const HYDRATED = `(function () {
     const hydrated = await page.evaluate(HYDRATED) as boolean;
     check('★ React hydrate করেছে (fiber পাওয়া গেছে)', hydrated);
 
-    // ★ প্রকৃত ইন্টারঅ্যাকশন — hydration না হলে হ্যান্ডলার চলবে না
-    const before = await page.evaluate(`document.documentElement.dataset.theme`) as string;
+    /**
+     * ★ প্রকৃত ইন্টারঅ্যাকশন — hydration না হলে হ্যান্ডলার চলবে না।
+     *
+     * ⚠️ **যা মাপা হয় তা `data-theme` নয়, বোতামের `data-theme-choice`।**
+     *   P0-তে থিম-টগল তিনটি বোতাম থেকে একটিতে নামানো হয়েছে, যা
+     *   `light → dark → system` ক্রমে ঘোরে। টাটকা ব্রাউজারে পছন্দ থাকে
+     *   `system`, আর হেডলেস Chrome-এর সিস্টেম-থিম `light` — তাই প্রথম
+     *   ক্লিকে পছন্দ `system → light` হলেও **resolved** থিম `light`-ই
+     *   থাকে, `data-theme` এক চুলও নড়ে না।
+     *
+     *   পুরনো চেকটি ঠিক ওখানেই মিথ্যা FAIL দিত ("light → light"), অথচ
+     *   মেপে দেখা গেছে হ্যান্ডলার চলেছে: `data-theme-choice` ও
+     *   localStorage দুটোই বদলেছে (২০২৬-০৮-২৩)। পছন্দ প্রতি ক্লিকে
+     *   **সবসময়** বদলায়, তাই hydration-এর সঠিক সূচক সেটিই।
+     */
     const toggle = page.locator('button[aria-label*="থিম"], button[title*="থিম"], [data-theme-toggle] button').first();
     const hasToggle = await toggle.count() > 0;
     if (hasToggle) {
+      const before = await toggle.getAttribute('data-theme-choice');
+      const beforeAttr = await page.evaluate(`document.documentElement.dataset.theme`) as string;
       await toggle.click();
       await page.waitForTimeout(600);
-      const after = await page.evaluate(`document.documentElement.dataset.theme`) as string;
-      check('★ ক্লিকে React হ্যান্ডলার সাড়া দেয় (প্রকৃত hydration)', before !== after,
-        `${before} → ${after}`);
+      const after = await toggle.getAttribute('data-theme-choice');
+      const afterAttr = await page.evaluate(`document.documentElement.dataset.theme`) as string;
+      check('★ ক্লিকে React হ্যান্ডলার সাড়া দেয় (প্রকৃত hydration)', Boolean(before) && before !== after,
+        `পছন্দ ${before} → ${after} (data-theme ${beforeAttr} → ${afterAttr})`);
     } else {
       // fallback: যেকোনো লিংকে ক্লায়েন্ট-সাইড নেভিগেশন
       await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });

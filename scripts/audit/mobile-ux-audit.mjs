@@ -126,6 +126,7 @@ const MEASURE = String.raw`(function () {
     covered: [],
     smallTaps: [],
     nearTaps: [],
+    aaTaps: [],
     zoomInputs: [],
     floatOverlap: [],
     bottomGap: null,
@@ -233,6 +234,21 @@ const MEASURE = String.raw`(function () {
       if (vr.height < 6 || vr.width < 6) continue;
       var cutB = Math.round(vr.bottom - box.bottom);
       var cutR = Math.round(vr.right - box.right);
+      /* ★★★ স্ক্রলযোগ্য ঘেরাটোপে "কাটা পড়া" মানে **হারিয়ে যাওয়া নয়**।
+         হোমপেজের লাইভ-ফিড একটি max-h-[440px] overflow-y-auto তালিকা,
+         যা বসে আছে .card.overflow-hidden এর ভিতরে। তালিকার শেষ সারিটি
+         কার্ডের নিচের কিনারা ছাড়িয়ে যায় — কিন্তু স্ক্রল করলেই দেখা যায়।
+         এতদিন সেটিই "৩টি ক্লিপ" হয়ে রিপোর্টে উঠত (২০২৬-০৮-২৩ এ মাপা),
+         অর্থাৎ প্রতিটি স্ক্রলযোগ্য তালিকা চিরকাল মিথ্যা অভিযোগ তুলত।
+         ⚠️ এই ব্লকটি ব্রাউজারে ইনজেক্ট হওয়া **স্ট্রিং** — ভিতরে
+         ব্যাক-টিক লিখলে template literal ভেঙে স্ক্রিপ্টটাই চলে না। */
+      var scrollable = false;
+      for (var an = vi.parentElement; an && an !== e2; an = an.parentElement) {
+        var acs = getComputedStyle(an);
+        if (cutB > 2 && (acs.overflowY === 'auto' || acs.overflowY === 'scroll')) { scrollable = true; break; }
+        if (cutR > 2 && (acs.overflowX === 'auto' || acs.overflowX === 'scroll')) { scrollable = true; break; }
+      }
+      if (scrollable) continue;
       if (cutB > 2 || cutR > 2) {
         res.clipped.push({
           selector: sel(e2), victim: sel(vi),
@@ -334,6 +350,26 @@ const MEASURE = String.raw`(function () {
        ১২২টি মিথ্যা অভিযোগ তৈরি করত এবং আসল ছোট লক্ষ্যগুলো
        তালিকায় চাপা পড়ে যেত। লেবেলটি নিজেই ৪০px না হলে
        অভিযোগটি বহাল থাকে। */
+    /* ⚠️⚠️ টেবিল-ঘরের ভেতরের **লেখা-লিংক** — ২৪px মেঝেটি ইচ্ছাকৃত।
+       globals.css এর নিয়মটি (td a, .card a.underline → min-height:24px)
+       ঠিক এই সিদ্ধান্তটিই লিখে রেখেছে: বোতাম ও স্বতন্ত্র নিয়ন্ত্রণ
+       ৪০px, কিন্তু টেবিলের ঘরের ভেতরের নামের লিংককে ৪০px করলে প্রতিটি
+       সারি ফুলে ওঠে আর ঘনত্ব — যা অ্যাডমিন টেবিলের গোটা কাজ — নষ্ট হয়।
+       WCAG 2.5.8 (AA) যা দাবি করে তা ২৪×২৪, এরা তা পূরণ করে।
+
+       এতদিন হারনেস ৪০px-এর একটিই মেঝে ধরত, তাই /admin/users এর নাম-
+       লিংকগুলো (২৪×৪০–২৬৭) প্রতি ভিউপোর্টে অভিযোগ তুলত — ২০২৬-০৮-২৫
+       এর রানে **৩৭ হিট**, অর্থাৎ অবশিষ্ট তালিকার এক-চতুর্থাংশ। নীরবে
+       ফেলে দিলে মাপটি হারিয়ে যেত, তাই এগুলো aaTaps-এ **আলাদা করে
+       গোনা** হয় — ত্রুটি নয়, কিন্তু অদৃশ্যও নয়।
+
+       ⚠️ CSS নিয়মটি বদলালে এই ছাড়টিও বদলাতে হবে — একটির সত্যতা
+       অন্যটির উপর দাঁড়িয়ে আছে (চেকবক্সের ছাড়টির মতোই)।
+       ⚠️⚠️ এই মন্তব্যে backtick লেখা যাবে না — ব্লকটি String.raw এর
+       ভিতরে (ফাইলের মাথার সতর্কতা দ্রষ্টব্য)। */
+    var aaLink = tt.tagName === 'A' && trr.height >= 24 && trr.width >= 24 &&
+      (tt.closest('td') || (tt.classList.contains('underline') && tt.closest('.card')));
+
     var lab = (tt.type === 'checkbox' || tt.type === 'radio') ? tt.closest('label') : null;
     if (lab) {
       var lr = lab.getBoundingClientRect();
@@ -361,9 +397,14 @@ const MEASURE = String.raw`(function () {
            2.5.8 (AA, ২৪px) পার করে → তথ্য হিসেবে রাখা, ত্রুটি নয়
        একটিমাত্র সীমা রাখলে ফুটারের ৪০px লিংকগুলো প্রতিটি পাতায়
        "ত্রুটি" হয়ে আসল ছোট টার্গেটগুলো (২২px) চাপা দিয়ে দিত। */
-    if (h < 40 || w < 24) res.smallTaps.push({ selector: sel(tt), path: path(tt), w: w, h: h,
-      text: (tt.innerText || tt.getAttribute('aria-label') || '').slice(0, 30).replace(/\s+/g, ' ') });
-    else if (h < 44) res.nearTaps.push({ selector: sel(tt), w: w, h: h });
+    if (h < 40 || w < 24) {
+      /* ⚠️ ছাড়টি **ঠিক এখানেই** প্রয়োগ হয়, আগে নয় — নাহলে ৪০px পার
+         করা টেবিল-লিংকগুলোও (যারা কোনোদিন অভিযোগ তুলত না) aaTaps-এ
+         ঢুকে পড়ত আর nearTaps এর হিসাব বদলে যেত। aaTaps তাই কেবল
+         "অভিযোগ হতে পারত, কিন্তু ইচ্ছাকৃত" লিংকগুলোই গোনে। */
+      (aaLink ? res.aaTaps : res.smallTaps).push({ selector: sel(tt), path: path(tt), w: w, h: h,
+        text: (tt.innerText || tt.getAttribute('aria-label') || '').slice(0, 30).replace(/\s+/g, ' ') });
+    } else if (h < 44) res.nearTaps.push({ selector: sel(tt), w: w, h: h });
   }
 
   /* ── ৬. iOS ইনপুট-জুম (font-size < 16px) ──
@@ -496,6 +537,7 @@ async function visit(page, route, label, vpName, console_, net) {
     floatOverlap: (m.floatOverlap || []).slice(0, 5),
     smallTaps: (m.smallTaps || []).slice(0, 8),
     nearTaps: (m.nearTaps || []).slice(0, 4),
+    aaTaps: (m.aaTaps || []).slice(0, 4),
     zoomInputs: (m.zoomInputs || []).slice(0, 5),
     bottomGap: m.bottomGap,
     consoleErrors: console_.slice(0, 5),
@@ -516,7 +558,24 @@ const report = {
   },
 };
 
-const browser = await chromium.launch({ headless: true, executablePath: CHROME });
+/**
+ * ★★★ `--ignore-certificate-errors` — **কনটেক্সটের ছাড় যথেষ্ট নয়**।
+ *
+ *   প্রোডাকশন রিগের সার্ট self-signed। `ignoreHTTPSErrors` পাতা লোডে
+ *   কাজ করে, কিন্তু Chrome সার্ভিস-ওয়ার্কার রেজিস্ট্রেশনে সার্ট
+ *   আলাদাভাবে যাচাই করে — তাই `public/sw.js` নিবন্ধিত হতো না এবং
+ *   প্রতিটি রানে "An SSL certificate error occurred when fetching the
+ *   script" কনসোল-ত্রুটি উঠত (২০২৬-০৮-২৫ এর রানে ৭টি, রিপোর্টের
+ *   একমাত্র অবশিষ্ট কনসোল-ত্রুটি — পুরোটাই হারনেসের)।
+ *
+ *   ছাড়টি দিলে SW সত্যিই নিবন্ধিত হয়, অর্থাৎ PWA পথটিও এখন **মাপা**
+ *   হয়, অনুমান নয়। নিরাপদ, কারণ `sw.js` কিছুই ক্যাশ করে না (কেবল
+ *   network-first নেভিগেশন + অফলাইন ফলব্যাক) — বাসি পাতা মাপার ঝুঁকি নেই।
+ */
+const browser = await chromium.launch({
+  headless: true, executablePath: CHROME,
+  args: ['--ignore-certificate-errors'],
+});
 
 async function persona(label, creds, wantPath, routes, allVps, isMobile) {
   if (ONLY.length && !ONLY.includes(label)) return;

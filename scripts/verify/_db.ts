@@ -40,6 +40,21 @@ import { PrismaClient } from '@prisma/client';
 /** যাচাই কোন সার্ভারের বিরুদ্ধে চলবে */
 export const BASE = process.env.VERIFY_BASE || 'http://localhost:3000';
 
+/**
+ * ★ প্রোডাকশন রিগের (`scripts/prod-rig.mjs`) সার্টিফিকেট **self-signed**,
+ *   তাই Node-এর `fetch` তাকে `DEPTH_ZERO_SELF_SIGNED_CERT` দিয়ে ফিরিয়ে দেয়।
+ *   ফলে fetch-ভিত্তিক স্ক্রিপ্ট (order-price-lock, ban-revocation,
+ *   ip-spoofing) রিগে চালালে **দাবি ব্যর্থ হওয়ার আগেই** ক্র্যাশ করত —
+ *   দেখে মনে হতো regression, আসলে হারনেসের।
+ *
+ *   ⚠️ ছাড়টি **কেবল localhost https**-এ। দূরের হোস্ট হলে যাচাই আগের
+ *   মতোই সার্ট যাচাই করে — নাহলে একদিন কেউ `VERIFY_BASE` এ আসল ডোমেইন
+ *   দিয়ে TLS-অন্ধ হয়ে যাচাই চালাত।
+ */
+if (/^https:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(BASE)) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 const URL_ = process.env.VERIFY_DATABASE_URL || process.env.DATABASE_URL || '';
 
 /** হোস্ট স্থানীয় কি না — পাসওয়ার্ড ছাপা হয় না, শুধু হোস্ট দেখা হয় */

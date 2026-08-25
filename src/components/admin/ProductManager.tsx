@@ -343,7 +343,17 @@ export default function ProductManager({ categories }: { categories: C[] }) {
 
                     <button
                       onClick={() => setOpen({ ...open, [p.id]: !isOpen })}
-                      className="min-w-0 flex-1 text-left"
+                      /* ★★★ `min-w-0` নয়, একটি **ন্যূনতম প্রস্থ**।
+                         সারিটি `flex-wrap`, কিন্তু `min-w-0` এই বোতামকে
+                         শূন্য পর্যন্ত চাপতে দিত — তাই wrap হওয়ার সুযোগই
+                         আসত না, বদলে শিরোনামটি সরু হয়ে যেত। ৩৬০×৬৪০
+                         ফোনে অডিটে মাপা: প্রস্থ **৯–১১px**, উচ্চতা
+                         ৩১৫–৩৬৩px — অর্থাৎ লেখা প্রতি লাইনে এক অক্ষর।
+                         (৩২০px-এ হতো না, কারণ সেখানে সারিটি এমনিতেই
+                         wrap করত; ৩৭৫px-এ জায়গা ছিল।) ন্যূনতম প্রস্থ
+                         থাকলে অ্যাকশন-বোতামগুলো নিচের সারিতে নামে আর
+                         শিরোনাম পুরো প্রস্থ পায়। `truncate` অক্ষত। */
+                      className="min-w-[10rem] flex-1 text-left"
                     >
                       <p className="truncate font-bold text-slate-900">{p.name}</p>
                       <p className="text-xs text-slate-500">

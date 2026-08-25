@@ -62,9 +62,7 @@ const server = https.createServer(
      *   callback URL গুলো http তে ফিরে যেত।
      */
     const headers = { ...req.headers, 'x-forwarded-proto': 'https', 'x-forwarded-host': req.headers.host };
-    const upstream = http.request(
-      { host: '127.0.0.1', port: HTTP_PORT, path: req.url, method: req.method, headers, agent },
-      (up) => {
+    const onUpstream = (up) => {
         /**
          * ★★★ `Location` **পুনর্লিখন আবশ্যক**।
          *
@@ -89,8 +87,50 @@ const server = https.createServer(
         }
         res.writeHead(up.statusCode || 502, h);
         up.pipe(res);
-      },
-    );
+    };
+
+    /**
+     * ★★★ মৃত keep-alive সকেটে **একবার** আবার চেষ্টা।
+     *
+     *   ── মাপা (২০২৬-০৮-২৩) ──
+     *   `next start` উত্তরে `Keep-Alive: timeout=5` পাঠায়, অর্থাৎ
+     *   ৫ সেকেন্ড নিষ্ক্রিয় থাকলে সে-ই সংযোগটি বন্ধ করে। কিন্তু উপরের
+     *   পুল সকেটটি ধরে রাখে। ৬ সেকেন্ডের বিরতির পর সেটি পুনর্ব্যবহার
+     *   করলে অনুরোধ **৩ms এ ECONNRESET** খায় (১s ও ৪s এ খায় না) —
+     *   প্রোবে হুবহু এটাই মাপা হয়েছে।
+     *
+     *   নিচের `onError` ঐ ECONNRESET-কে ক্লায়েন্টের কাছে **502** বানিয়ে
+     *   পাঠাত — অর্থাৎ অ্যাপ ঠিক থাকলেও যাচাই FAIL দেখাত।
+     *
+     *   ⚠️ **সততা:** ২০২৬-০৮-২৩ এর sweep-এ দেখা একটিমাত্র
+     *   "502 /admin/orders" যে ঠিক এই কারণেই, তা **প্রমাণ করা যায়নি** —
+     *   রেসটি সময়-নির্ভর, দুটি আলাদা প্রোবে end-to-end পুনরুৎপাদন হয়নি।
+     *   যা জানা: (ক) সকেট-স্তরে রেসটি সত্যিই ঘটে (উপরের মাপ),
+     *   (খ) ঘটলে এই কোডপথই 502 দেয়, (গ) Next এর লগে কোনো ৫০০ ছিল না।
+     *   তাই কারণটি এখন **লেখা হয়** (নিচে), যাতে পরেরবার অনুমান লাগে না।
+     *
+     *   ⚠️ শুধু **GET/HEAD/OPTIONS** — এবং কেবল সকেটটি পুনর্ব্যবহৃত হলে
+     *   ও ক্লায়েন্টকে এক বাইটও লেখার আগে। POST/PATCH আবার পাঠানো মানে
+     *   টাকার অনুরোধ দুবার যাওয়া; পুল-রেস সারাতে গিয়ে সেটি করা যাবে না।
+     *   (nginx এর `proxy_next_upstream` ডিফল্টেও ঠিক এই সীমা।)
+     */
+    const IDEMPOTENT = req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
+    let upstream;
+    let retried = false;
+
+    const send = (useAgent) => {
+      upstream = http.request(
+        {
+          host: '127.0.0.1', port: HTTP_PORT, path: req.url, method: req.method, headers,
+          // পুনঃচেষ্টা পুল **এড়িয়ে** যায় — নাহলে আবার সেই মৃত সকেটটিই আসতে পারত
+          ...(useAgent ? { agent } : { agent: false }),
+        },
+        onUpstream,
+      );
+      upstream.on('error', onError);
+      return upstream;
+    };
+
     /**
      * ★★★ বাতিল হওয়া অনুরোধ **নীরবে** ছেড়ে দিতে হয়।
      *
@@ -105,16 +145,32 @@ const server = https.createServer(
      *   এখন: ক্লায়েন্ট চলে গেলে upstream বন্ধ করি, আর উত্তর লেখার
      *   আগে সবসময় দেখে নিই সংযোগটি এখনো জীবিত কি না।
      */
-    const safeFail = (e) => {
+    function onError(e) {
       if (res.headersSent || res.destroyed) { res.destroy(); return; }
+
+      // পুনর্ব্যবহৃত সকেট মাঝপথে মরেছে — একবার, তাজা সংযোগে, আবার
+      if (!retried && IDEMPOTENT && upstream.reusedSocket) {
+        retried = true;
+        console.error(`  ↻ পুনঃচেষ্টা (${e.code || e.message}) ${req.method} ${req.url}`);
+        send(false).end();
+        return;
+      }
+
+      /**
+       * ⚠️ 502 **কখনো নীরবে** নয়। এই প্রক্সিটি আগে কারণ না জানিয়ে 502
+       *   দিত, ফলে `interaction-sweep` এ "৫০২ /admin/orders" দেখা যেত
+       *   অথচ Next এর লগ পরিষ্কার — কোন স্তরে সমস্যা তা বের করাই
+       *   যেত না। কারণটি লেখা থাকলে পরেরবার আর অনুমান করতে হবে না।
+       */
+      console.error(`  ✗ 502 ${req.method} ${req.url} — ${e.code || ''} ${e.message} (reused=${upstream.reusedSocket})`);
       res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
       res.end(`upstream error: ${e.message}`);
-    };
-    upstream.on('error', safeFail);
+    }
+
     req.on('error', () => upstream.destroy());
     res.on('close', () => { if (!res.writableEnded) upstream.destroy(); });
 
-    req.pipe(upstream);
+    req.pipe(send(true));
   },
 );
 
