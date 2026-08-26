@@ -69,7 +69,9 @@ export default async function CustomerDetail({ params }: { params: { id: string 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-sm">
-        <Link href="/admin/users" className="text-slate-400 hover:text-white">← ইউজার তালিকা</Link>
+        {/* ★ `min-h-[40px]` — মাপা ২০px (২০২৬-০৮-২৬)। `inline-flex`
+            ছাড়া min-height একটি inline `<a>` তে কাজ করে না। */}
+        <Link href="/admin/users" className="inline-flex min-h-[40px] items-center text-slate-400 hover:text-white">← ইউজার তালিকা</Link>
       </div>
 
       {/* ── হেডার ── */}

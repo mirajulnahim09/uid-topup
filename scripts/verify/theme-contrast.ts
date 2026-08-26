@@ -136,9 +136,19 @@ function byDesign(pair: string) {
   const prevCss = execSync('git show HEAD:src/app/globals.css', {
     encoding: 'utf8', maxBuffer: 20 * 1024 * 1024,
   });
-  const before = (prevCss.match(/!important/g) || []).length;
-  const after = (readFileSync('src/app/globals.css', 'utf8').match(/!important/g) || []).length;
-  check('নতুন !important যোগ হয়নি', after <= before, `আগে ${before} · এখন ${after}`);
+  /**
+   * ⚠️ **মন্তব্য বাদ দিয়ে** গোনা হয়। দাবিটি "নতুন !important **ঘোষণা**
+   *   নয়" — কিন্তু গণনা কাঁচা স্ট্রিংয়ে হওয়ায় কোনো মন্তব্যে শব্দটি
+   *   লিখলেই (যেমন "এখানে !important লাগে না, কারণ…") চেকটি লাল হতো।
+   *   ২০২৬-০৮-২৬ এ ঠিক তাই ঘটেছিল: প্রিন্ট-নিয়মে একটি ব্যাখ্যা লিখতেই
+   *   গণনা ৬৬ → ৭০, অথচ ঘোষণার সংখ্যা এক চুলও নড়েনি। এতে চেকটি
+   *   ডকুমেন্টেশনকে শাস্তি দিত — অর্থাৎ ভুল আচরণকে উৎসাহ দিত।
+   *   দুই পাশেই একই ভাবে ছাঁটা হয়, তাই তুলনা সৎ থাকে।
+   */
+  const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const before = (stripComments(prevCss).match(/!important/g) || []).length;
+  const after = (stripComments(readFileSync('src/app/globals.css', 'utf8')).match(/!important/g) || []).length;
+  check('নতুন !important যোগ হয়নি (মন্তব্য বাদে)', after <= before, `আগে ${before} · এখন ${after}`);
 
   // ── গ) কন্ট্রাস্ট: ২ থিম × ৫ প্রিসেট ──
   const ws = path.join(process.cwd(), 'ws.txt');

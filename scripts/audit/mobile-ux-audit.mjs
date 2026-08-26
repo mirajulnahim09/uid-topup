@@ -367,9 +367,6 @@ const MEASURE = String.raw`(function () {
        অন্যটির উপর দাঁড়িয়ে আছে (চেকবক্সের ছাড়টির মতোই)।
        ⚠️⚠️ এই মন্তব্যে backtick লেখা যাবে না — ব্লকটি String.raw এর
        ভিতরে (ফাইলের মাথার সতর্কতা দ্রষ্টব্য)। */
-    var aaLink = tt.tagName === 'A' && trr.height >= 24 && trr.width >= 24 &&
-      (tt.closest('td') || (tt.classList.contains('underline') && tt.closest('.card')));
-
     var lab = (tt.type === 'checkbox' || tt.type === 'radio') ? tt.closest('label') : null;
     if (lab) {
       var lr = lab.getBoundingClientRect();
@@ -391,6 +388,21 @@ const MEASURE = String.raw`(function () {
       if (trr.height >= 24 && trr.width >= 24) continue;
     }
     var h = Math.round(trr.height), w = Math.round(trr.width);
+
+    /* ⚠️ ছাড়ের শর্তটি **গোল-করা** মাপ দেখে, কাঁচা ভগ্নাংশ নয়।
+       আগে কাঁচা trr.height তুলনা করা হতো, অথচ রিপোর্টে যেত তার
+       গোল-করা রূপ — ফলে ২৩.৯৮px উঁচু একটি লিংক রিপোর্টে "২৪px"
+       ছাপা হয়েও ছাড় পেত না। ২০২৬-০৮-২৬ এ ঠিক তাই ঘটেছিল:
+       /account/orders এর "↻ আবার" লিংকটি ডার্ক রানে aaTaps-এ আর
+       লাইট রানে smallTaps-এ পড়ে — একই উপাদান, একই মাপ, ভিন্ন শ্রেণি,
+       কেবল ফন্ট-রেন্ডারিংয়ের সাব-পিক্সেল পার্থক্যে। যে হারনেস থিম
+       বদলালে রায় বদলায়, তার সংখ্যায় ভরসা করা যায় না।
+
+       ⚠️⚠️ এই ব্লকে **ব্যাক-টিক লেখা নিষেধ** — পুরোটা String.raw এর
+       ভিতরে (ফাইলের মাথার সতর্কতা)। এই মন্তব্যটি লিখতে গিয়েই আমি
+       সেটি ভুলে গিয়েছিলাম আর স্ক্রিপ্ট চলতেই পারেনি। */
+    var aaLink = tt.tagName === 'A' && h >= 24 && w >= 24 &&
+      (tt.closest('td') || (tt.classList.contains('underline') && tt.closest('.card')));
     /* ⚠️ দুই ধাপ, কারণ দুটি ভিন্ন মানদণ্ড:
          · < ৪০px = এই প্রকল্পের নিজস্ব নিয়ম ভাঙে (§17) → আসল ত্রুটি
          · ৪০–৪৩px = WCAG 2.5.5 (AAA, ৪৪px) পার করে না, কিন্তু
@@ -599,6 +611,24 @@ async function persona(label, creds, wantPath, routes, allVps, isMobile) {
     const txt = msg.text();
     // ⚠️ dev-এর নিজস্ব কোলাহল বাদ — এগুলো প্রোডাক্ট-ত্রুটি নয়
     if (/Download the React DevTools|Fast Refresh|webpack-hmr|favicon/i.test(txt)) return;
+    /**
+     * ⚠️ বাতিল-হওয়া prefetch — Next এর **নিজের সেরে ওঠার** বার্তা।
+     *
+     *   ক্রলার আগের পাতার prefetch শেষ হওয়ার আগেই পরের পাতায় চলে যায়;
+     *   অনুরোধটি বাতিল হয়, `fetch` reject করে, আর Next লেখে
+     *   "Falling back to browser navigation" — অর্থাৎ সে নিজেই সাধারণ
+     *   নেভিগেশনে ফিরে যায় এবং ব্যবহারকারী কিছুই টের পান না।
+     *   ২০২৬-০৮-২৬ এর লাইট রানে এটিই একমাত্র কনসোল-ত্রুটি ছিল
+     *   (১টি, `/admin/withdrawals`), অথচ ডার্ক রানে ছিল না — খাঁটি
+     *   সময়-নির্ভর হারনেস-শব্দ।
+     *
+     *   ⚠️ ছাড়টি **সংকীর্ণ**: কেবল এই বাক্যটি, আর নিচের অংশটুকুই
+     *   ছাড় পায় যেখানে Next নিজে fallback করার কথা বলে। বাতিল
+     *   অনুরোধটি এখনো `failedRequests`-এ গোনা হয়, আর সার্ভার সত্যিই
+     *   ভাঙলে fallback নেভিগেশনও ব্যর্থ হতো — যা status/bounce
+     *   কাউন্টারে ধরা পড়ে। অর্থাৎ আসল ভাঙন লুকানোর পথ খোলা থাকছে না।
+     */
+    if (/Failed to fetch RSC payload.*Falling back to browser navigation/s.test(txt)) return;
     consoleErrors.push(txt.slice(0, 200));
   });
   page.on('requestfailed', (r) => {
@@ -672,6 +702,38 @@ try {
   if (p) PRODUCT_ROUTE = `/product/${p.id}/${p.slug}`;
 } catch { /* */ }
 if (PRODUCT_ROUTE) PUBLIC_ROUTES.push(PRODUCT_ROUTE);
+
+/**
+ * ★★★ ডিটেইল-পাতা — অডিটের অন্ধ কোণ (২০২৬-০৮-২৬ এ যোগ)।
+ *
+ *   ৪১টি রুটের সবই স্ট্যাটিক পথ ছিল, তাই যে চারটি পাতা ডাইনামিক
+ *   id-তে বসে সেগুলো **একবারও মাপা হয়নি** — অথচ বিরোধ ঠিক ওখানেই
+ *   নিষ্পত্তি হয় (অর্ডার-বিস্তারিত · চালান · টিকিট-থ্রেড · অ্যাডমিনের
+ *   গ্রাহক-প্রোফাইল)। HANDOFF §৪ এগুলোকে "ব্রাউজারে কখনো দেখা হয়নি"
+ *   বলে চিহ্নিত করেছিল।
+ *
+ *   ⚠️ id **না পেলে রুটটি যোগই করা হয় না**। নেই-রুট তালিকায় রাখলে
+ *   প্রতি রানে মিথ্যা ৪০৪ গোনা হয় — `/account/wallet` ঠিক সেটিই
+ *   করত (§১.১)। ডেটা বসাতে: `npx tsx scripts/audit/_fixture-detail.ts`
+ */
+try {
+  const cu = await db.user.findUnique({ where: { email: CUSTOMER.email }, select: { id: true } });
+  if (cu) {
+    const o = await db.order.findFirst({
+      where: { userId: cu.id }, orderBy: { createdAt: 'desc' }, select: { id: true },
+    });
+    if (o) CUSTOMER_ROUTES.push(`/account/orders/${o.id}`, `/account/orders/${o.id}/invoice`);
+    const t = await db.ticket.findFirst({
+      where: { userId: cu.id }, orderBy: { lastMessageAt: 'desc' }, select: { id: true },
+    });
+    if (t) CUSTOMER_ROUTES.push(`/account/tickets/${t.id}`);
+  }
+  // ★ অ্যাডমিনের চোখে একজন সাধারণ গ্রাহক — নিজের প্রোফাইল নয়
+  const su = await db.user.findFirst({
+    where: { role: 'USER' }, orderBy: { createdAt: 'asc' }, select: { id: true },
+  });
+  if (su) ADMIN_ROUTES.push(`/admin/users/${su.id}`);
+} catch { /* DB না পেলে অডিট আগের মতোই স্ট্যাটিক রুটে চলে */ }
 
 if (SCOPE === 'all' || SCOPE === 'mobile') {
   console.log('\n━━━ মোবাইল ━━━');

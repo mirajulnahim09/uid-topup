@@ -104,9 +104,11 @@ export default async function InvoicePage({ params }: { params: { id: string } }
     <div className="mx-auto max-w-3xl">
       {/* ── পর্দার নিয়ন্ত্রণ (কাগজে যায় না) ── */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+        {/* ★ `min-h-[40px]` — মাপা ২০px (২০২৬-০৮-২৬)। ব্লকটি
+            `print:hidden`, তাই কাগজে এর কোনো প্রভাব নেই। */}
         <Link
           href={`/account/orders/${order.id}`}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold"
+          className="inline-flex min-h-[40px] items-center gap-1.5 text-sm font-semibold"
           style={{ color: 'var(--v-mut)' }}
         >
           ← অর্ডারে ফিরুন

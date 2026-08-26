@@ -30,9 +30,11 @@ export default async function TicketThreadPage({ params }: { params: { id: strin
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
+      {/* ★ `min-h-[40px]` — মাপা ২০px (২০২৬-০৮-২৬)। বিরোধ-থ্রেডের
+          একমাত্র "ফিরে যাওয়ার" পথ, তাই আঙুলের মাপ থাকা জরুরি। */}
       <Link
         href="/account/tickets"
-        className="inline-flex items-center gap-1.5 text-sm font-semibold"
+        className="inline-flex min-h-[40px] items-center gap-1.5 text-sm font-semibold"
         style={{ color: 'var(--v-mut)' }}
       >
         ← সব টিকিট

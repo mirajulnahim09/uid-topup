@@ -58,9 +58,13 @@ export default async function OrderDetail({
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <AutoRefresh seconds={30} />
+      {/* ★ `min-h-[40px]` — অডিটে মাপা উচ্চতা ছিল **২০px** (২০২৬-০৮-২৬,
+          প্রতিটি ভিউপোর্টে)। একই ত্রুটি `wallet/withdraw` এ আগেই সারানো
+          হয়েছিল, কিন্তু ডিটেইল-পাতাগুলো তখন অডিটের রুট-তালিকায় ছিল না
+          বলে ধরা পড়েনি। ২০px WCAG 2.5.8 (AA) এর ২৪px-ও পার করে না। */}
       <Link
         href="/account/orders"
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-rose-600"
+        className="inline-flex min-h-[40px] items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-rose-600"
       >
         ← সব অর্ডার
       </Link>
