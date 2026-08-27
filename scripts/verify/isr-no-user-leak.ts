@@ -133,10 +133,21 @@ async function mkUser(n: number, balance: number) {
       const ra = await get(`${SESSION_COOKIE_NAME}=${a.jwt}`);
       const rb = await get(`${SESSION_COOKIE_NAME}=${b.jwt}`);
 
-      const [ng, na, nb] = [guest.html, ra.html, rb.html].map(normalize);
-      console.log(`  guest ${guest.status} · sha ${sha(ng)} · x-nextjs-cache=${guest.cache}`);
-      console.log(`  userA ${ra.status} · sha ${sha(na)}`);
-      console.log(`  userB ${rb.status} · sha ${sha(nb)}`);
+      /**
+       * ⚠️ **যে হ্যাশটি ছাপা হয়, দাবিটি ঠিক সেটির উপরেই হওয়া চাই।**
+       *
+       *   আগে ছাপা হতো পূর্ণ HTML-এর হ্যাশ, অথচ "মার্কআপ অভিন্ন"
+       *   দাবিটি মিলিয়ে দেখত `markupOnly` (স্ক্রিপ্ট-ছাড়া) সংস্করণ।
+       *   RSC পে-লোডের খণ্ডগুলোর ক্রম অনুরোধভেদে বদলায়, তাই লগে
+       *   userA ও userB এর হ্যাশ **আলাদা** দেখাত আর পরের লাইনেই
+       *   লেখা থাকত "অভিন্ন" — পাঠকের পক্ষে দুটো মেলানো অসম্ভব।
+       *   দাবিটি সত্যি ছিল, প্রমাণটি বিভ্রান্তিকর। এখন দুটোই ছাপা
+       *   হয়: `মার্কআপ` (যেটির উপর দাবি) ও `পূর্ণ` (স্ক্রিপ্টসহ)।
+       */
+      const shaOf = (html: string) => `${sha(markupOnly(html))} · পূর্ণ ${sha(normalize(html))}`;
+      console.log(`  guest ${guest.status} · মার্কআপ ${shaOf(guest.html)} · x-nextjs-cache=${guest.cache}`);
+      console.log(`  userA ${ra.status} · মার্কআপ ${shaOf(ra.html)}`);
+      console.log(`  userB ${rb.status} · মার্কআপ ${shaOf(rb.html)}`);
 
       /**
        * ★★★ আসল নিরাপত্তা-দাবি: **দুই ভিন্ন ব্যবহারকারীর** HTML অভিন্ন।
@@ -190,7 +201,8 @@ async function mkUser(n: number, balance: number) {
         if (ma !== mb) console.log('  note  দুই ব্যবহারকারীর মার্কআপ আলাদা — dynamic পাতায় প্রত্যাশিত');
       }
 
-      if (ng !== na) {
+      /** ★ তুলনাটি মার্কআপে — উপরে ছাপা হ্যাশটিও ঠিক এটিই */
+      if (markupOnly(guest.html) !== ma) {
         console.log('  note  guest ≠ লগ-ইন — navbar এর auth-অবস্থা (প্রত্যাশিত)');
       }
 
