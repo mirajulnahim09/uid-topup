@@ -186,9 +186,11 @@ function RegisterForm() {
                       : 'কোড পাঠান'}
               </button>
             </div>
+            {/* ⚠️ প্লেসহোল্ডারে ট্র্যাকিং নয় — নাহলে "৬ অঙ্ক" এর যুক্তাক্ষর
+                ঙ্ক ভেঙে "৬ অ ঙ্ক" দেখায় (WithdrawForm এ বিস্তারিত) */}
             <input
               id="otp"
-              className="input mt-1.5 font-mono tracking-[0.4em]"
+              className="input mt-1.5 font-mono tracking-[0.4em] placeholder:tracking-normal"
               inputMode="numeric"
               maxLength={6}
               autoComplete="one-time-code"

@@ -135,8 +135,15 @@ export default function WithdrawForm({
             {sent ? 'আবার পাঠান' : 'কোড পাঠান'}
           </button>
         </div>
+        {/**
+          * ⚠️ `placeholder:tracking-normal` — চওড়া ট্র্যাকিং টাইপ-করা ৬ অঙ্কের
+          *   জন্য (ল্যাটিন সংখ্যা, ফাঁক থাকলে পড়তে সুবিধা), কিন্তু সেটি
+          *   **প্লেসহোল্ডারেও** বসত আর "৬ অঙ্ক" এর যুক্তাক্ষর ঙ্ক (ঙ + ্ + ক)
+          *   ভেঙে "৬ অ ঙ্ক" দেখাত। ব্রাউজারে মেপে ধরা (২০২৬-০৮-২৭ এর
+          *   স্ক্রিনশট)। একই ত্রুটি register পাতার OTP ঘরেও ছিল।
+          */}
         <input
-          id="wcode" className="input mt-1.5 font-mono tracking-[0.4em]"
+          id="wcode" className="input mt-1.5 font-mono tracking-[0.4em] placeholder:tracking-normal"
           inputMode="numeric" maxLength={6}
           value={f.code}
           onChange={(e) => setF({ ...f, code: e.target.value.replace(/\D/g, '').slice(0, 6) })}
