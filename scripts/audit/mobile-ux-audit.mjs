@@ -93,6 +93,11 @@ const LANDSCAPE_VPS = [
 
 /** ★ ইচ্ছাকৃত ৪০৪ — `not-found.tsx` মাপার একমাত্র পথ (নিচে ব্যাখ্যা) */
 const NOT_FOUND_PROBE = '/__audit-404__';
+/** ★ অ্যাডমিনের নিজস্ব ৪০৪ (`src/app/admin/not-found.tsx`) — আলাদা
+ *  লেআউটে বসে, তাই আলাদা probe লাগে।
+ *  ⚠️ নামটি ইচ্ছাকৃতভাবে উপরেরটিকে **ধারণ করে**, যাতে ৪০৪-ছাড়ের
+ *  দুটি `includes(NOT_FOUND_PROBE)` পরীক্ষা এটিকেও ঢেকে ফেলে। */
+const ADMIN_NOT_FOUND_PROBE = '/admin' + NOT_FOUND_PROBE;
 
 const PUBLIC_ROUTES = [
   '/', '/login', '/register', '/forgot-password', '/search?q=diamond',
@@ -125,6 +130,10 @@ const ADMIN_ROUTES = [
   '/admin/reports', '/admin/site', '/admin/telegram', '/admin/media',
   '/admin/integrations', '/admin/payments', '/admin/otp', '/admin/logs',
   '/admin/branding', '/admin/homepage', '/admin/tools',
+  /* ★ অ্যাডমিনের ৪০৪ — `/admin/users/<ভুল id>` যে পর্দায় নামে।
+     এটি রুট-৪০৪ নয়; `src/app/admin/not-found.tsx` নিজের লেআউটে
+     বসে, নাহলে অ্যাডমিন গ্রাহকের নেভবার ও বটম-বার দেখতেন। */
+  ADMIN_NOT_FOUND_PROBE,
 ];
 /** ★ পণ্যের পাতা — id সিডে বদলায়, তাই রানটাইমে খুঁজে নেওয়া হয় */
 let PRODUCT_ROUTE = null;
@@ -159,6 +168,7 @@ const COVERAGE_EXEMPT = {
  */
 const SPECIAL_SCREENS = [
   { file: 'src/app/not-found.tsx', probe: NOT_FOUND_PROBE, why: null },
+  { file: 'src/app/admin/not-found.tsx', probe: ADMIN_NOT_FOUND_PROBE, why: null },
   { file: 'src/app/error.tsx', probe: null, why: 'রানটাইম ত্রুটি ছাড়া রেন্ডার হয় না — ক্রলে ইচ্ছাকৃত ত্রুটি ঘটানো হয় না' },
   { file: 'src/app/global-error.tsx', probe: null, why: 'একই কারণ; উপরন্তু এটি root layout ভাঙলে তবেই ওঠে' },
 ];
