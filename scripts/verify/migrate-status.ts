@@ -101,12 +101,27 @@ function runPrismaOnce(args: string[], url: string) {
  */
 const CONNECTION_ERROR = /P1001|Can't reach database server|ECONNRESET|ETIMEDOUT|unexpected eof/i;
 
-function runPrisma(args: string[], url: string, attempts = 3) {
+/**
+ * ⚠️ **বাজেট বাড়ানো হয়েছে — মাপা কারণে (২০২৬-০৮-২৮)।**
+ *
+ *   আগে ছিল ৩ চেষ্টা × ৪s = ~১২s অপেক্ষা। সম্পূর্ণ ঘুমন্ত Neon
+ *   কম্পিউটের জন্য সেটি কম: ঐ দিনের রানে দাবি ১ তিনবারই
+ *   `P1001` খেয়ে **FAIL** দিল, অথচ ঠিক পরের দাবি (`migrate diff`)
+ *   একই ডাটাবেসে **সফলভাবে** যুক্ত হয়ে "কোনো drift নেই" বলল —
+ *   অর্থাৎ ইতিমধ্যে DB জেগে গিয়েছিল। এক রিপোর্টে দুটি পরস্পরবিরোধী
+ *   কথা, আর লালটি ছিল **মিথ্যা** (পরে চালিয়ে ১২/১২ পাস, drift শূন্য)।
+ *
+ *   এটি ঠিক সেই ফাঁদ যার কথা উপরে লেখা আছে: কারণ ছাড়া লাল হওয়া
+ *   গার্ডকে মানুষ উপেক্ষা করতে শেখে। তাই এখন ৫ চেষ্টা, আর বিরতি
+ *   ক্রমবর্ধমান (৪ → ৮ → ১২ → ১৬s, মোট ~৪০s) — cold start এর জন্য
+ *   যথেষ্ট, অথচ প্রকৃত ডাউনটাইমে অসীম নয়।
+ */
+function runPrisma(args: string[], url: string, attempts = 5) {
   let last = runPrismaOnce(args, url);
   for (let i = 2; i <= attempts && last.status !== 0 && CONNECTION_ERROR.test(last.out); i++) {
-    console.log(`  ↻ সংযোগ ব্যর্থ (Neon জেগে উঠছে?) — চেষ্টা ${i}/${attempts} …`);
-    // ★ ~4s বিরতি — Neon সাধারণত কয়েক সেকেন্ডে জাগে
-    spawnSync(process.execPath, ['-e', 'setTimeout(()=>{},4000)']);
+    const waitMs = (i - 1) * 4000;
+    console.log(`  ↻ সংযোগ ব্যর্থ (Neon জেগে উঠছে?) — চেষ্টা ${i}/${attempts}, ${waitMs / 1000}s অপেক্ষা …`);
+    spawnSync(process.execPath, ['-e', `setTimeout(()=>{},${waitMs})`]);
     last = runPrismaOnce(args, url);
   }
   return last;
@@ -151,7 +166,31 @@ const localCount = existsSync('prisma/migrations')
   ? readdirSync('prisma/migrations', { withFileTypes: true }).filter((d) => d.isDirectory()).length
   : 0;
 
-const status = runPrisma(['migrate', 'status'], url);
+let status = runPrisma(['migrate', 'status'], url);
+
+// ── দাবি ২: প্রকৃত স্কিমা ও schema.prisma এক ──
+const diff = runPrisma(
+  ['migrate', 'diff', '--from-schema-datasource', 'prisma/schema.prisma', '--to-schema-datamodel', 'prisma/schema.prisma', '--script'],
+  url,
+);
+
+/**
+ * ★★★ দুটি দাবির **পরস্পরবিরোধ** মিটিয়ে নেওয়া।
+ *
+ *   `diff` সফল হওয়ার অর্থ ডাটাবেসে যুক্ত হওয়া **গেছে**। তাই তার
+ *   আগে `status` যদি কেবল সংযোগ-ব্যর্থতায় পড়ে থাকে, সেটি নিশ্চিতভাবে
+ *   বাসি — DB ইতিমধ্যে জেগে গেছে। আগে এই অবস্থায় রিপোর্টে একই সাথে
+ *   "সংযোগ ব্যর্থ" ও "কোনো drift নেই" লেখা থাকত, আর পাঠকের পক্ষে
+ *   কোনটি সত্য তা বোঝার উপায় ছিল না (২০২৬-০৮-২৮ এ ঘটেছিল)।
+ *
+ *   ⚠️ কেবল **সংযোগ**-ব্যর্থতাই এভাবে পুনর্বিবেচিত হয়। বাকি
+ *   মাইগ্রেশন বা প্রকৃত drift কখনোই নয় — সেগুলো প্রথমবারেই সত্য।
+ */
+if (status.status !== 0 && CONNECTION_ERROR.test(status.out) && diff.status === 0) {
+  console.log('  ↻ diff যুক্ত হতে পেরেছে — status আবার একবার চালাই (DB জেগে গেছে) …');
+  status = runPrisma(['migrate', 'status'], url);
+}
+
 const pending = /have not yet been applied|not yet been applied/i.test(status.out);
 const upToDate = /Database schema is up to date/i.test(status.out);
 
@@ -165,16 +204,15 @@ check(
       : '',
 );
 
-// ── দাবি ২: প্রকৃত স্কিমা ও schema.prisma এক ──
-const diff = runPrisma(
-  ['migrate', 'diff', '--from-schema-datasource', 'prisma/schema.prisma', '--to-schema-datamodel', 'prisma/schema.prisma', '--script'],
-  url,
-);
 const empty = /This is an empty migration/i.test(diff.out);
 check(
   'ডাটাবেসের স্কিমা ও schema.prisma-তে কোনো drift নেই',
   diff.status === 0 && empty,
-  empty ? '' : 'drift আছে — নিচে প্রয়োজনীয় SQL',
+  diff.status !== 0
+    ? 'prisma migrate diff ব্যর্থ (সংযোগ?) — drift যাচাই করাই যায়নি'
+    : empty
+      ? ''
+      : 'drift আছে — নিচে প্রয়োজনীয় SQL',
 );
 
 // ── ব্যর্থ হলে প্রকৃত কারণটি দেখাই ──
@@ -183,14 +221,32 @@ if (fail > 0) {
     console.log('\n── prisma migrate status ──');
     console.log(status.out.split('\n').filter((l) => !/ at "| at localhost/.test(l)).join('\n').trim());
   }
-  if (!empty) {
+  /** ⚠️ diff **চলতেই পারেনি** হলে এটি drift নয়, সংযোগ-ব্যর্থতা — আলাদা শিরোনাম */
+  if (diff.status !== 0) {
+    console.log('\n── prisma migrate diff ব্যর্থ ──');
+    console.log(diff.out.trim().slice(0, 2000));
+  } else if (!empty) {
     console.log('\n── drift (প্রয়োগ করলে DB schema.prisma-র সমান হতো) ──');
     console.log(diff.out.trim().slice(0, 4000));
   }
+
+  /**
+   * ⚠️ যুক্ত হওয়াই যায়নি বনাম যুক্ত হয়ে অমিল পাওয়া — দুটি ভিন্ন কথা।
+   *   আগে দুই ক্ষেত্রেই "ডাটাবেস কোডের সাথে মেলে না" ছাপা হতো, যা
+   *   সংযোগ-ব্যর্থতার সময় একটি **দাবি** করত যা মাপাই হয়নি।
+   */
+  const unreachable =
+    (status.status !== 0 && CONNECTION_ERROR.test(status.out)) ||
+    (diff.status !== 0 && CONNECTION_ERROR.test(diff.out));
+
   console.log(
-    '\n✗ স্থাপনার ডাটাবেস কোডের সাথে মেলে না।\n' +
-      '  এটিই সেই শ্রেণির বাগ যা টেস্টে ধরা পড়ে না — টেস্ট নিজের DB-তে\n' +
-      '  স্কিমা push করে নেয়, তাই সেখানে drift থাকতেই পারে না।\n',
+    unreachable
+      ? '\n✗ স্থাপনার ডাটাবেসে যুক্তই হওয়া গেল না — তাই মিল/অমিল কিছুই\n' +
+        '  যাচাই হয়নি। Neon ঘুমিয়ে থাকলে আবার চালান; বারবার হলে\n' +
+        '  ডাটাবেসের অবস্থা দেখুন।\n'
+      : '\n✗ স্থাপনার ডাটাবেস কোডের সাথে মেলে না।\n' +
+        '  এটিই সেই শ্রেণির বাগ যা টেস্টে ধরা পড়ে না — টেস্ট নিজের DB-তে\n' +
+        '  স্কিমা push করে নেয়, তাই সেখানে drift থাকতেই পারে না।\n',
   );
   process.exit(1);
 }
