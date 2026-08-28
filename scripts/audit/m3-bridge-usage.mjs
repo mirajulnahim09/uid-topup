@@ -96,7 +96,16 @@ for (const r of rules) {
 console.log('\n─────────────────────────────────────');
 console.log(`  নিয়ম      : ${rules.length} — সম্পূর্ণ মৃত ${deadRules}`);
 console.log(`  নির্বাচক  : ${totalSel} — অব্যবহৃত ${deadSel} (${Math.round((deadSel / totalSel) * 100)}%)`);
-console.log(`  মোট !important (গোটা ফাইলে): ${(css.match(/!important/g) || []).length}`);
+/**
+ * ⚠️ মন্তব্য বাদ দিয়ে গোনা — নাহলে সংখ্যাটি মিথ্যা।
+ *   ধরা পড়েছিল হাতে-নাতে: ব্লকটি ছোট করার সময় যোগ করা মন্তব্যেই
+ *   "একটিও নতুন `!important` যোগ হয়নি" লেখা ছিল, আর কাঁচা গণনা
+ *   সেটিকেও একটি ঘোষণা হিসেবে গুনছিল — একটি পুরো নিয়ম সরানোর পরেও
+ *   সংখ্যা ৬৯-এ আটকে ছিল। (`scripts/verify/theme-contrast.ts` এই
+ *   শিক্ষাটি আগেই পেয়েছে — সেখানেও মন্তব্য বাদ দিয়ে গোনা হয়।)
+ */
+const cssNoComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
+console.log(`  মোট !important (গোটা ফাইলে): ${(cssNoComments.match(/!important/g) || []).length}`);
 if (dynamic) {
   console.log('\n  ⚠️⚠️ জোড়া-লাগানো ক্লাস-নাম পাওয়া গেছে — উপরের "মৃত" তালিকা');
   console.log('        বিশ্বাস করবেন না, স্ট্যাটিক গণনা সেগুলো দেখে না।');

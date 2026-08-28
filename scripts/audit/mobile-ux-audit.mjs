@@ -505,9 +505,10 @@ async function login(ctx, page, creds, wantPath) {
   return { finalUrl: page.url(), session };
 }
 
-async function visit(page, route, label, vpName, console_, net) {
+async function visit(page, route, label, vpName, console_, net, aborted) {
   console_.length = 0;
   net.length = 0;
+  aborted.length = 0;
   const resp = await page.goto(BASE + route, { waitUntil: 'domcontentloaded' }).catch(() => null);
   await settle(page);
 
@@ -554,6 +555,8 @@ async function visit(page, route, label, vpName, console_, net) {
     bottomGap: m.bottomGap,
     consoleErrors: console_.slice(0, 5),
     failedRequests: net.slice(0, 5),
+    /** ★ নিরীহ বাতিল-prefetch — আলাদা, যাতে উপরের সংখ্যাটি অর্থবহ থাকে */
+    abortedRequests: aborted.slice(0, 5),
     notSettled: bootStillUp,
   };
 }
@@ -566,7 +569,8 @@ const report = {
   summary: {
     pages: 0, bounced: 0, overflowPages: 0, clippedPages: 0, coveredPages: 0,
     floatOverlapPages: 0, smallTapPages: 0, zoomInputPages: 0,
-    consoleErrorPages: 0, failedRequestPages: 0, notSettled: 0, bottomShortPages: 0,
+    consoleErrorPages: 0, failedRequestPages: 0, abortedRequestPages: 0,
+    notSettled: 0, bottomShortPages: 0,
   },
 };
 
@@ -606,6 +610,8 @@ async function persona(label, creds, wantPath, routes, allVps, isMobile) {
   const page = await ctx.newPage();
   const consoleErrors = [];
   const failedRequests = [];
+  /** ★ বাতিল-হওয়া অনুরোধ (prefetch/ফন্ট) — নিচের `requestfailed` এ ব্যাখ্যা */
+  const abortedRequests = [];
   page.on('console', (msg) => {
     if (msg.type() !== 'error') return;
     const txt = msg.text();
@@ -634,7 +640,47 @@ async function persona(label, creds, wantPath, routes, allVps, isMobile) {
   page.on('requestfailed', (r) => {
     const u = r.url();
     if (/_next\/static\/webpack|hot-update|__nextjs/.test(u)) return;
-    failedRequests.push(`${r.failure()?.errorText || 'failed'} ${u.slice(0, 140)}`);
+    const err = r.failure()?.errorText || 'failed';
+    /**
+     * ★★★ বাতিল-হওয়া RSC prefetch **আলাদা বালতিতে** — লুকানো নয়।
+     *
+     *   উপরের কনসোল-ছাড়টি ইচ্ছাকৃতভাবে লিখেছিল: "বাতিল অনুরোধটি
+     *   এখনো `failedRequests`-এ গোনা হয়" — যাতে আসল ভাঙন লুকানোর
+     *   পথ না থাকে। উদ্দেশ্যটি ঠিক, কিন্তু **রিপোর্টটি বিভ্রান্তিকর
+     *   হয়ে গিয়েছিল**: ২০২৬-০৮-২৮ এর রানে ৫৫০টির মধ্যে **৪৯৯টি**
+     *   পাতায় "ব্যর্থ অনুরোধ" দেখাত, অথচ ২০৪৫টি ব্যর্থতার
+     *   **প্রতিটিই** ছিল `net::ERR_ABORTED …?_rsc=` — ক্রলার দ্রুত
+     *   নেভিগেট করায় বাতিল হওয়া prefetch, যা থেকে Next নিজেই
+     *   সেরে ওঠে। একটিও প্রকৃত 4xx/5xx বা সংযোগ-ব্যর্থতা ছিল না।
+     *   (আগের রানগুলোতেও: ৪৬০ ও ৪৫৩ — কখনো শূন্য হয়নি, আর
+     *   রিপোর্টে "প্রতিটি কাউন্টার ০" লেখার সময় এটি উল্লেখই হতো না।)
+     *
+     *   একটি সংখ্যা যা কখনো শূন্য হয় না, সেটিকে মানুষ পড়া বন্ধ করে
+     *   দেয় — তখন ৫০০তম পাতার আসল ৫০০-ও চোখ এড়িয়ে যেত। তাই দুটি
+     *   কাউন্টার: `failedRequestPages` (আসল) ও
+     *   `abortedRequestPages` (নিরীহ)। কিছুই ফেলে দেওয়া হয় না —
+     *   কেবল আলাদা করে গোনা হয়, ঠিক যেমন `aaTaps` করা হয়েছিল।
+     */
+    /**
+     * ⚠️ **আসল বিভাজনটি `_rsc=` নয় — "বাতিল" বনাম "ব্যর্থ"।**
+     *
+     *   প্রথমে কেবল `?_rsc=` URL-কে নিরীহ ধরেছিলাম। প্রথম লাইট-রানেই
+     *   সেটি ভুল প্রমাণিত হলো: "ব্যর্থ অনুরোধ ১" দেখাল, আর সেটি ছিল
+     *   `net::ERR_ABORTED https://fonts.gstatic.com/…woff2` — ক্রলার
+     *   পরের পাতায় চলে যাওয়ায় ব্রাউজারের বাতিল করা **ফন্ট** ডাউনলোড।
+     *   prefetch নয়, কিন্তু সমান নিরীহ।
+     *
+     *   `ERR_ABORTED` মানেই **বাতিল** — সার্ভার ব্যর্থ হয়নি, কেউ
+     *   অনুরোধটি ছেড়ে দিয়েছে। প্রকৃত ভাঙন অন্য চেহারায় আসে:
+     *   4xx/5xx উত্তর (নিচের `response` হ্যান্ডলার), বা
+     *   `ERR_CONNECTION_*` / `ERR_TIMED_OUT` / `ERR_FAILED` ধরনের
+     *   ত্রুটি — সেগুলো `failedRequests` এই থাকে।
+     */
+    if (err.startsWith('net::ERR_ABORTED')) {
+      abortedRequests.push(`${err} ${u.slice(0, 140)}`);
+      return;
+    }
+    failedRequests.push(`${err} ${u.slice(0, 140)}`);
   });
   page.on('response', (r) => {
     if (r.status() < 400) return;
@@ -656,7 +702,7 @@ async function persona(label, creds, wantPath, routes, allVps, isMobile) {
   for (const vp of vps) {
     await page.setViewportSize({ width: vp.width, height: vp.height });
     const rows = [];
-    for (const r of routes) rows.push(await visit(page, r, label, vp.name, consoleErrors, failedRequests));
+    for (const r of routes) rows.push(await visit(page, r, label, vp.name, consoleErrors, failedRequests, abortedRequests));
 
     const count = (fn) => rows.filter(fn).length;
     report.viewports[`${label}@${vp.name}`] = rows;
@@ -669,6 +715,7 @@ async function persona(label, creds, wantPath, routes, allVps, isMobile) {
     report.summary.zoomInputPages += count((r) => r.zoomInputs.length);
     report.summary.consoleErrorPages += count((r) => r.consoleErrors.length);
     report.summary.failedRequestPages += count((r) => r.failedRequests.length);
+    report.summary.abortedRequestPages += count((r) => r.abortedRequests.length);
     report.summary.notSettled += count((r) => r.notSettled);
     report.summary.bottomShortPages += count((r) => r.bottomGap && r.bottomGap.short > 1);
 
@@ -772,5 +819,6 @@ console.log(`  iOS জুম ইনপুট       : ${s.zoomInputPages}`);
 console.log(`  বটম-বার reserve কম  : ${s.bottomShortPages}`);
 console.log(`  কনসোল ত্রুটি        : ${s.consoleErrorPages}`);
 console.log(`  ব্যর্থ অনুরোধ        : ${s.failedRequestPages}`);
+console.log(`  বাতিল অনুরোধ        : ${s.abortedRequestPages}  (নিরীহ — prefetch/ফন্ট, ব্রাউজারই ছেড়ে দেয়)`);
 console.log(`  অমীমাংসিত মাপ       : ${s.notSettled}`);
 console.log(`  → ${OUT}`);

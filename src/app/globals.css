@@ -743,35 +743,54 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 
    ⚠️ নতুন কোডে এই ক্লাসগুলো ব্যবহার করবেন না; `--v-*` টোকেন বা
    কম্পোনেন্ট ক্লাস ব্যবহার করুন। bridge কেবল পুরনো কল-সাইট বাঁচায়। */
-.text-slate-950,.text-slate-900,.text-slate-800,.text-slate-700,.text-gray-900,.text-gray-800,.text-gray-700,.text-black,.text-zinc-900,.text-zinc-800 { color:var(--v-ink) !important; }
-.text-slate-600,.text-slate-500,.text-gray-600,.text-gray-500,.text-zinc-600,.text-zinc-500 { color:var(--v-mut) !important; }
+/* ★★★ M3 ধাপ ১ (২০২৬-০৮-২৮) — **অব্যবহৃত নির্বাচক বাদ দেওয়া হলো**।
+
+   গুনে দেখা গিয়েছিল ব্লকের ১১৪টি নির্বাচকের **৪৮টি (৪২%)** `src/` এ
+   একবারও লেখা হয় না — অর্থাৎ ঐ CSS প্রতিটি ব্যবহারকারীর কাছে যেত
+   অথচ কোনো এলিমেন্টেই বসত না। এখানে কেবল সেগুলোই সরানো হয়েছে;
+   **একটিও কম্পোনেন্ট ছোঁয়া হয়নি, একটিও নতুন `!important` যোগ হয়নি**,
+   আর যে ক্লাস সত্যিই ব্যবহৃত তার আচরণ হুবহু আগের মতোই।
+
+   কী বাদ গেল: পুরো `gray-*` ও `zinc-*` পরিবার (প্রকল্পটি ধারাবাহিকভাবে
+   `slate` লেখে), `text-blue-900/sky-900/indigo-900` নিয়মটি সম্পূর্ণ,
+   আর ছড়িয়ে থাকা কিছু একক শেড (`text-pink-600`, `shadow-xl`,
+   `bg-teal-50`, `bg-violet-*`, `border-sky-200` …)।
+
+   ⚠️ **এর একটি খরচ আছে, জেনে নেওয়া হয়েছে:** bridge একই সাথে একটি
+   সেফটি নেট ছিল। এখন কেউ নতুন করে `text-gray-500` বা `bg-gray-100`
+   লিখলে সেটি আর উদ্ধার পাবে না — গাঢ় পটভূমিতে অপাঠ্য দেখাবে। নিয়মটি
+   আগের মতোই: **নতুন কোডে এই ক্লাসগুলো নয়, `--v-*` টোকেন**।
+
+   মাপ পুনরায় নিতে: `node scripts/audit/m3-bridge-usage.mjs`
+   পরের ধাপ (কম-ব্যবহৃত পরিবার → টোকেন): UIUX_PROBLEM_MAP.md §১০। */
+.text-slate-900,.text-slate-800,.text-slate-700 { color:var(--v-ink) !important; }
+.text-slate-600,.text-slate-500 { color:var(--v-mut) !important; }
 /* ⚠️ ৩০০/৪০০ শেড আগে `--mut` এ যেত (৭.৯:১)। এখন `--v-mut` (৯.২:১) —
    কারণ এই ক্লাসগুলো প্রায়ই সহায়ক লেখায় বসে, সাজসজ্জায় নয়। */
-.text-slate-400,.text-slate-300,.text-gray-400,.text-gray-300 { color:var(--v-mut) !important; }
+.text-slate-400,.text-slate-300 { color:var(--v-mut) !important; }
 /* ★★★ C3 — ভূমিকা-রঙ আলাদা করা হলো।
    আগে success ও warning **দুটোই** `--v-volt`-এ যেত (একই লাইম), আর
    danger ছিল হার্ডকোড `#e11d48` — light/dark দুই থিমে একই মান।
    এখন চারটিই আলাদা `--sem-*` টোকেনে, প্রতিটির দুই থিমে আলাদা শেড। */
-.text-rose-600,.text-rose-700,.text-rose-800,.text-red-600,.text-red-700,.text-red-800,.text-pink-600 { color:var(--sem-danger) !important; }
-.text-purple-600,.text-purple-700,.text-purple-800,.text-violet-700,.text-indigo-700 { color:var(--violet) !important; }
+.text-rose-600,.text-rose-700,.text-rose-800,.text-red-600,.text-red-700,.text-red-800 { color:var(--sem-danger) !important; }
+.text-purple-700,.text-purple-800,.text-indigo-700 { color:var(--violet) !important; }
 .text-emerald-600,.text-emerald-700,.text-emerald-800,.text-green-600,.text-green-700 { color:var(--sem-success) !important; }
-.text-amber-600,.text-amber-700,.text-amber-800,.text-amber-900,.text-yellow-700,.text-orange-800 { color:var(--sem-warning) !important; }
-.text-blue-700,.text-blue-800,.text-sky-700,.text-sky-800 { color:var(--sem-info) !important; }
-.text-blue-900,.text-sky-900,.text-indigo-900 { color:var(--sem-info) !important; }
-.bg-white,.bg-slate-50,.bg-gray-50 { background:var(--v-pit) !important; }
-.bg-slate-100,.bg-gray-100,.bg-slate-200,.bg-gray-200,.bg-zinc-100 { background-color:var(--v-steel) !important; }
-.border-slate-200,.border-slate-300,.border-slate-100,.border-gray-200,.border-gray-100,.border-gray-300,.border-zinc-200 { border-color:var(--v-edge) !important; }
-.divide-slate-100 > :not([hidden]) ~ :not([hidden]),.divide-slate-200 > :not([hidden]) ~ :not([hidden]),.divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color:var(--v-edge) !important; }
-.shadow-sm,.shadow,.shadow-md,.shadow-lg,.shadow-xl { box-shadow:var(--v-shadow-2) !important; }
-.bg-rose-50,.bg-red-50,.bg-pink-50,.bg-red-100,.bg-rose-100 { background-color:rgba(251,113,133,.13) !important; }
-.bg-emerald-50,.bg-green-50,.bg-teal-50,.bg-emerald-100,.bg-green-100 { background-color:rgba(163,230,53,.12) !important; }
-.bg-amber-50,.bg-yellow-50,.bg-orange-50,.bg-amber-100,.bg-yellow-100,.bg-orange-100 { background-color:rgba(251,191,36,.12) !important; }
-.bg-blue-50,.bg-sky-50,.bg-indigo-50,.bg-blue-100,.bg-sky-100,.bg-indigo-100 { background-color:rgba(125,211,252,.12) !important; }
-.bg-purple-50,.bg-violet-50,.bg-purple-100 { background-color:rgba(139,92,246,.15) !important; }
-.bg-purple-600,.bg-purple-500,.bg-violet-600 { background-color:#7c3aed !important; }
-.border-purple-200,.border-purple-300,.border-purple-400,.border-purple-500,.border-purple-600,
-.border-indigo-200,.border-violet-200,.border-amber-200,.border-emerald-200,.border-rose-200,
-.border-red-200,.border-blue-200,.border-sky-200 { border-color:var(--v-edge) !important; }
+.text-amber-600,.text-amber-700,.text-amber-800,.text-amber-900,.text-orange-800 { color:var(--sem-warning) !important; }
+.text-blue-700,.text-blue-800 { color:var(--sem-info) !important; }
+.bg-white,.bg-slate-50 { background:var(--v-pit) !important; }
+.bg-slate-100,.bg-slate-200 { background-color:var(--v-steel) !important; }
+.border-slate-200,.border-slate-300,.border-slate-100 { border-color:var(--v-edge) !important; }
+.divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color:var(--v-edge) !important; }
+.shadow-sm,.shadow,.shadow-md,.shadow-lg { box-shadow:var(--v-shadow-2) !important; }
+.bg-rose-50,.bg-red-50,.bg-red-100,.bg-rose-100 { background-color:rgba(251,113,133,.13) !important; }
+.bg-emerald-50,.bg-green-50,.bg-emerald-100,.bg-green-100 { background-color:rgba(163,230,53,.12) !important; }
+.bg-amber-50,.bg-amber-100,.bg-orange-100 { background-color:rgba(251,191,36,.12) !important; }
+.bg-blue-50,.bg-blue-100 { background-color:rgba(125,211,252,.12) !important; }
+.bg-purple-50,.bg-purple-100 { background-color:rgba(139,92,246,.15) !important; }
+.bg-purple-600,.bg-purple-500 { background-color:#7c3aed !important; }
+.border-purple-200,.border-purple-300,.border-purple-400,.border-purple-500,
+.border-amber-200,.border-emerald-200,.border-rose-200,
+.border-red-200,.border-blue-200 { border-color:var(--v-edge) !important; }
 ::placeholder { color:var(--v-dim) !important; opacity:1; }
 
 
