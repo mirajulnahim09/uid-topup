@@ -34,7 +34,10 @@ const CREDS = {
 
 const ROUTES = {
   anon: ['/', '/login', '/register', '/track', '/contact', '/faq', '/search?q=diamond'],
-  customer: ['/account', '/account/orders', '/account/wallet', '/account/wallet/deposit',
+  /* ⚠️ `/account/wallet` **নেই** — কখনো ছিল না (§১.১)। `mobile-ux-audit`
+     থেকে ২০২৬-০৮-১৮ এ সরানো হয়েছিল, কিন্তু এখানে রয়ে গিয়েছিল, তাই
+     প্রতিটি customer-শটে একটি ৪০৪ পর্দা "পাতা" হিসেবে উঠত। */
+  customer: ['/account', '/account/orders', '/account/wallet/deposit',
              '/account/wallet/withdraw', '/account/profile', '/account/tickets', '/account/notifications'],
   admin: ['/admin', '/admin/orders', '/admin/deposits', '/admin/users', '/admin/products',
           '/admin/withdrawals', '/admin/site', '/admin/reports'],

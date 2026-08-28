@@ -40,7 +40,8 @@
  * ═══════════════════════════════════════════════════════════
  */
 import { chromium } from 'playwright-core';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 
 const BASE = process.env.AUDIT_BASE || 'http://localhost:3000';
@@ -90,9 +91,24 @@ const LANDSCAPE_VPS = [
   { name: '915x412L', width: 915, height: 412 },
 ];
 
+/** ★ ইচ্ছাকৃত ৪০৪ — `not-found.tsx` মাপার একমাত্র পথ (নিচে ব্যাখ্যা) */
+const NOT_FOUND_PROBE = '/__audit-404__';
+
 const PUBLIC_ROUTES = [
   '/', '/login', '/register', '/forgot-password', '/search?q=diamond',
   '/track', '/contact', '/faq', '/terms', '/privacy', '/refund',
+  /* ★ `/reset-password` এর **দুটি** অবস্থা, দুটিই আসল গ্রাহক দেখেন:
+       token ছাড়া = "লিংকটি অবৈধ" কার্ড · token সহ = পাসওয়ার্ড ফর্ম।
+       token যাচাই ক্লায়েন্টে হয় না (`params.get('token')` খালি কি না,
+       এটুকুই), তাই ভুয়া token দিলেই ফর্মটি রেন্ডার হয় — API ডাকা হয়
+       কেবল submit-এ, আর অডিট কিছু submit করে না। */
+  '/reset-password', '/reset-password?token=audit-render-only',
+  /* ★ `not-found.tsx` — একটি আসল গ্রাহক-পর্দা যা `page.tsx` নয়, তাই
+       ক্রল-তালিকায় কখনো ছিল না। §১.১ প্রমাণ করেছে পর্দাটি বাস্তবে
+       দেখা যায় (`/account/wallet` এর ভাঙা লিংক)। যেকোনো অস্তিত্বহীন
+       পথই এটিকে আনে; নামটি ইচ্ছাকৃতভাবে স্পষ্ট, যাতে রিপোর্টে
+       ৪০৪-টি দুর্ঘটনা নয় বোঝা যায়। */
+  NOT_FOUND_PROBE,
 ];
 const CUSTOMER_ROUTES = [
   '/account', '/account/orders', '/account/profile', '/account/notifications',
@@ -112,6 +128,87 @@ const ADMIN_ROUTES = [
 ];
 /** ★ পণ্যের পাতা — id সিডে বদলায়, তাই রানটাইমে খুঁজে নেওয়া হয় */
 let PRODUCT_ROUTE = null;
+
+/* ═════════════ রুট-কভারেজ — অন্ধ কোণ আর হাতে খুঁজতে হবে না ═════════════
+ *
+ *   ⚠️ এই হারনেসের অন্ধ কোণ **দুবার হাতে** ধরা পড়েছে: ২০২৬-০৮-২৬ এ
+ *      চারটি ডাইনামিক ডিটেইল পাতা (§৮), আর ২০২৬-০৮-২৮ এ লগইনের
+ *      পিছনের পাঁচটি পাতা (§৯)। দুবারই কারণ এক — ক্রল-তালিকাটি **হাতে
+ *      লেখা**, আর `src/app` এ নতুন পাতা যোগ হলে তালিকাটি নিজে থেকে
+ *      জানে না। তৃতীয়বার হাতে খোঁজার বদলে হারনেসই গুনে দেখুক।
+ *
+ *   নীতিটি §১১ এর মতোই — **লুকানো নয়, আলাদা করা**। যে রুট ইচ্ছাকৃতভাবে
+ *   বাদ, সেটি `COVERAGE_EXEMPT` এ কারণ সহ লেখা থাকে; বাকি যেকোনো
+ *   অ-মাপা রুট রিপোর্টে **উঠবে**।
+ */
+const APP_DIR = 'src/app';
+
+/** ইচ্ছাকৃত বাদ — কারণ সহ, নাহলে এটিও একটি নীরব ফাঁক */
+const COVERAGE_EXEMPT = {
+  '/product/[id]': 'নিজের কোনো UI নেই — `/product/[id]/[slug]` এ redirect (page.tsx:17), আর সেটি মাপা হয়',
+};
+
+/**
+ * ★ `page.tsx` নয়, তবু গ্রাহক দেখেন — এই তিনটি পর্দা রুট-গণনায় পড়ত না।
+ *
+ *   ⚠️ `error.tsx` ও `global-error.tsx` রেন্ডার হয় কেবল একটি **প্রকৃত
+ *   রানটাইম ত্রুটিতে**। ক্রলে ইচ্ছাকৃত ত্রুটি ঘটানোর মানে হতো
+ *   প্রোডাক্টে একটি "শুধু-অডিটের" পথ রাখা — সেটি নিজেই একটি ঝুঁকি।
+ *   তাই দুটিই ইচ্ছাকৃতভাবে অ-মাপা, আর সেটি এখানে **লেখা থাকে**,
+ *   নীরবে বাদ পড়ে না।
+ */
+const SPECIAL_SCREENS = [
+  { file: 'src/app/not-found.tsx', probe: NOT_FOUND_PROBE, why: null },
+  { file: 'src/app/error.tsx', probe: null, why: 'রানটাইম ত্রুটি ছাড়া রেন্ডার হয় না — ক্রলে ইচ্ছাকৃত ত্রুটি ঘটানো হয় না' },
+  { file: 'src/app/global-error.tsx', probe: null, why: 'একই কারণ; উপরন্তু এটি root layout ভাঙলে তবেই ওঠে' },
+];
+
+/** `src/app` এর প্রতিটি `page.tsx` → রুট-পথ (route group `(x)` বাদ যায়) */
+function discoverRoutes(dir = APP_DIR, prefix = '') {
+  const out = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.isDirectory()) {
+      // @-স্লট ও _প্রাইভেট ফোল্ডার রুট নয়
+      if (e.name.startsWith('@') || e.name.startsWith('_')) continue;
+      const seg = /^\(.*\)$/.test(e.name) ? '' : `/${e.name}`;
+      out.push(...discoverRoutes(join(dir, e.name), prefix + seg));
+    } else if (e.name === 'page.tsx') {
+      out.push(prefix || '/');
+    }
+  }
+  return out;
+}
+
+/** `/account/orders/[id]` ← `/account/orders/12` মেলাতে হবে */
+function routeMatcher(fileRoute) {
+  const src = fileRoute
+    .split('/')
+    .map((s) => (/^\[.*\]$/.test(s) ? '[^/]+' : s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    .join('/');
+  return new RegExp(`^${src}$`);
+}
+
+/** ক্রল-তালিকার সব রুট মিলিয়ে কোনটি মাপা হচ্ছে না, তা ফেরত দেয় */
+function coverageGap(crawled) {
+  const paths = crawled.map((r) => r.split('?')[0]);
+  const discovered = discoverRoutes().sort();
+  const missed = discovered.filter((f) => !paths.some((p) => routeMatcher(f).test(p)));
+
+  const uncovered = missed.filter((r) => !(r in COVERAGE_EXEMPT));
+  const exempt = missed.filter((r) => r in COVERAGE_EXEMPT)
+    .map((r) => ({ route: r, why: COVERAGE_EXEMPT[r] }));
+
+  /* ★ বিশেষ পর্দাগুলোও একই হিসাবে — নাহলে "৪৬/৪৬" বলে তিনটি পর্দা
+       হিসাবের বাইরে থেকে যেত, আর সেটিই আগের ফাঁকটির চেহারা ছিল। */
+  for (const s of SPECIAL_SCREENS) {
+    if (!existsSync(s.file)) continue;
+    if (s.probe && paths.includes(s.probe)) continue;
+    (s.why ? exempt : uncovered).push(s.why ? { route: s.file, why: s.why } : s.file);
+  }
+
+  const total = discovered.length + SPECIAL_SCREENS.filter((s) => existsSync(s.file)).length;
+  return { discovered: total, covered: total - uncovered.length - exempt.length, uncovered, exempt };
+}
 
 /* ═══════════ পাতার ভেতরে চালানো পরিমাপক (বিশুদ্ধ DOM) ═══════════ */
 const MEASURE = String.raw`(function () {
@@ -635,6 +732,16 @@ async function persona(label, creds, wantPath, routes, allVps, isMobile) {
      *   কাউন্টারে ধরা পড়ে। অর্থাৎ আসল ভাঙন লুকানোর পথ খোলা থাকছে না।
      */
     if (/Failed to fetch RSC payload.*Falling back to browser navigation/s.test(txt)) return;
+    /**
+     * ⚠️ ইচ্ছাকৃত ৪০৪ — নেটওয়ার্ক-কাউন্টারে ছাড় দিয়ে **কনসোলে ভুলে
+     *   গিয়েছিলাম**, আর প্রথম রানেই "কনসোল ত্রুটি ৩" হয়ে ফিরে এল
+     *   (তিন ভিউপোর্টে তিনবার একই বার্তা)। §১১ যে ভুলটির কথা বলে —
+     *   কাউন্টার যা কখনো শূন্য হয় না — সেটি আমি নিজেই তৈরি করেছিলাম।
+     *
+     *   ছাড়টি সংকীর্ণ: বার্তাটি ৪০৪ হতে হবে **এবং** উৎস-URL ঐ একটিমাত্র
+     *   probe পথ হতে হবে। অন্য যেকোনো পাতার ৪০৪ আগের মতোই ত্রুটি।
+     */
+    if (/status of 404/.test(txt) && (msg.location()?.url || '').includes(NOT_FOUND_PROBE)) return;
     consoleErrors.push(txt.slice(0, 200));
   });
   page.on('requestfailed', (r) => {
@@ -686,6 +793,15 @@ async function persona(label, creds, wantPath, routes, allVps, isMobile) {
     if (r.status() < 400) return;
     const u = r.url();
     if (/favicon|__nextjs|hot-update/.test(u)) return;
+    /**
+     * ⚠️ ইচ্ছাকৃত ৪০৪ — গোনা হলে কাউন্টারটি **কখনো শূন্য হতো না**।
+     *
+     *   §১১ এর শিক্ষাটি ঠিক এটিই: যে সংখ্যা প্রতি রানে অশূন্য, মানুষ
+     *   তা পড়া বন্ধ করে — তখন আসল ৪০৪-ও চোখ এড়ায়। `not-found.tsx`
+     *   মাপতে হলে একটি ৪০৪ **আনতেই হবে**, তাই সেই একটিমাত্র পথের
+     *   ৪০৪ ছাড় পায়; অন্য যেকোনো ৪০৪ আগের মতোই ত্রুটি।
+     */
+    if (r.status() === 404 && u.includes(NOT_FOUND_PROBE)) return;
     failedRequests.push(`${r.status()} ${u.slice(0, 140)}`);
   });
 
@@ -782,6 +898,18 @@ try {
   if (su) ADMIN_ROUTES.push(`/admin/users/${su.id}`);
 } catch { /* DB না পেলে অডিট আগের মতোই স্ট্যাটিক রুটে চলে */ }
 
+/* ★ ক্রল শুরুর আগেই কভারেজ মাপা — রুট-তালিকা এখন চূড়ান্ত।
+     ⚠️ DB না পেলে ডাইনামিক রুট যোগই হয় না, তাই তখন ফাঁক দেখানো
+     স্বাভাবিক; বার্তাটি সেটিও বলে দেয়। */
+report.coverage = coverageGap([...PUBLIC_ROUTES, ...CUSTOMER_ROUTES, ...ADMIN_ROUTES]);
+{
+  const c = report.coverage;
+  console.log(`\n━━━ রুট-কভারেজ ━━━  ${c.covered}/${c.discovered} মাপা হচ্ছে`);
+  for (const e of c.exempt) console.log(`  ○ ${e.route}  — ${e.why}`);
+  for (const u of c.uncovered) console.log(`  ✗ ${u}  — ক্রল-তালিকায় নেই, কখনো মাপা হয় না`);
+  if (c.uncovered.length && !PRODUCT_ROUTE) console.log('  ⚠️ DB পাওয়া যায়নি — ডাইনামিক রুটগুলো যোগ হয়নি, ফাঁকের একাংশ তারই ফল');
+}
+
 if (SCOPE === 'all' || SCOPE === 'mobile') {
   console.log('\n━━━ মোবাইল ━━━');
   await persona('anon-mobile', null, '/', PUBLIC_ROUTES, MOBILE_VPS, true);
@@ -821,4 +949,6 @@ console.log(`  কনসোল ত্রুটি        : ${s.consoleErrorPages
 console.log(`  ব্যর্থ অনুরোধ        : ${s.failedRequestPages}`);
 console.log(`  বাতিল অনুরোধ        : ${s.abortedRequestPages}  (নিরীহ — prefetch/ফন্ট, ব্রাউজারই ছেড়ে দেয়)`);
 console.log(`  অমীমাংসিত মাপ       : ${s.notSettled}`);
+console.log(`  রুট-কভারেজ          : ${report.coverage.covered}/${report.coverage.discovered}` +
+  (report.coverage.uncovered.length ? `  ✗ অ-মাপা: ${report.coverage.uncovered.join(', ')}` : ''));
 console.log(`  → ${OUT}`);
