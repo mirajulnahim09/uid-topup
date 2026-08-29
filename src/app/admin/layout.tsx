@@ -53,8 +53,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span
               className="rounded-md px-2.5 py-1 text-[10px] font-bold uppercase"
               style={{
-                background: 'rgba(230,197,132,.14)',
-                border: '1px solid rgba(230,197,132,.38)',
+                background: 'rgba(var(--gold-glow),.14)',
+                border: '1px solid rgba(var(--gold-glow),.38)',
                 color: 'var(--gold)',
                 letterSpacing: '.12em',
               }}

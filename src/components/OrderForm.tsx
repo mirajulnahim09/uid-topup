@@ -535,8 +535,14 @@ export default function OrderForm({
                       }}
                       className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
                       style={{
-                        borderColor: uid === r.uid ? 'rgba(230,197,132,.6)' : 'var(--hair)',
-                        background: uid === r.uid ? 'rgba(230,197,132,.10)' : 'var(--glass)',
+                        // ★ নির্বাচিত চিপের বর্ডার **নিরেট** `--gold` —
+                        //   `aria-pressed` ছাড়া এটিই একমাত্র দৃশ্যমান
+                        //   ইঙ্গিত যে কোন UID বাছা হয়েছে। মাপা: .6 আভায়
+                        //   লাইটে ছিল **১.৩৫:১**, অর্থাৎ সাদা কার্ডে
+                        //   ক্রিম দাগ — নির্বাচন দেখাই যেত না। নিরেটে
+                        //   ৪.১৪:১ (লাইট) ও ১৩.৪:১ (ডার্ক)।
+                        borderColor: uid === r.uid ? 'var(--gold)' : 'var(--hair)',
+                        background: uid === r.uid ? 'rgba(var(--gold-glow),.10)' : 'var(--glass)',
                         color: 'var(--ink)',
                       }}
                       aria-pressed={uid === r.uid}

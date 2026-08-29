@@ -292,7 +292,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
       {sel.size > 0 && (
         <div
           className="flex flex-wrap items-center gap-2 rounded-xl border p-3"
-          style={{ borderColor: 'var(--hair)', background: 'rgba(230,197,132,.06)' }}
+          style={{ borderColor: 'var(--hair)', background: 'var(--v-steel)' }}
         >
           <span className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
             {sel.size} টি নির্বাচিত — ৳
@@ -637,7 +637,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
               ))}
             </select>
             <p className="mt-2 rounded-lg border border-[var(--hair)] p-2.5 text-[11px] leading-relaxed"
-              style={{ background: 'rgba(230,197,132,.06)', color: 'var(--mut)' }}>
+              style={{ background: 'var(--v-steel)', color: 'var(--mut)' }}>
               গ্রাহক যা দেখবে:{' '}
               <span style={{ color: 'var(--ink)' }}>
                 {ORDER_FAIL_COPY[failReason as keyof typeof ORDER_FAIL_COPY]?.customerMessage

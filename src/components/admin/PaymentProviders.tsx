@@ -21,7 +21,10 @@ import Switch from '@/components/admin/Switch';
 const HEALTH_STYLE: Record<ProviderHealth['status'], { bg: string; fg: string; dot: string }> = {
   MANUAL_READY:       { bg: 'var(--tint-volt)', fg: 'var(--v-volt)', dot: '#22c55e' },
   CONFIGURED_PENDING: { bg: 'var(--tint-ice)',  fg: 'var(--v-ice)',  dot: '#38bdf8' },
-  PARTIAL_KEYS:       { bg: 'rgba(230,197,132,.12)', fg: 'var(--v-heat, #e6c584)', dot: '#e0a83a' },
+  // ★ আগে `bg` ছিল হার্ডকোড sand-gold আর `fg` এর ফলব্যাক `#e6c584` —
+  //   অথচ `--v-heat` দুই থিমেই সংজ্ঞায়িত, তাই ফলব্যাকটি কখনো ব্যবহৃতই
+  //   হতো না (মৃত)। বাকি তিনটি সারির মতোই এখন `--tint-*` + `--v-*` জোড়া।
+  PARTIAL_KEYS:       { bg: 'var(--tint-heat)', fg: 'var(--v-heat)', dot: '#e0a83a' },
   NO_KEYS:            { bg: 'var(--v-fill2)', fg: 'var(--v-mut)', dot: '#94a3b8' },
 };
 

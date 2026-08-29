@@ -98,7 +98,7 @@ export default async function AccountPage() {
             হয় না, তাই সরাসরি টোকেনে। */}
         <div
           className="card p-5"
-          style={{ background: 'linear-gradient(140deg, rgba(230,197,132,.16), var(--v-void))' }}
+          style={{ background: 'linear-gradient(140deg, rgba(var(--gold-glow),.16), var(--v-void))' }}
         >
           <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>
             ব্যালেন্স

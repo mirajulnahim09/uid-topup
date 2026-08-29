@@ -58,7 +58,7 @@ export type QueueDeposit = {
 /** সংকেতের রঙ — সতর্কতা, প্রসঙ্গ, আশ্বাস */
 const TONE: Record<'warn' | 'info' | 'good', { bg: string; border: string }> = {
   warn: { bg: 'rgba(242,168,196,.08)', border: 'rgba(242,168,196,.28)' },
-  info: { bg: 'rgba(230,197,132,.07)', border: 'var(--hair)' },
+  info: { bg: 'var(--v-steel)', border: 'var(--hair)' },
   good: { bg: 'rgba(127,224,187,.08)', border: 'rgba(127,224,187,.28)' },
 };
 
@@ -591,7 +591,7 @@ export default function DepositQueue({ deposits }: { deposits: QueueDeposit[] })
             </select>
             <p
               className="mb-3 rounded-lg p-2.5 text-[11px] leading-relaxed"
-              style={{ background: 'rgba(230,197,132,.06)', border: '1px solid var(--hair)', color: 'var(--mut)' }}
+              style={{ background: 'var(--v-steel)', border: '1px solid var(--hair)', color: 'var(--mut)' }}
             >
               গ্রাহক যা দেখবে:{' '}
               <span style={{ color: 'var(--ink)' }}>

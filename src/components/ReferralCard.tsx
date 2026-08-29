@@ -61,8 +61,8 @@ export default function ReferralCard({
             <div
               className="shrink-0 rounded-lg px-3 py-1.5 text-center"
               style={{
-                background: 'rgba(230,197,132,.12)',
-                border: '1px solid rgba(230,197,132,.35)',
+                background: 'rgba(var(--gold-glow),.12)',
+                border: '1px solid rgba(var(--gold-glow),.35)',
               }}
             >
               <p className="text-lg font-bold leading-none" style={{ color: 'var(--gold)' }}>{count}</p>
@@ -74,7 +74,7 @@ export default function ReferralCard({
         <div className="flex flex-col gap-2 sm:flex-row">
           <div
             className="flex flex-1 items-center gap-2 rounded-lg border-2 border-dashed px-4 py-3"
-            style={{ borderColor: 'rgba(230,197,132,.35)', background: 'var(--v-void)' }}
+            style={{ borderColor: 'rgba(var(--gold-glow),.35)', background: 'var(--v-void)' }}
           >
             <code
               className="flex-1 select-all font-mono text-lg font-bold tracking-widest"

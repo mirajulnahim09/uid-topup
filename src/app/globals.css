@@ -81,6 +81,14 @@
      একটি নিছক প্রসাধনী নামবদল ওই সব কল-সাইটে ঝুঁকি টেনে আনত।
      ভূমিকা: অ্যাকশন/সফল সংকেত (নতুন কোডে `--sem-success` ব্যবহার করুন)। */
   --gold:#bef264;        /* অ্যাকশন লাইম (নাম ঐতিহাসিক) — ১৪.৮:১ */
+  /* ★ `--gold` এর rgb-ট্রিপল, কেবল `rgba(var(--gold-glow), α)` আভার জন্য।
+     ⚠️ কেন আলাদা টোকেন: JSX-এ ছড়িয়ে থাকা `rgba(230,197,132, α)` লিটারেল
+     (পুরনো sand-gold) **থিম মানত না** — লাইট ও ডার্কে হুবহু একই রঙ আঁকত,
+     মাপা: `.rule-gold` এর computed মান দুই থিমেই `rgba(230,197,132,.7)`।
+     ফলে লাইটে প্রতিটি সোনালি বর্ডার পৃষ্ঠতলের বিপরীতে ১.১৪–১.৩৫:১ —
+     কার্যত অদৃশ্য ক্রিম দাগ। `--accent-glow` এর মতোই ট্রিপল রাখা হলো
+     যাতে `color-mix` (Chrome 111+) ছাড়াই পুরনো ফোনে চলে। */
+  --gold-glow:190,242,100;
   --rose:#fb7185;        /* সতর্কতা — ৭.১:১ */
   --ink:#eef1f6;         /* প্রধান পাঠ্য — ১৬.৪:১ */
   --mut:#9aa6b8;         /* সহায়ক পাঠ্য — ৭.৬:১ */
@@ -824,7 +832,7 @@ p, li { text-wrap: pretty; }
 
 /* সেকশন হেড — eyebrow + শিরোনাম + hairline (এক স্টাইল) */
 .eyebrow { font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:var(--gold); }
-.rule-gold { height:1px; width:6rem; margin-top:.75rem; background:linear-gradient(90deg,rgba(230,197,132,.7),transparent); }
+.rule-gold { height:1px; width:6rem; margin-top:.75rem; background:linear-gradient(90deg,rgba(var(--gold-glow),.7),transparent); }
 
 /* টেবিল সংখ্যা — একই প্রস্থে বসে, কলাম সোজা থাকে */
 .tbl td, .tbl th { font-variant-numeric: tabular-nums; }
@@ -871,7 +879,7 @@ img, video, svg, canvas { max-width:100%; }
 .spin-rev { animation:spin-slow 34s linear infinite reverse; }
 @keyframes halo { 0%,100%{opacity:.6;transform:scale(.95)} 50%{opacity:1;transform:scale(1.08)} }
 .halo-pulse { animation:halo 4.5s ease-in-out infinite; }
-@keyframes glow-pulse { 0%,100%{box-shadow:0 12px 34px rgba(167,219,255,.22)} 50%{box-shadow:0 18px 52px rgba(230,197,132,.4)} }
+@keyframes glow-pulse { 0%,100%{box-shadow:0 12px 34px rgba(167,219,255,.22)} 50%{box-shadow:0 18px 52px rgba(var(--gold-glow),.4)} }
 .glow-pulse { animation:glow-pulse 3.2s ease-in-out infinite; }
 @keyframes shimmer { from{background-position:200% 0} to{background-position:-200% 0} }
 .shimmer-btn { background:linear-gradient(110deg,#f8f5ff 40%,#e6c584 50%,#f8f5ff 60%); background-size:200% 100%; animation:shimmer 3s linear infinite; color:#08070f; }
@@ -1007,6 +1015,11 @@ details > summary::-webkit-details-marker { display:none; }
   --tint-violet:rgba(139,92,246,.16);    /* বেগুনি টিন্ট (আইকন টাইল) */
   --tint-ice:rgba(125,211,252,.12);      /* আইস টিন্ট */
   --tint-volt:rgba(163,230,53,.15);      /* লাইম টিন্ট */
+  /* ★ `--v-heat` (#fb7185) এর টিন্ট। যোগ করা হলো কারণ `PaymentProviders`
+     এর `HEALTH_STYLE` ম্যাপে তিনটি সারি টোকেন ব্যবহার করত কিন্তু
+     `PARTIAL_KEYS` সারিটি হার্ডকোড sand-gold আঁকত — অথচ তার লেখা
+     ইতিমধ্যেই `--v-heat`। ফলে আভা ও লেখা দুই ভিন্ন পরিবারের ছিল। */
+  --tint-heat:rgba(251,113,133,.12);     /* হিট/সতর্কতা টিন্ট */
 
   /* ── স্বাক্ষর জ্যামিতি ── */
   --nc:14px;
@@ -1029,6 +1042,7 @@ details > summary::-webkit-details-marker { display:none; }
   --bg:#f6f7f9; --bg2:#ffffff;
   --glass:rgba(15,23,41,.03); --hair:rgba(15,23,41,.09);
   --violet:#6d28d9; --ice:#0284c7; --gold:#5a8a00; --rose:#e11d48;
+  --gold-glow:90,138,0;               /* = --gold (#5a8a00) এর ট্রিপল */
   --ink:#0f1729; --mut:#525f70; --line:rgba(15,23,41,.10); --red:#e11d48;
 
   /* ═══════ §5.1 — অ্যাকসেন্ট পৃষ্ঠতল (option A: premium) ═══════
@@ -1108,6 +1122,7 @@ details > summary::-webkit-details-marker { display:none; }
   --tint-violet:rgba(109,40,217,.10);
   --tint-ice:rgba(2,132,199,.10);
   --tint-volt:rgba(77,124,15,.12);   /* নতুন --accent-text (#4d7c0f) এর সাথে মিলিয়ে */
+  --tint-heat:rgba(225,29,72,.10);   /* light `--v-heat` (#e11d48) এর সাথে মিলিয়ে */
 }
 
 /* ── §5.4 — পরিবেশ-ধোয়া (ambient wash) ──

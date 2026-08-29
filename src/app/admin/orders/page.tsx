@@ -91,7 +91,11 @@ export default async function AdminOrders({
           className="flex flex-wrap items-center gap-3 rounded-xl border p-3.5"
           style={{
             borderColor: breached > 0 ? 'rgba(224,120,120,.35)' : 'var(--hair)',
-            background: breached > 0 ? 'rgba(224,120,120,.08)' : 'rgba(230,197,132,.06)',
+            // ★ শান্ত শাখাটি (কেবল `soon`, কিছু দেরি হয়নি) এখন নিরপেক্ষ
+            //   `--v-steel` — আগে হার্ডকোড sand-gold ছিল, যা লাইট থিমে
+            //   সাদা কার্ডের বিপরীতে ১.০৬:১, অর্থাৎ দেখাই যেত না। নিরপেক্ষ
+            //   রাখলে 🚨 শাখাটির সাথে পার্থক্যও স্পষ্ট থাকে।
+            background: breached > 0 ? 'rgba(224,120,120,.08)' : 'var(--v-steel)',
           }}
         >
           <span className="text-lg">{breached > 0 ? '🚨' : '⏰'}</span>

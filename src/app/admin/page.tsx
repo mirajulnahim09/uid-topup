@@ -179,7 +179,7 @@ export default async function AdminDashboard() {
               উচ্চারণ (Phase 6)। আগে ছিল উজ্জ্বল বেগুনি প্যানেল। */}
           <div
             className="card p-5"
-            style={{ background: 'linear-gradient(140deg, rgba(230,197,132,.15), var(--v-void))' }}
+            style={{ background: 'linear-gradient(140deg, rgba(var(--gold-glow),.15), var(--v-void))' }}
           >
             <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>
               আনুমানিক লাভ

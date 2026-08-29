@@ -339,7 +339,7 @@ export default function DeliveryConfirm({
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         className="card p-5"
-        style={{ borderColor: 'rgba(230,197,132,.28)' }}
+        style={{ borderColor: 'rgba(var(--gold-glow),.28)' }}
       >
         <h2 className="dsp text-base font-semibold" style={{ color: 'var(--ink)' }}>
           আপনার অ্যাকাউন্টে পৌঁছেছে তো?

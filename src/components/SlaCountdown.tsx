@@ -75,7 +75,7 @@ export default function SlaCountdown({
     <span
       className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold ${className}`}
       style={{
-        background: 'rgba(230,197,132,.08)',
+        background: 'rgba(var(--gold-glow),.08)',
         border: '1px solid var(--hair)',
         color: 'var(--ink)',
       }}
