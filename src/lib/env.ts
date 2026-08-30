@@ -30,6 +30,17 @@ const OPTIONAL: Check[] = [
   { key: 'NEXTAUTH_URL', hint: 'সাইটের URL (production এ বাধ্যতামূলক)' },
   { key: 'BLOB_READ_WRITE_TOKEN', hint: 'Vercel Blob — ছবি আপলোডের জন্য' },
   { key: 'RESEND_API_KEY', hint: 'Resend — ইমেইল ও পাসওয়ার্ড রিসেটের জন্য' },
+  /**
+   * ★★★ `EMAIL_FROM` — কী থাকার চেয়েও এটি বেশি জরুরি।
+   *
+   *   সেট না করলে ডিফল্ট `onboarding@resend.dev` (Resend স্যান্ডবক্স),
+   *   যা দিয়ে **কেবল অ্যাকাউন্টের নিজের ঠিকানায়** মেইল যায়। ফলে
+   *   প্রোডাকশনে RESEND_API_KEY থাকা সত্ত্বেও নতুন কোনো গ্রাহক OTP
+   *   পাবেন না, অর্থাৎ **রেজিস্ট্রেশনই অসম্ভব** — অথচ কোথাও কোনো
+   *   ত্রুটি দেখা যাবে না। তাই এটি এখানে তালিকাভুক্ত, আর
+   *   `health.ts` আলাদা করে স্যান্ডবক্স-প্রেরক ধরে `down` বলে।
+   */
+  { key: 'EMAIL_FROM', hint: 'যাচাই করা ডোমেইনের প্রেরক ("নাম <no-reply@yourdomain>") — না দিলে Resend স্যান্ডবক্স, তখন গ্রাহক OTP পাবেন না' },
   { key: 'GOOGLE_CLIENT_ID', hint: 'Google দিয়ে লগইনের জন্য' },
   { key: 'GOOGLE_CLIENT_SECRET', hint: 'Google দিয়ে লগইনের জন্য' },
 ];

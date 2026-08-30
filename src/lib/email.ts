@@ -16,6 +16,24 @@ export function isEmailConfigured(): boolean {
   return Boolean(resend);
 }
 
+/**
+ * ★★★ প্রেরকের ঠিকানা এখনো Resend-এর **স্যান্ডবক্স** ডোমেইনে কিনা।
+ *
+ *   ⚠️ কেন এটি আলাদা করে জানা দরকার: `RESEND_API_KEY` থাকলেই ইমেইল
+ *   "কনফিগার করা" মনে হয়, অথচ `EMAIL_FROM` ডিফল্টে
+ *   `onboarding@resend.dev` — Resend-এর স্যান্ডবক্স প্রেরক, যা দিয়ে
+ *   **কেবল অ্যাকাউন্টের নিজের ঠিকানায়** মেইল যায়। ফলে প্রোডাকশনে
+ *   প্রতিটি নতুন গ্রাহকের OTP ও পাসওয়ার্ড-রিসেট নীরবে ব্যর্থ হয়,
+ *   অথচ হেলথ-চেক সবুজ দেখায়। ঠিক এই অবস্থাতেই সাইটটি ছিল
+ *   (HANDOFF §১ — লঞ্চ-ব্লকার ১)।
+ *
+ *   সমাধান কোডে নয়, কনফিগে: resend.com/domains এ ডোমেইন verify,
+ *   DNS-এ SPF ও DKIM, তারপর `EMAIL_FROM` ঐ ডোমেইনের ঠিকানায়।
+ */
+export function isSandboxSender(): boolean {
+  return /@resend\.dev/i.test(FROM);
+}
+
 const base = () => process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
 /**
