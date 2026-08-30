@@ -20,8 +20,8 @@
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 
-import { chromium } from 'playwright-core';
-import { readFileSync, existsSync } from 'node:fs';
+import { openBrowser } from './_browser';
+
 import path from 'node:path';
 
 const PORT = process.argv.find((a) => a.startsWith('--port='))?.slice(7) || '3000';
@@ -90,10 +90,7 @@ const HYDRATED = `(function () {
 
   // ── ৪-৬. প্রকৃত ব্রাউজার ──
   console.log('\n── ব্রাউজার (hydration ও CSP লঙ্ঘন) ──');
-  const ws = path.join(process.cwd(), 'ws.txt');
-  const browser = existsSync(ws)
-    ? await chromium.connect(readFileSync(ws, 'utf8').trim())
-    : await chromium.launch({ headless: true });
+  const browser = await openBrowser();
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await ctx.newPage();
 

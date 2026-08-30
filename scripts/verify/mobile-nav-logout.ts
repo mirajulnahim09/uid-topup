@@ -301,7 +301,7 @@ async function mobileFlow(ctx: BrowserContext, w: number, h: number) {
 
   for (const [w, h] of [[320, 844], [390, 844], [430, 932], [768, 1024], [1024, 800], [1366, 900]] as const) {
     console.log(`\n── ভিউপোর্ট ${w}x${h} ──`);
-    const ctx = await browser.newContext({ viewport: { width: w, height: h } });
+    const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: w, height: h } });
     await roleFlow(ctx, w);
     if (w <= 430) await mobileFlow(ctx, w, h);
     await ctx.close();
@@ -310,7 +310,7 @@ async function mobileFlow(ctx: BrowserContext, w: number, h: number) {
   // ★ Android ও ল্যান্ডস্কেপ — টাচ-ইমুলেশনসহ, কারণ বার ও FAB সেখানেই
   for (const [w, h, name] of [[412, 915, 'android-pixel'], [844, 390, 'landscape']] as const) {
     console.log(`\n── ${name} ${w}x${h} ──`);
-    const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 2.6 });
+    const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 2.6 });
     await mobileFlow(ctx, w, h);
     await ctx.close();
   }

@@ -14,8 +14,8 @@
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 
-import { chromium } from 'playwright-core';
-import { readFileSync, existsSync } from 'node:fs';
+import { openBrowser } from './_browser';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const BASE = `http://localhost:${process.argv.find((a) => a.startsWith('--port='))?.slice(7) || '3000'}`;
@@ -60,10 +60,7 @@ const READ = (theme: string) => `(function () {
 
   // ── M5: প্রকৃত ব্রাউজার ──
   console.log('\n── M5 (ব্রাউজার) ──');
-  const ws = path.join(process.cwd(), 'ws.txt');
-  const browser = existsSync(ws)
-    ? await chromium.connect(readFileSync(ws, 'utf8').trim())
-    : await chromium.launch({ headless: true });
+  const browser = await openBrowser();
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await ctx.newPage();
 

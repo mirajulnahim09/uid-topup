@@ -18,9 +18,9 @@
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 
-import { chromium } from 'playwright-core';
+import { openBrowser } from './_browser';
 import { execSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const BASE = 'http://localhost:3000';
@@ -151,10 +151,7 @@ function byDesign(pair: string) {
   check('নতুন !important যোগ হয়নি (মন্তব্য বাদে)', after <= before, `আগে ${before} · এখন ${after}`);
 
   // ── গ) কন্ট্রাস্ট: ২ থিম × ৫ প্রিসেট ──
-  const ws = path.join(process.cwd(), 'ws.txt');
-  const browser = existsSync(ws)
-    ? await chromium.connect(readFileSync(ws, 'utf8').trim())
-    : await chromium.launch({ headless: true });
+  const browser = await openBrowser();
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await ctx.newPage();
 

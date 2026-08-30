@@ -29,8 +29,9 @@
  */
 import { db, dbLabel, BASE } from './_db';
 
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core';
-import { existsSync, readFileSync, mkdirSync } from 'node:fs';
+import { type Browser, type BrowserContext, type Page } from 'playwright-core';
+import { openBrowser } from './_browser';
+import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { creditWallet } from '../../src/lib/services/wallet';
 import { issueOtp } from '../../src/lib/otp/core';
@@ -132,7 +133,7 @@ const WD_KEYS = ['withdrawal_enabled', 'withdrawal_min', 'withdrawal_hold_hours'
     const seed = await db.user.findUnique({
       where: { email: 'customer@uidtopup.local' }, select: { password: true },
     });
-    if (!seed?.password) throw new Error('সিড গ্রাহক নেই — আগে `npm run dev:db:seed`');
+    if (!seed?.password) throw new Error('সিড গ্রাহক নেই — আগে `node scripts/dev-make-customer.mjs` চালান (dev:db:seed কেবল অ্যাডমিন বানায়, গ্রাহক নয়)');
     const user = await db.user.create({
       data: { name: 'সাপোর্ট যাচাই', email: EMAIL, phone: `019${String(Date.now()).slice(-8)}`,
         // ★ এই স্কিমায় `emailVerified` একটি বুলিয়ান, তারিখ নয়
@@ -146,10 +147,7 @@ const WD_KEYS = ['withdrawal_enabled', 'withdrawal_min', 'withdrawal_hold_hours'
       await creditWallet({ tx, userId, amount: START_BALANCE, type: 'DEPOSIT', note: `${TAG} শুরুর ব্যালেন্স` });
     });
 
-    const wsPath = path.join(process.cwd(), 'ws.txt');
-    browser = existsSync(wsPath)
-      ? await chromium.connect(readFileSync(wsPath, 'utf8').trim())
-      : await chromium.launch({ headless: true });
+    browser = await openBrowser();
     const opts = { ignoreHTTPSErrors: true, viewport: { width: 1280, height: 900 } };
     cust = await browser.newContext(opts);
     adm = await browser.newContext(opts);
@@ -249,9 +247,24 @@ const WD_KEYS = ['withdrawal_enabled', 'withdrawal_min', 'withdrawal_hold_hours'
 
     // ═══ ৫. টাকা তোলার অনুরোধ (UI) ═══
     console.log('\n── ৫. টাকা তোলার অনুরোধ ──');
-    await cp.goto(`${BASE}/account/wallet/withdraw`, { waitUntil: 'domcontentloaded' });
-    await settle(cp);
-    check('ফিচার চালু — ফর্ম দেখা যাচ্ছে', (await cp.locator('#amt').count()) > 0);
+    /**
+     * ⚠️ এই স্ক্রিপ্ট সেটিং **সরাসরি DB-তে** লেখে, অ্যাডমিন API দিয়ে নয়।
+     *   পণ্যের প্রতিটি অ্যাডমিন-রুট লেখার পরেই `invalidateSettings()`
+     *   ডাকে, কিন্তু API বাইপাস করায় সার্ভার-প্রসেসের ক্যাশ অক্ষত থাকে —
+     *   আর `settings.ts` এর TTL ৩০s। `next dev`-এ এটি ঢাকা পড়ত (প্রতি
+     *   অনুরোধে মডিউল রিলোড হয়ে মডিউল-স্তরের ক্যাশ মুছে যেত); প্রোডাকশন
+     *   রিগে প্রসেস দীর্ঘজীবী, তাই ফর্মটি ৩০s পর্যন্ত "বন্ধ" দেখাত।
+     *   তাই TTL পার হওয়া পর্যন্ত **বাউন্ডেড** ভাবে অপেক্ষা — নীরব
+     *   sleep নয়, প্রতিবার সত্যিই পাতাটি দেখে।
+     */
+    let formSeen = false;
+    for (let i = 0; i < 9 && !formSeen; i++) {
+      await cp.goto(`${BASE}/account/wallet/withdraw`, { waitUntil: 'domcontentloaded' });
+      await settle(cp);
+      formSeen = (await cp.locator('#amt').count()) > 0;
+      if (!formSeen) await cp.waitForTimeout(5_000);
+    }
+    check('ফিচার চালু — ফর্ম দেখা যাচ্ছে', formSeen);
     await cp.screenshot({ path: `${SHOT_DIR}/support-withdraw-form.png`, fullPage: true });
 
     /**
