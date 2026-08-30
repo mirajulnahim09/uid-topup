@@ -126,6 +126,26 @@ export async function POST(
     // ⚠️ সততা: লাইভ গেটওয়ে এখনো নেই, তাই এখানে শুধু নিরাপদে রেকর্ড ও লগ
     //    করা হয়। গেটওয়ে চালু হলে এখানে deposit auto-approve যুক্ত হবে
     //    (একই wallet service দিয়ে — নতুন money path নয়)।
+    //
+    // 🔴🔴 যিনি এখানে ক্রেডিট যোগ করবেন, তাঁর জন্য — **ক্রম নিয়ে সাবধান**।
+    //
+    //    উপরের idempotency marker সাইড-এফেক্টের **আগে** লেখা হয়। আজ
+    //    এটি নিরাপদ, কারণ নিচে কোনো সাইড-এফেক্ট নেই — কেবল লগ। কিন্তু
+    //    এখানে creditWallet() বসালে একটি নতুন ব্যর্থতা-মোড তৈরি হবে:
+    //
+    //      marker লেখা হলো → ক্রেডিট ব্যর্থ (DB hiccup/timeout) → গেটওয়ে
+    //      retry করল → marker আছে বলে `duplicate` ধরে skip → **গ্রাহকের
+    //      টাকা কখনোই জমা হলো না**, অথচ গেটওয়ে বলছে সফল।
+    //
+    //    এটি double-credit এর চেয়ে ধরা কঠিন, কারণ কোথাও কোনো ত্রুটি
+    //    দেখা যায় না — কেবল একজন গ্রাহকের টাকা নেই।
+    //
+    //    সঠিক রূপ: marker ও ক্রেডিট **একই `prisma.$transaction`-এ**
+    //    (marker-এর unique key তখনো lock হিসেবে কাজ করে, আর ক্রেডিট
+    //    ব্যর্থ হলে marker-ও rollback হয়, তাই retry সত্যিই কাজ করে)।
+    //    `tests/webhook-lifecycle.test.ts` এর শেষ টেস্টটি আজকের
+    //    "কিছুই ক্রেডিট হয় না" আচরণ লক করে রেখেছে — ক্রেডিট যোগ করলে
+    //    সেটি ইচ্ছাকৃতভাবে ভাঙবে, অর্থাৎ এই মন্তব্যটি তখন পড়া হবে।
     logger.info('webhook', 'payment event received', {
       provider: provider.id, type: event.type,
       reference: 'reference' in event ? event.reference : undefined,
