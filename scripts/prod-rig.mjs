@@ -60,6 +60,49 @@ if (!['localhost', '127.0.0.1', '::1'].includes(host)) {
   process.exit(1);
 }
 
+/**
+ * ★★★ preflight — পোর্ট দুটি খালি কি না।
+ *
+ *   ── কোন সমস্যাটি এটি ঠেকায় (মাপা, ২০২৬-০৮-৩০) ──
+ *   উইন্ডোজে wrapper প্রসেস kill করলে `next start` ও প্রক্সি
+ *   **child হিসেবে বেঁচে থাকে**। ফলে পরের রানে:
+ *     ১. নতুন প্রক্সি `EADDRINUSE` পেয়ে মরে,
+ *     ২. `proxy.on('exit')` পুরো নতুন রিগকে নামিয়ে দেয়,
+ *     ৩. কিন্তু **পুরনো** রিগ তখনো সাড়া দেয়, তাই যাচাই-স্ক্রিপ্ট
+ *        "সার্ভার প্রস্তুত" দেখে শুরু করে,
+ *     ৪. পুরনোটি পরে মরলেই মাঝপথে `ERR_CONNECTION_REFUSED`।
+ *
+ *   এই ধাঁধাটিই PROGRESS.md-এ তিনবার "রিগ নীরবে মরল" হিসেবে লেখা
+ *   আছে — কারণ ব্যর্থতাটি দেখা যেত ভুল জায়গায়। এখন রিগ **শুরুতেই**
+ *   স্পষ্ট বার্তা দিয়ে থামে, আর কোন PID দখলে তা-ও বলে দেয়।
+ */
+async function assertPortFree(port) {
+  const { createServer } = await import('node:net');
+  await new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.once('error', (e) => {
+      if (e.code === 'EADDRINUSE') {
+        console.error(
+          `✗ পোর্ট ${port} ইতিমধ্যেই দখলে — পুরনো একটি রিগ বেঁচে আছে।
+` +
+          `  দেখুন : netstat -ano | findstr :${port}
+` +
+          `  মারুন : powershell Stop-Process -Id <PID> -Force`,
+        );
+        process.exit(1);
+      }
+      reject(e);
+    });
+    srv.once('listening', () => srv.close(() => resolve()));
+    // ⚠️ host **দেওয়া হয় না** — প্রক্সি `::` (dual-stack) তে bind করে।
+    //   `0.0.0.0` দিলে Windows-এ দুটি স্ট্যাক আলাদা গণ্য হয়, তাই
+    //   পোর্ট দখলে থাকলেও bind সফল হতো — গার্ডটি কাজই করত না।
+    srv.listen(port);
+  });
+}
+await assertPortFree(HTTP_PORT);
+await assertPortFree(HTTPS_PORT);
+
 process.env.NEXTAUTH_URL = `https://localhost:${HTTPS_PORT}`;
 process.env.PORT = String(HTTP_PORT);
 
