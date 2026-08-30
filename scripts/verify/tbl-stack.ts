@@ -267,6 +267,25 @@ async function main() {
        *     থেকে — একই রিগ, একই কোলাহল, একই সিদ্ধান্ত।
        */
       if (/SSL certificate error occurred when fetching the script/i.test(t)) return;
+      /**
+       * ⚠️ **বাতিল-হওয়া RSC prefetch এর কনসোল-প্রতিরূপ।**
+       *
+       *   নিচের `requestfailed` হ্যান্ডলার `ERR_ABORTED` কে ইতিমধ্যেই
+       *   ছাড় দেয় (হারনেস দ্রুত নেভিগেট করায় prefetch বাতিল হয়)।
+       *   কিন্তু ঠিক সেই একই ঘটনার **কনসোল** বার্তাটি ছাড় পেত না —
+       *   অর্থাৎ একই ফাইলে নেটওয়ার্ক-দিক নিরীহ, কনসোল-দিক ত্রুটি।
+       *   ফল: মাপা ফ্লেকি — ৩ রানে ২ বার মিথ্যা লাল (২০২৬-০৮-৩১)।
+       *
+       *   বার্তাটি নিজেই বলে দেয় Next **নিজে সেরে উঠেছে**
+       *   ("Falling back to browser navigation"), আর পাতার প্রতিটি
+       *   টেবিল-দাবি ঐ রানগুলোতেও পাস করেছে।
+       *
+       *   ছাড়টি **সংকীর্ণ** — হুবহু এই দুটি বাক্য একসাথে থাকতে হবে।
+       *   সার্ভার সত্যিই ভাঙলে fallback নেভিগেশনও ব্যর্থ হতো এবং
+       *   টেবিল-দাবিগুলোই লাল হতো। নিয়ম ও যুক্তি হুবহু
+       *   `scripts/audit/mobile-ux-audit.mjs` থেকে — একই ঘটনা, একই সিদ্ধান্ত।
+       */
+      if (/Failed to fetch RSC payload[\s\S]*Falling back to browser navigation/.test(t)) return;
       consoleErrors.push(t.slice(0, 200));
     });
     page.on('requestfailed', (r) => {

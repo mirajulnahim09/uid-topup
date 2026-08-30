@@ -327,13 +327,23 @@ async function login(page: Page, email: string, password: string, want: string) 
      * ⚠️ পুরো পাতায় "সম্পন্ন" খোঁজা **যথেষ্ট নয়** — ফিল্টার-চিপেও ঐ
      *   শব্দ থাকে, তাই অর্ডার PENDING থাকা অবস্থাতেও PASS আসত। দাবিটি
      *   এখন নির্দিষ্ট: **ঐ অর্ডারের সারিতেই** সম্পন্ন-অবস্থা লেখা আছে।
+     *
+     * ⚠️⚠️ আগের সংস্করণটি **মিথ্যা লাল** দিত। দুটি কারণ, দুটোই মাপা:
+     *   ১. খোঁজা হতো কাঁচা সংখ্যা (`"5"`), `#` ছাড়া — তাই "25 Diamond"
+     *      বা ফুটারের "01700000000"-ও মিলে যেত। এক-অঙ্কের orderNo-তে
+     *      (নতুন সিড DB-তে যা স্বাভাবিক) প্রায় সবকিছুই মিলত।
+     *   ২. `.pop()` **শেষ** মিলটি নিত, অর্থাৎ নথি-ক্রমে সবচেয়ে গভীর
+     *      উপাদান — সারি নয়, সারির ভেতরের একটি লেবেল।
+     *   মাপা প্রমাণ: orderNo=5-এ বাছত `DIV "25 Diamond"` (স্ট্যাটাস নেই),
+     *   অথচ একই পাতায় `TR`-এ "সম্পন্ন" ঠিকই ছিল। এখন `#<no>` anchored
+     *   আর কেবল প্রকৃত সারি-কন্টেইনার (`tr` · `.card` · `article`)।
      */
     const delivered = order
       ? await cp.evaluate(`(function(){
-          var no = ${JSON.stringify(String(order.orderNo))};
-          var els = Array.from(document.querySelectorAll('article, li, tr, div'));
-          var row = els.filter(function(e){ return e.innerText && e.innerText.includes(no) && e.innerText.length < 600; }).pop();
-          return row ? /সম্পন্ন|ডেলিভার|Delivered|Completed/i.test(row.innerText) : false;
+          var no = ${JSON.stringify('#' + String(order.orderNo))};
+          var rows = Array.from(document.querySelectorAll('tr, .card, article'))
+            .filter(function(e){ return e.innerText && e.innerText.indexOf(no) >= 0; });
+          return rows.length ? /সম্পন্ন|ডেলিভার|Delivered|Completed/i.test(rows[0].innerText) : false;
         })()`)
       : false;
     check('গ্রাহকের ঐ অর্ডারের সারিতেই সম্পন্ন-অবস্থা দেখা যায়', Boolean(delivered));
