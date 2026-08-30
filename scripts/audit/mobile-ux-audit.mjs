@@ -82,6 +82,7 @@ const DESKTOP_VPS = [
   { name: '768x1024', width: 768, height: 1024 },
   { name: '1024x768', width: 1024, height: 768 },
   { name: '1280x720', width: 1280, height: 720 },
+  { name: '1366x768', width: 1366, height: 768 },   // সবচেয়ে সাধারণ ল্যাপটপ প্রস্থ
   { name: '1440x900', width: 1440, height: 900 },
   { name: '1920x1080', width: 1920, height: 1080 },
 ];
@@ -581,9 +582,29 @@ async function clearRateLimits() {
 
 async function settle(page) {
   await page.waitForLoadState('domcontentloaded').catch(() => {});
+  /**
+   * ⚠️⚠️ **ফাংশন-রূপ ইচ্ছাকৃত, স্ট্রিং নয়** (মাপা ২০২৬-০৮-৩০)।
+   *
+   *   Playwright-কে `waitForFunction` এ **স্ট্রিং** দিলে সে পাতার ভেতরে
+   *   সেটিকে `new Function` দিয়ে কম্পাইল করে। অ্যাপের CSP কড়া
+   *   (`script-src 'self' 'nonce-…' 'strict-dynamic'`, `unsafe-eval` নেই),
+   *   তাই ব্রাউজার সেটি **ঠিকভাবেই** আটকায় এবং পাতায় একটি
+   *   `EvalError` ছোড়ে — যা হারনেস নিজের কনসোল-কাউন্টারে গুনত।
+   *
+   *   অর্থাৎ কাউন্টারটি অ্যাপের ত্রুটি নয়, **নিজের পরিমাপ-যন্ত্রের**
+   *   ত্রুটি দেখাত — §১১ এর সেই একই ফাঁদ। নিয়ন্ত্রিত পরীক্ষায় মাপা:
+   *   স্ট্রিং-রূপে ১২টি পাতায় `EvalError`, ফাংশন-রূপে **০**।
+   *   (উল্টো দিকে এটি একটি সুসংবাদও — CSP সত্যিই কাজ করছে।)
+   */
   await page
     .waitForFunction(
-      `!document.querySelector('.v-ovl') && (function(){ var b=document.getElementById('v-boot'); return !b || getComputedStyle(b).opacity === '0' || getComputedStyle(b).visibility === 'hidden'; })()`,
+      () => {
+        if (document.querySelector('.v-ovl')) return false;
+        const b = document.getElementById('v-boot');
+        if (!b) return true;
+        const cs = getComputedStyle(b);
+        return cs.opacity === '0' || cs.visibility === 'hidden';
+      },
       null,
       { timeout: 45000 },
     )
@@ -641,8 +662,29 @@ async function visit(page, route, label, vpName, console_, net, aborted) {
   }
 
   const here = new URL(page.url());
+
+  /**
+   * ★★★ ব্রাউজারের **নিজের** এরর-পাতা — আমাদের UI নয়।
+   *
+   *   সার্ভার মাঝপথে মরে গেলে (রিগের লিপিবদ্ধ ফ্লেকি) Chrome
+   *   "This site can't be reached" আঁকে। তার ভেতরে Chrome-এর নিজের
+   *   `#reload-button` ও `#details-button` আছে — ৭৪×৩১px, অর্থাৎ
+   *   আমাদের ট্যাপ-টার্গেট সীমার নিচে। ফলে হারনেস ঐ পাতাগুলোকে
+   *   **আমাদের** ত্রুটি হিসেবে গুনত: ২০২৬-০৮-৩০ এর রানে ৭টি
+   *   "ছোট ট্যাপ-টার্গেট" পাতার প্রতিটিই আসলে এটিই ছিল।
+   *
+   *   এটি §১১-এর সেই সমস্যারই আরেক রূপ (*কাউন্টার যা ভুল জিনিস
+   *   গোনে*)। তাই পাতাটি লোডই না হলে UI-কাউন্টারগুলো **খালি** যায়,
+   *   আর `didNotLoad` আলাদা করে গোনা হয় — তথ্যটি হারায় না, কেবল
+   *   ভুল কলামে বসে না।
+   */
+  const didNotLoad = await page.evaluate(
+    '!!document.querySelector("#main-frame-error")',
+  ).catch(() => false);
+
   return {
     route,
+    didNotLoad,
     status: resp ? resp.status() : null,
     landedOn: here.pathname,
     bouncedToLogin: here.pathname.startsWith('/login') && !route.startsWith('/login'),
@@ -650,15 +692,15 @@ async function visit(page, route, label, vpName, console_, net, aborted) {
     rawScrollWidth: m.rawScrollWidth,
     trueScrollWidth: m.trueScrollWidth,
     /** ★ আসল প্রশ্ন — মুখোশ ছাড়া */
-    overflowing: (m.trueScrollWidth != null && m.trueScrollWidth > m.vw + 1) || (m.geomOverflow || []).length > 0,
+    overflowing: !didNotLoad && ((m.trueScrollWidth != null && m.trueScrollWidth > m.vw + 1) || (m.geomOverflow || []).length > 0),
     offenders: (m.geomOverflow || []).slice(0, 6),
-    clipped: (m.clipped || []).slice(0, 5),
-    covered: bootStillUp ? [] : ((mb || m).covered || []).slice(0, 5),
-    floatOverlap: (m.floatOverlap || []).slice(0, 5),
-    smallTaps: (m.smallTaps || []).slice(0, 8),
-    nearTaps: (m.nearTaps || []).slice(0, 4),
-    aaTaps: (m.aaTaps || []).slice(0, 4),
-    zoomInputs: (m.zoomInputs || []).slice(0, 5),
+    clipped: didNotLoad ? [] : (m.clipped || []).slice(0, 5),
+    covered: (bootStillUp || didNotLoad) ? [] : ((mb || m).covered || []).slice(0, 5),
+    floatOverlap: didNotLoad ? [] : (m.floatOverlap || []).slice(0, 5),
+    smallTaps: didNotLoad ? [] : (m.smallTaps || []).slice(0, 8),
+    nearTaps: didNotLoad ? [] : (m.nearTaps || []).slice(0, 4),
+    aaTaps: didNotLoad ? [] : (m.aaTaps || []).slice(0, 4),
+    zoomInputs: didNotLoad ? [] : (m.zoomInputs || []).slice(0, 5),
     bottomGap: m.bottomGap,
     consoleErrors: console_.slice(0, 5),
     failedRequests: net.slice(0, 5),
@@ -677,7 +719,7 @@ const report = {
     pages: 0, bounced: 0, overflowPages: 0, clippedPages: 0, coveredPages: 0,
     floatOverlapPages: 0, smallTapPages: 0, zoomInputPages: 0,
     consoleErrorPages: 0, failedRequestPages: 0, abortedRequestPages: 0,
-    notSettled: 0, bottomShortPages: 0,
+    notSettled: 0, bottomShortPages: 0, didNotLoadPages: 0,
   },
 };
 
@@ -752,7 +794,13 @@ async function persona(label, creds, wantPath, routes, allVps, isMobile) {
      *   probe পথ হতে হবে। অন্য যেকোনো পাতার ৪০৪ আগের মতোই ত্রুটি।
      */
     if (/status of 404/.test(txt) && (msg.location()?.url || '').includes(NOT_FOUND_PROBE)) return;
-    consoleErrors.push(txt.slice(0, 200));
+    /**
+     * ★ উৎস-URL সহ রাখা হয় — নাহলে "Failed to load resource" বার্তাটি
+     *   কোন সম্পদ নিয়ে, তা জানার কোনো উপায় থাকে না। ২০২৬-০৮-৩০ এ
+     *   ঠিক এই কারণে একটি ত্রুটি নির্ণয় করতে আলাদা প্রোব লিখতে হয়েছিল।
+     */
+    const src = msg.location()?.url || '';
+    consoleErrors.push((txt + (src ? `  ← ${src.slice(0, 120)}` : '')).slice(0, 300));
   });
   page.on('requestfailed', (r) => {
     const u = r.url();
@@ -842,6 +890,7 @@ async function persona(label, creds, wantPath, routes, allVps, isMobile) {
     report.summary.consoleErrorPages += count((r) => r.consoleErrors.length);
     report.summary.failedRequestPages += count((r) => r.failedRequests.length);
     report.summary.abortedRequestPages += count((r) => r.abortedRequests.length);
+    report.summary.didNotLoadPages += count((r) => r.didNotLoad);
     report.summary.notSettled += count((r) => r.notSettled);
     report.summary.bottomShortPages += count((r) => r.bottomGap && r.bottomGap.short > 1);
 
@@ -957,6 +1006,7 @@ console.log(`  iOS জুম ইনপুট       : ${s.zoomInputPages}`);
 console.log(`  বটম-বার reserve কম  : ${s.bottomShortPages}`);
 console.log(`  কনসোল ত্রুটি        : ${s.consoleErrorPages}`);
 console.log(`  ব্যর্থ অনুরোধ        : ${s.failedRequestPages}`);
+console.log(`  পাতা লোডই হয়নি      : ${s.didNotLoadPages}  (সার্ভার/নেটওয়ার্ক — UI-কাউন্টার থেকে বাদ)`);
 console.log(`  বাতিল অনুরোধ        : ${s.abortedRequestPages}  (নিরীহ — prefetch/ফন্ট, ব্রাউজারই ছেড়ে দেয়)`);
 console.log(`  অমীমাংসিত মাপ       : ${s.notSettled}`);
 console.log(`  রুট-কভারেজ          : ${report.coverage.covered}/${report.coverage.discovered}` +
