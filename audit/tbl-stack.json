@@ -1,6 +1,6 @@
 {
- "at": "2026-08-28T06:49:19.542Z",
- "base": "http://localhost:3000",
+ "at": "2026-08-30T21:26:09.856Z",
+ "base": "https://localhost:3443",
  "results": [
   {
    "page": "admin/logs",
@@ -23,8 +23,8 @@
    "labelsMissing": [],
    "cellOverflow": [],
    "emptyStates": [],
-   "longestCellText": "#71 — ৳40.00 ফেরত (মোট ৳40.00 / ৳40.00) — যাচাই — ডাবল রিফান্ড পরীক্ষা",
-   "scrollHeight": 118732,
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 119131,
    "innerHeight": 900
   },
   {
@@ -48,8 +48,8 @@
    "labelsMissing": [],
    "cellOverflow": [],
    "emptyStates": [],
-   "longestCellText": "#71 — ৳40.00 ফেরত (মোট ৳40.00 / ৳40.00) — যাচাই — ডাবল রিফান্ড পরীক্ষা",
-   "scrollHeight": 118380,
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 118668,
    "innerHeight": 900
   },
   {
@@ -73,8 +73,8 @@
    "labelsMissing": [],
    "cellOverflow": [],
    "emptyStates": [],
-   "longestCellText": "#71 — ৳40.00 ফেরত (মোট ৳40.00 / ৳40.00) — যাচাই — ডাবল রিফান্ড পরীক্ষা",
-   "scrollHeight": 118278,
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 118469,
    "innerHeight": 900
   },
   {
@@ -98,8 +98,8 @@
    "labelsMissing": [],
    "cellOverflow": [],
    "emptyStates": [],
-   "longestCellText": "#71 — ৳40.00 ফেরত (মোট ৳40.00 / ৳40.00) — যাচাই — ডাবল রিফান্ড পরীক্ষা",
-   "scrollHeight": 18369,
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 18565,
    "innerHeight": 900
   },
   {
@@ -123,8 +123,8 @@
    "labelsMissing": [],
    "cellOverflow": [],
    "emptyStates": [],
-   "longestCellText": "#71 — ৳40.00 ফেরত (মোট ৳40.00 / ৳40.00) — যাচাই — ডাবল রিফান্ড পরীক্ষা",
-   "scrollHeight": 18283,
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 18479,
    "innerHeight": 900
   },
   {
@@ -148,8 +148,8 @@
    "labelsMissing": [],
    "cellOverflow": [],
    "emptyStates": [],
-   "longestCellText": "#71 — ৳40.00 ফেরত (মোট ৳40.00 / ৳40.00) — যাচাই — ডাবল রিফান্ড পরীক্ষা",
-   "scrollHeight": 17655,
+   "longestCellText": "TBLSTACK bKash ট্রানজেকশন যাচাই করে অনুমোদন দেওয়া হয়েছে; গ্রাহক এর আগে দুইবার ভুল TrxID দিয়ে চেষ্টা করেছিলেন এবং তৃতীয়বারে সঠিক রেফারেন্স জমা দেন",
+   "scrollHeight": 18479,
    "innerHeight": 900
   },
   {
@@ -451,7 +451,7 @@
    "cellOverflow": [],
    "emptyStates": [],
    "longestCellText": "Free Fire [BD SERVER] — বাংলাদেশ সার্ভার (তাৎক্ষণিক ডেলিভারি)100 Diamond",
-   "scrollHeight": 37962,
+   "scrollHeight": 37942,
    "innerHeight": 900
   },
   {
