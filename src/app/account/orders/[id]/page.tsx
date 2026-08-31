@@ -75,7 +75,13 @@ export default async function OrderDetail({
       {searchParams.placed === '1' && (
         <div
           className="card p-5"
-          style={{ borderColor: 'rgba(127,224,187,.35)', background: 'rgba(127,224,187,.06)' }}
+          /* ★ মিন্ট লিটারেল দুটি থিম-অন্ধ ছিল — এটিই গ্রাহকের প্রথম
+               "টাকাটা হাতে নেওয়া হয়েছে" নিশ্চয়তা, তাই লাইট থিমে ফ্যাকাশে
+               হয়ে মিলিয়ে যাওয়া চলে না। এখন `--sem-success`। */
+          style={{
+            borderColor: 'color-mix(in srgb, var(--sem-success) 35%, transparent)',
+            background: 'color-mix(in srgb, var(--sem-success) 6%, transparent)',
+          }}
         >
           <h2 className="dsp text-base font-semibold" style={{ color: 'var(--ink)' }}>
             ✓ অর্ডার #{order.orderNo} গ্রহণ করা হয়েছে
@@ -205,7 +211,12 @@ export default async function OrderDetail({
           <div className="flex items-start gap-3">
             <span
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-lg"
-              style={{ background: 'rgba(242,168,196,.12)', border: '1px solid rgba(242,168,196,.3)' }}
+              /* ★ বাতিল/ফেরতের আইকন-বৃত্ত — গোলাপি লিটারেল থেকে
+                   `--sem-danger`-এ, দুই থিমে আলাদা শেড। */
+              style={{
+                background: 'color-mix(in srgb, var(--sem-danger) 12%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--sem-danger) 30%, transparent)',
+              }}
               aria-hidden="true"
             >
               ↩

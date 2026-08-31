@@ -56,10 +56,22 @@ export default function SlaCountdown({
     return (
       <span
         className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold ${className}`}
+        /**
+         * ★ আগে গোলাপি লিটারেল (`rgba(242,168,196, α)`) — JSX-এ হার্ডকোড,
+         *   তাই **থিম জানত না**: দুই থিমেই হুবহু এক মান। লাইট থিমে সাদা
+         *   কার্ডের উপর ফ্যাকাশে গোলাপি আভা, অথচ এটি সাইটের সবচেয়ে
+         *   গুরুতর স্বীকারোক্তি ("দেরি হয়ে গেছে")।
+         *
+         *   এখন `--sem-danger` — C3-এর ভূমিকা-টোকেন, দুই থিমে আলাদা শেড
+         *   (dark #fb7185 · light #be123c) এবং accent প্রিসেটে বদলায় না।
+         *   ঘনত্ব (α) অপরিবর্তিত রাখা হয়েছে, কেবল রঙটি থিম-সচেতন হলো।
+         *   লেখাও একই টোকেন থেকে — আগে `--red` ছিল, ফলে লাইটে আভা ও
+         *   লেখা দুটি ভিন্ন লালে (#be123c বনাম #e11d48) বসত।
+         */
         style={{
-          background: 'rgba(242,168,196,.10)',
-          border: '1px solid rgba(242,168,196,.35)',
-          color: 'var(--red)',
+          background: 'color-mix(in srgb, var(--sem-danger) 10%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--sem-danger) 35%, transparent)',
+          color: 'var(--sem-danger)',
         }}
         role="status"
       >

@@ -18,14 +18,47 @@ import Switch from '@/components/admin/Switch';
  *   (ড্রাইভার বাকি)"। তাই ভুল কনফিগে টাকা নড়ে না।
  */
 
+/**
+ * ★★★ স্বাস্থ্য-ব্যাজ — এখন সম্পূর্ণ ভূমিকা-টোকেনে (C3)।
+ *
+ *   দুটি আলাদা ত্রুটি একসাথে সারানো হলো:
+ *
+ *   ১. **চারটি `dot` হার্ডকোড ছিল** (`#22c55e` `#38bdf8` `#e0a83a`
+ *      `#94a3b8`) — অর্থাৎ থিম-অন্ধ। আর যেহেতু চারটিই হার্ডকোড, একটি
+ *      বদলালেই ম্যাপটি অসামঞ্জস্য হতো, তাই চারটি একসাথে।
+ *
+ *   ২. **`--tint-volt`/`--v-volt` প্রিসেট-চালিত** (`--v-volt` =
+ *      `--accent-text`)। ফলে অ্যাডমিন লাল accent বেছে নিলে
+ *      "ম্যানুয়াল প্রস্তুত" ব্যাজটিও **লাল** হয়ে যেত — অর্থাৎ সুস্থ
+ *      অবস্থা বিপদের মতো দেখাত। globals.css §C3 এই কারণেই `--sem-*`
+ *      টোকেনগুলো accent থেকে আলাদা রেখেছে।
+ *
+ *   ⚠️ `PARTIAL_KEYS` আগে `--tint-heat`/`--v-heat` (রোজ = বিপদ) ছিল,
+ *      অথচ তার নিজের dot ছিল অ্যাম্বার। "কী আংশিক" বিপদ নয়, সতর্কতা —
+ *      dot যা বলছিল সেটিই সঠিক, তাই পুরো সারিটি `--sem-warning`-এ।
+ *      (ইতিহাস: এর আগে সারিটির `bg` ছিল হার্ডকোড sand-gold আর `fg` এর
+ *      ফলব্যাক `#e6c584` — ২০২৬-০৮-২৯ এ টোকেনে সরানো হয়।)
+ *
+ *   ঘনত্ব অপরিবর্তিত: `--tint-*` টোকেনগুলোর α (১৫% / ১২% / ১২%) হুবহু
+ *   একই রাখা হয়েছে, কেবল উৎস-রঙটি ভূমিকা থেকে আসছে।
+ */
 const HEALTH_STYLE: Record<ProviderHealth['status'], { bg: string; fg: string; dot: string }> = {
-  MANUAL_READY:       { bg: 'var(--tint-volt)', fg: 'var(--v-volt)', dot: '#22c55e' },
-  CONFIGURED_PENDING: { bg: 'var(--tint-ice)',  fg: 'var(--v-ice)',  dot: '#38bdf8' },
-  // ★ আগে `bg` ছিল হার্ডকোড sand-gold আর `fg` এর ফলব্যাক `#e6c584` —
-  //   অথচ `--v-heat` দুই থিমেই সংজ্ঞায়িত, তাই ফলব্যাকটি কখনো ব্যবহৃতই
-  //   হতো না (মৃত)। বাকি তিনটি সারির মতোই এখন `--tint-*` + `--v-*` জোড়া।
-  PARTIAL_KEYS:       { bg: 'var(--tint-heat)', fg: 'var(--v-heat)', dot: '#e0a83a' },
-  NO_KEYS:            { bg: 'var(--v-fill2)', fg: 'var(--v-mut)', dot: '#94a3b8' },
+  MANUAL_READY: {
+    bg: 'color-mix(in srgb, var(--sem-success) 15%, transparent)',
+    fg: 'var(--sem-success)',
+    dot: 'var(--sem-success)',
+  },
+  CONFIGURED_PENDING: {
+    bg: 'color-mix(in srgb, var(--sem-info) 12%, transparent)',
+    fg: 'var(--sem-info)',
+    dot: 'var(--sem-info)',
+  },
+  PARTIAL_KEYS: {
+    bg: 'color-mix(in srgb, var(--sem-warning) 12%, transparent)',
+    fg: 'var(--sem-warning)',
+    dot: 'var(--sem-warning)',
+  },
+  NO_KEYS: { bg: 'var(--v-fill2)', fg: 'var(--v-mut)', dot: 'var(--v-mut)' },
 };
 
 const MASK = '••••••••';
@@ -135,7 +168,9 @@ export default function PaymentProviders({ initialProviders }: { initialProvider
                   </svg>
                   <span className="text-sm font-bold" style={{ color: 'var(--v-ink)' }}>{p.label}</span>
                   <HealthBadge health={p.health} />
-                  <span className="badge" style={{ background: p.mode === 'live' ? 'rgba(34,197,94,.14)' : 'var(--v-fill2)', color: p.mode === 'live' ? '#22c55e' : 'var(--v-dim)' }}>
+                  {/* ★ "লাইভ" চিপ — আগে সবুজ লিটারেল, থিম-অন্ধ। একই
+                      ভূমিকা-টোকেন থেকে, যাতে ব্যাজ ও চিপ এক পরিবারে থাকে। */}
+                  <span className="badge" style={{ background: p.mode === 'live' ? 'color-mix(in srgb, var(--sem-success) 14%, transparent)' : 'var(--v-fill2)', color: p.mode === 'live' ? 'var(--sem-success)' : 'var(--v-dim)' }}>
                     {p.mode === 'live' ? 'লাইভ' : 'টেস্ট'}
                   </span>
                 </button>

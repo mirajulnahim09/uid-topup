@@ -15,10 +15,13 @@ function Stat({
   hint?: string;
   tone?: 'normal' | 'warn' | 'bad' | 'good';
 }) {
+  // ★ একই তিন-টোন লিটারেল (`CustomerTimeline`/`OrderTable` এও ছিল) —
+  //   ভূমিকা-টোকেনে। এখানে সংখ্যাটিই বড় করে লেখা, তাই থিম-অন্ধ রঙ
+  //   মানে লাইট থিমে সবচেয়ে গুরুত্বপূর্ণ সংখ্যাটিই সবচেয়ে ফ্যাকাশে।
   const color =
-    tone === 'bad' ? '#e07878'
-    : tone === 'warn' ? '#e0a05a'
-    : tone === 'good' ? '#6ec49a'
+    tone === 'bad' ? 'var(--sem-danger)'
+    : tone === 'warn' ? 'var(--sem-warning)'
+    : tone === 'good' ? 'var(--sem-success)'
     : 'var(--ink)';
   return (
     <div className="rounded-xl border p-3.5" style={{ borderColor: 'var(--hair)' }}>

@@ -90,18 +90,21 @@ export default async function AdminOrders({
         <div
           className="flex flex-wrap items-center gap-3 rounded-xl border p-3.5"
           style={{
-            borderColor: breached > 0 ? 'rgba(224,120,120,.35)' : 'var(--hair)',
+            // ★ ভঙ্গ শাখাটি আগে হার্ডকোড `rgba(224,120,120, α)` ছিল —
+            //   থিম-অন্ধ, আর নিচের লেখাটিও (`#e07878`) আলাদা আরেকটি লাল।
+            //   এখন তিনটিই `--sem-danger`, দুই থিমে আলাদা শেড।
+            borderColor: breached > 0 ? 'color-mix(in srgb, var(--sem-danger) 35%, transparent)' : 'var(--hair)',
             // ★ শান্ত শাখাটি (কেবল `soon`, কিছু দেরি হয়নি) এখন নিরপেক্ষ
             //   `--v-steel` — আগে হার্ডকোড sand-gold ছিল, যা লাইট থিমে
             //   সাদা কার্ডের বিপরীতে ১.০৬:১, অর্থাৎ দেখাই যেত না। নিরপেক্ষ
             //   রাখলে 🚨 শাখাটির সাথে পার্থক্যও স্পষ্ট থাকে।
-            background: breached > 0 ? 'rgba(224,120,120,.08)' : 'var(--v-steel)',
+            background: breached > 0 ? 'color-mix(in srgb, var(--sem-danger) 8%, transparent)' : 'var(--v-steel)',
           }}
         >
           <span className="text-lg">{breached > 0 ? '🚨' : '⏰'}</span>
           <div className="text-sm">
             {breached > 0 && (
-              <div className="font-bold" style={{ color: '#e07878' }}>
+              <div className="font-bold" style={{ color: 'var(--sem-danger)' }}>
                 {breached} টি অর্ডারের সময় পেরিয়ে গেছে — এখনই দেখুন
               </div>
             )}

@@ -24,12 +24,24 @@ type O = {
   refundedAmount: number;
 };
 
-/** ★ claim অবস্থার রঙ (3.7) */
+/**
+ * ★ claim অবস্থার রঙ (3.7)
+ *
+ * ★ আগে চারটি হার্ডকোড লিটারেল — থিম-অন্ধ। "আমার কাছে" = সফল/নিরাপদ,
+ *   "অন্যের কাছে" = সতর্কতা; দুটিই ভূমিকা, তাই `--sem-*` টোকেন।
+ *   `stale` নিরপেক্ষ ধূসরই থাকল, কেবল আভাটি `--v-fill2` থেকে।
+ */
 const CLAIM_STYLE: Record<ClaimState['state'], { bg: string; color: string } | null> = {
   free: null,
-  mine: { bg: 'rgba(120,200,160,.12)', color: '#6ec49a' },
-  held: { bg: 'rgba(230,160,90,.14)', color: '#e0a05a' },
-  stale: { bg: 'rgba(150,150,150,.12)', color: 'var(--mut)' },
+  mine: {
+    bg: 'color-mix(in srgb, var(--sem-success) 12%, transparent)',
+    color: 'var(--sem-success)',
+  },
+  held: {
+    bg: 'color-mix(in srgb, var(--sem-warning) 14%, transparent)',
+    color: 'var(--sem-warning)',
+  },
+  stale: { bg: 'var(--v-fill2)', color: 'var(--mut)' },
 };
 
 const FILTERS = ['ALL', 'PENDING', 'PROCESSING', 'COMPLETED', 'REFUNDED'];
@@ -423,7 +435,11 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                     {o.breach.level !== 'ok' && (
                       <div
                         className="mt-1 font-semibold"
-                        style={{ color: o.breach.level === 'breached' ? '#e07878' : '#e0a05a' }}
+                        /* ★ উপরের সারাংশ-ব্যানার (`admin/orders/page.tsx`)
+                             একই সংকেত দেখায় — সেটি টোকেনে সরানোর পর এই
+                             টেবিলটি লিটারেলে থাকলে একই "ভঙ্গ" দুই রঙে
+                             দেখাত। তাই দুটোই `--sem-danger`/`--sem-warning`। */
+                        style={{ color: o.breach.level === 'breached' ? 'var(--sem-danger)' : 'var(--sem-warning)' }}
                       >
                         {o.breach.level === 'breached' ? '🚨 ' : '⏰ '}
                         {breachLabel(o.breach)}

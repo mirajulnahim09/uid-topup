@@ -137,15 +137,19 @@ export default async function DepositPage() {
                       style={
                         d.status === 'REJECTED'
                           ? {
-                              background: 'rgba(242,168,196,.08)',
-                              border: '1px solid rgba(242,168,196,.28)',
+                              // ★ "কেন বাতিল হলো" বাক্স — গোলাপি লিটারেল
+                              //   থিম-অন্ধ ছিল; এখন `--sem-danger`।
+                              background: 'color-mix(in srgb, var(--sem-danger) 8%, transparent)',
+                              border: '1px solid color-mix(in srgb, var(--sem-danger) 28%, transparent)',
                               color: 'var(--ink)',
                             }
                           : undefined
                       }
                     >
+                      {/* ★ আভা ও শিরোনাম এক টোকেন থেকে — আগে আভা
+                          হার্ডকোড গোলাপি, শিরোনাম `--red` ছিল। */}
                       {d.status === 'REJECTED' && (
-                        <p className="mb-1 font-bold" style={{ color: 'var(--red)' }}>
+                        <p className="mb-1 font-bold" style={{ color: 'var(--sem-danger)' }}>
                           কেন বাতিল হলো
                         </p>
                       )}

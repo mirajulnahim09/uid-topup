@@ -1,0 +1,725 @@
+{
+ "exprs": [
+  "color-mix(in srgb, var(--sem-danger) 10%, transparent)",
+  "color-mix(in srgb, var(--sem-danger) 12%, transparent)",
+  "color-mix(in srgb, var(--sem-danger) 28%, transparent)",
+  "color-mix(in srgb, var(--sem-danger) 30%, transparent)",
+  "color-mix(in srgb, var(--sem-danger) 34%, transparent)",
+  "color-mix(in srgb, var(--sem-danger) 35%, transparent)",
+  "color-mix(in srgb, var(--sem-danger) 8%, transparent)",
+  "color-mix(in srgb, var(--sem-info) 12%, transparent)",
+  "color-mix(in srgb, var(--sem-success) 10%, transparent)",
+  "color-mix(in srgb, var(--sem-success) 12%, transparent)",
+  "color-mix(in srgb, var(--sem-success) 14%, transparent)",
+  "color-mix(in srgb, var(--sem-success) 15%, transparent)",
+  "color-mix(in srgb, var(--sem-success) 28%, transparent)",
+  "color-mix(in srgb, var(--sem-success) 32%, transparent)",
+  "color-mix(in srgb, var(--sem-success) 35%, transparent)",
+  "color-mix(in srgb, var(--sem-success) 6%, transparent)",
+  "color-mix(in srgb, var(--sem-success) 8%, transparent)",
+  "color-mix(in srgb, var(--sem-warning) 12%, transparent)",
+  "color-mix(in srgb, var(--sem-warning) 14%, transparent)",
+  "color-mix(in srgb, var(--sem-warning) 28%, transparent)",
+  "color-mix(in srgb, var(--sem-warning) 8%, transparent)",
+  "var(--sem-danger)",
+  "var(--sem-info)",
+  "var(--sem-success)",
+  "var(--sem-warning)"
+ ],
+ "measured": {
+  "dark": {
+   "tokens": {
+    "--sem-success": "rgb(163, 230, 53)",
+    "--sem-warning": "rgb(251, 191, 36)",
+    "--sem-danger": "rgb(251, 113, 133)",
+    "--sem-info": "rgb(125, 211, 252)"
+   },
+   "card": "rgb(19, 21, 29)",
+   "exprs": {
+    "color-mix(in srgb, var(--sem-danger) 10%, transparent)": "color(srgb 0.984314 0.443137 0.521569 / 0.1)",
+    "color-mix(in srgb, var(--sem-danger) 12%, transparent)": "color(srgb 0.984314 0.443137 0.521569 / 0.12)",
+    "color-mix(in srgb, var(--sem-danger) 28%, transparent)": "color(srgb 0.984314 0.443137 0.521569 / 0.28)",
+    "color-mix(in srgb, var(--sem-danger) 30%, transparent)": "color(srgb 0.984314 0.443137 0.521569 / 0.3)",
+    "color-mix(in srgb, var(--sem-danger) 34%, transparent)": "color(srgb 0.984314 0.443137 0.521569 / 0.34)",
+    "color-mix(in srgb, var(--sem-danger) 35%, transparent)": "color(srgb 0.984314 0.443137 0.521569 / 0.35)",
+    "color-mix(in srgb, var(--sem-danger) 8%, transparent)": "color(srgb 0.984314 0.443137 0.521569 / 0.08)",
+    "color-mix(in srgb, var(--sem-info) 12%, transparent)": "color(srgb 0.490196 0.827451 0.988235 / 0.12)",
+    "color-mix(in srgb, var(--sem-success) 10%, transparent)": "color(srgb 0.639216 0.901961 0.207843 / 0.1)",
+    "color-mix(in srgb, var(--sem-success) 12%, transparent)": "color(srgb 0.639216 0.901961 0.207843 / 0.12)",
+    "color-mix(in srgb, var(--sem-success) 14%, transparent)": "color(srgb 0.639216 0.901961 0.207843 / 0.14)",
+    "color-mix(in srgb, var(--sem-success) 15%, transparent)": "color(srgb 0.639216 0.901961 0.207843 / 0.15)",
+    "color-mix(in srgb, var(--sem-success) 28%, transparent)": "color(srgb 0.639216 0.901961 0.207843 / 0.28)",
+    "color-mix(in srgb, var(--sem-success) 32%, transparent)": "color(srgb 0.639216 0.901961 0.207843 / 0.32)",
+    "color-mix(in srgb, var(--sem-success) 35%, transparent)": "color(srgb 0.639216 0.901961 0.207843 / 0.35)",
+    "color-mix(in srgb, var(--sem-success) 6%, transparent)": "color(srgb 0.639216 0.901961 0.207843 / 0.06)",
+    "color-mix(in srgb, var(--sem-success) 8%, transparent)": "color(srgb 0.639216 0.901961 0.207843 / 0.08)",
+    "color-mix(in srgb, var(--sem-warning) 12%, transparent)": "color(srgb 0.984314 0.74902 0.141176 / 0.12)",
+    "color-mix(in srgb, var(--sem-warning) 14%, transparent)": "color(srgb 0.984314 0.74902 0.141176 / 0.14)",
+    "color-mix(in srgb, var(--sem-warning) 28%, transparent)": "color(srgb 0.984314 0.74902 0.141176 / 0.28)",
+    "color-mix(in srgb, var(--sem-warning) 8%, transparent)": "color(srgb 0.984314 0.74902 0.141176 / 0.08)",
+    "var(--sem-danger)": "rgb(251, 113, 133)",
+    "var(--sem-info)": "rgb(125, 211, 252)",
+    "var(--sem-success)": "rgb(163, 230, 53)",
+    "var(--sem-warning)": "rgb(251, 191, 36)"
+   },
+   "ratios": {
+    "color-mix(in srgb, var(--sem-danger) 10%, transparent)": 1.14,
+    "color-mix(in srgb, var(--sem-danger) 12%, transparent)": 1.18,
+    "color-mix(in srgb, var(--sem-danger) 28%, transparent)": 1.6,
+    "color-mix(in srgb, var(--sem-danger) 30%, transparent)": 1.66,
+    "color-mix(in srgb, var(--sem-danger) 34%, transparent)": 1.81,
+    "color-mix(in srgb, var(--sem-danger) 35%, transparent)": 1.85,
+    "color-mix(in srgb, var(--sem-danger) 8%, transparent)": 1.11,
+    "color-mix(in srgb, var(--sem-info) 12%, transparent)": 1.28,
+    "color-mix(in srgb, var(--sem-success) 10%, transparent)": 1.23,
+    "color-mix(in srgb, var(--sem-success) 12%, transparent)": 1.29,
+    "color-mix(in srgb, var(--sem-success) 14%, transparent)": 1.36,
+    "color-mix(in srgb, var(--sem-success) 15%, transparent)": 1.4,
+    "color-mix(in srgb, var(--sem-success) 28%, transparent)": 2.04,
+    "color-mix(in srgb, var(--sem-success) 32%, transparent)": 2.29,
+    "color-mix(in srgb, var(--sem-success) 35%, transparent)": 2.51,
+    "color-mix(in srgb, var(--sem-success) 6%, transparent)": 1.12,
+    "color-mix(in srgb, var(--sem-success) 8%, transparent)": 1.17,
+    "color-mix(in srgb, var(--sem-warning) 12%, transparent)": 1.27,
+    "color-mix(in srgb, var(--sem-warning) 14%, transparent)": 1.33,
+    "color-mix(in srgb, var(--sem-warning) 28%, transparent)": 1.94,
+    "color-mix(in srgb, var(--sem-warning) 8%, transparent)": 1.16,
+    "var(--sem-danger)": 6.77,
+    "var(--sem-info)": 10.93,
+    "var(--sem-success)": 12.08,
+    "var(--sem-warning)": 10.91
+   },
+   "oldRatios": {
+    "success (পুরনো #6ec49a)": 8.7,
+    "warning (পুরনো #e0a05a)": 8.11,
+    "danger (পুরনো #e07878)": 6.18
+   }
+  },
+  "light": {
+   "tokens": {
+    "--sem-success": "rgb(21, 128, 61)",
+    "--sem-warning": "rgb(180, 83, 9)",
+    "--sem-danger": "rgb(190, 18, 60)",
+    "--sem-info": "rgb(3, 105, 161)"
+   },
+   "card": "rgb(255, 255, 255)",
+   "exprs": {
+    "color-mix(in srgb, var(--sem-danger) 10%, transparent)": "color(srgb 0.745098 0.0705882 0.235294 / 0.1)",
+    "color-mix(in srgb, var(--sem-danger) 12%, transparent)": "color(srgb 0.745098 0.0705882 0.235294 / 0.12)",
+    "color-mix(in srgb, var(--sem-danger) 28%, transparent)": "color(srgb 0.745098 0.0705882 0.235294 / 0.28)",
+    "color-mix(in srgb, var(--sem-danger) 30%, transparent)": "color(srgb 0.745098 0.0705882 0.235294 / 0.3)",
+    "color-mix(in srgb, var(--sem-danger) 34%, transparent)": "color(srgb 0.745098 0.0705882 0.235294 / 0.34)",
+    "color-mix(in srgb, var(--sem-danger) 35%, transparent)": "color(srgb 0.745098 0.0705882 0.235294 / 0.35)",
+    "color-mix(in srgb, var(--sem-danger) 8%, transparent)": "color(srgb 0.745098 0.0705882 0.235294 / 0.08)",
+    "color-mix(in srgb, var(--sem-info) 12%, transparent)": "color(srgb 0.0117647 0.411765 0.631373 / 0.12)",
+    "color-mix(in srgb, var(--sem-success) 10%, transparent)": "color(srgb 0.0823529 0.501961 0.239216 / 0.1)",
+    "color-mix(in srgb, var(--sem-success) 12%, transparent)": "color(srgb 0.0823529 0.501961 0.239216 / 0.12)",
+    "color-mix(in srgb, var(--sem-success) 14%, transparent)": "color(srgb 0.0823529 0.501961 0.239216 / 0.14)",
+    "color-mix(in srgb, var(--sem-success) 15%, transparent)": "color(srgb 0.0823529 0.501961 0.239216 / 0.15)",
+    "color-mix(in srgb, var(--sem-success) 28%, transparent)": "color(srgb 0.0823529 0.501961 0.239216 / 0.28)",
+    "color-mix(in srgb, var(--sem-success) 32%, transparent)": "color(srgb 0.0823529 0.501961 0.239216 / 0.32)",
+    "color-mix(in srgb, var(--sem-success) 35%, transparent)": "color(srgb 0.0823529 0.501961 0.239216 / 0.35)",
+    "color-mix(in srgb, var(--sem-success) 6%, transparent)": "color(srgb 0.0823529 0.501961 0.239216 / 0.06)",
+    "color-mix(in srgb, var(--sem-success) 8%, transparent)": "color(srgb 0.0823529 0.501961 0.239216 / 0.08)",
+    "color-mix(in srgb, var(--sem-warning) 12%, transparent)": "color(srgb 0.705882 0.32549 0.0352941 / 0.12)",
+    "color-mix(in srgb, var(--sem-warning) 14%, transparent)": "color(srgb 0.705882 0.32549 0.0352941 / 0.14)",
+    "color-mix(in srgb, var(--sem-warning) 28%, transparent)": "color(srgb 0.705882 0.32549 0.0352941 / 0.28)",
+    "color-mix(in srgb, var(--sem-warning) 8%, transparent)": "color(srgb 0.705882 0.32549 0.0352941 / 0.08)",
+    "var(--sem-danger)": "rgb(190, 18, 60)",
+    "var(--sem-info)": "rgb(3, 105, 161)",
+    "var(--sem-success)": "rgb(21, 128, 61)",
+    "var(--sem-warning)": "rgb(180, 83, 9)"
+   },
+   "ratios": {
+    "color-mix(in srgb, var(--sem-danger) 10%, transparent)": 1.19,
+    "color-mix(in srgb, var(--sem-danger) 12%, transparent)": 1.23,
+    "color-mix(in srgb, var(--sem-danger) 28%, transparent)": 1.66,
+    "color-mix(in srgb, var(--sem-danger) 30%, transparent)": 1.72,
+    "color-mix(in srgb, var(--sem-danger) 34%, transparent)": 1.86,
+    "color-mix(in srgb, var(--sem-danger) 35%, transparent)": 1.9,
+    "color-mix(in srgb, var(--sem-danger) 8%, transparent)": 1.15,
+    "color-mix(in srgb, var(--sem-info) 12%, transparent)": 1.19,
+    "color-mix(in srgb, var(--sem-success) 10%, transparent)": 1.14,
+    "color-mix(in srgb, var(--sem-success) 12%, transparent)": 1.18,
+    "color-mix(in srgb, var(--sem-success) 14%, transparent)": 1.21,
+    "color-mix(in srgb, var(--sem-success) 15%, transparent)": 1.23,
+    "color-mix(in srgb, var(--sem-success) 28%, transparent)": 1.48,
+    "color-mix(in srgb, var(--sem-success) 32%, transparent)": 1.57,
+    "color-mix(in srgb, var(--sem-success) 35%, transparent)": 1.64,
+    "color-mix(in srgb, var(--sem-success) 6%, transparent)": 1.08,
+    "color-mix(in srgb, var(--sem-success) 8%, transparent)": 1.11,
+    "color-mix(in srgb, var(--sem-warning) 12%, transparent)": 1.18,
+    "color-mix(in srgb, var(--sem-warning) 14%, transparent)": 1.21,
+    "color-mix(in srgb, var(--sem-warning) 28%, transparent)": 1.49,
+    "color-mix(in srgb, var(--sem-warning) 8%, transparent)": 1.11,
+    "var(--sem-danger)": 6.29,
+    "var(--sem-info)": 5.93,
+    "var(--sem-success)": 5.02,
+    "var(--sem-warning)": 5.02
+   },
+   "oldRatios": {
+    "success (পুরনো #6ec49a)": 2.09,
+    "warning (পুরনো #e0a05a)": 2.25,
+    "danger (পুরনো #e07878)": 2.95
+   }
+  }
+ },
+ "nodes": {
+  "dark:admin/orders": {
+   "banner": {
+    "color": "rgb(251, 113, 133)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "color(srgb 0.984314 0.443137 0.521569 / 0.08)",
+      "border": "color(srgb 0.984314 0.443137 0.521569 / 0.35)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     }
+    ],
+    "text": "1 টি অর্ডারের সময় পেরিয়ে গেছে — এখনই দেখুন"
+   },
+   "tableBreached": {
+    "color": "rgb(251, 113, 133)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(255, 255, 255, 0.09)",
+      "color": "rgb(154, 166, 184)"
+     },
+     {
+      "background": "rgba(125, 211, 252, 0.12)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     }
+    ],
+    "text": "🚨 2 ঘন্টা 2 মিনিট দেরি"
+   },
+   "tableSoon": {
+    "color": "rgb(251, 191, 36)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(255, 255, 255, 0.09)",
+      "color": "rgb(154, 166, 184)"
+     },
+     {
+      "background": "rgba(125, 211, 252, 0.12)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     }
+    ],
+    "text": "⏰ 25 মিনিট বাকি"
+   }
+  },
+  "dark:admin/deposits": {
+   "tierElevated": {
+    "color": "rgb(251, 113, 133)",
+    "background": "color(srgb 0.984314 0.443137 0.521569 / 0.1)",
+    "border": "color(srgb 0.984314 0.443137 0.521569 / 0.34)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(255, 255, 255, 0.08)",
+      "color": "rgb(238, 241, 246)"
+     }
+    ],
+    "text": "বাড়তি যাচাই দরকার"
+   },
+   "tierTrusted": {
+    "color": "rgb(163, 230, 53)",
+    "background": "color(srgb 0.639216 0.901961 0.207843 / 0.1)",
+    "border": "color(srgb 0.639216 0.901961 0.207843 / 0.32)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(255, 255, 255, 0.08)",
+      "color": "rgb(238, 241, 246)"
+     }
+    ],
+    "text": "পরিচিত গ্রাহক"
+   },
+   "signalWarn": {
+    "color": "rgb(238, 241, 246)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "color(srgb 0.984314 0.74902 0.141176 / 0.08)",
+      "border": "color(srgb 0.984314 0.74902 0.141176 / 0.28)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     }
+    ],
+    "text": "প্রেরকের নাম্বার নিবন্ধিত নাম্বারের সাথে মিলছে না"
+   },
+   "signalGood": {
+    "color": "rgb(238, 241, 246)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "color(srgb 0.639216 0.901961 0.207843 / 0.08)",
+      "border": "color(srgb 0.639216 0.901961 0.207843 / 0.28)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     }
+    ],
+    "text": "পরিচিত গ্রাহক — 10 টি সফল ডিপোজিট"
+   }
+  },
+  "dark:admin/payments": {
+   "count": 2,
+   "sample": [
+    {
+     "tag": "SPAN",
+     "color": "rgb(163, 230, 53)",
+     "text": "প্রস্তুত"
+    },
+    {
+     "tag": "SPAN",
+     "color": "rgb(163, 230, 53)",
+     "text": ""
+    }
+   ]
+  },
+  "dark:account/order-breached": {
+   "slaLate": {
+    "color": "rgb(251, 113, 133)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "color(srgb 0.984314 0.443137 0.521569 / 0.1)",
+      "border": "color(srgb 0.984314 0.443137 0.521569 / 0.35)",
+      "color": "rgb(251, 113, 133)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(255, 255, 255, 0.09)",
+      "color": "rgb(238, 241, 246)"
+     }
+    ],
+    "text": "প্রতিশ্রুত সময়ের চেয়ে 2 ঘন্টা 1 মিনিট দেরি হয়ে গেছে — দুঃ"
+   }
+  },
+  "dark:account/order-refunded": {
+   "placedCard": {
+    "color": "rgb(238, 241, 246)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "color(srgb 0.639216 0.901961 0.207843 / 0.06)",
+      "border": "color(srgb 0.639216 0.901961 0.207843 / 0.35)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     }
+    ],
+    "text": "✓ অর্ডার #82 গ্রহণ করা হয়েছে"
+   },
+   "cancelledIcon": {
+    "color": "rgb(238, 241, 246)",
+    "background": "color(srgb 0.984314 0.443137 0.521569 / 0.12)",
+    "border": "color(srgb 0.984314 0.443137 0.521569 / 0.3)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(255, 255, 255, 0.09)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     }
+    ],
+    "text": "↩"
+   }
+  },
+  "dark:account/wallet-deposit": {
+   "rejectHeading": {
+    "color": "rgb(251, 113, 133)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "color(srgb 0.984314 0.443137 0.521569 / 0.08)",
+      "border": "color(srgb 0.984314 0.443137 0.521569 / 0.28)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(255, 255, 255, 0.09)",
+      "color": "rgb(238, 241, 246)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(238, 241, 246)"
+     }
+    ],
+    "text": "কেন বাতিল হলো"
+   }
+  },
+  "light:admin/orders": {
+   "banner": {
+    "color": "rgb(190, 18, 60)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "color(srgb 0.745098 0.0705882 0.235294 / 0.08)",
+      "border": "color(srgb 0.745098 0.0705882 0.235294 / 0.35)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     }
+    ],
+    "text": "1 টি অর্ডারের সময় পেরিয়ে গেছে — এখনই দেখুন"
+   },
+   "tableBreached": {
+    "color": "rgb(190, 18, 60)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(15, 23, 41, 0.1)",
+      "color": "rgb(82, 95, 112)"
+     },
+     {
+      "background": "rgba(125, 211, 252, 0.12)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     }
+    ],
+    "text": "🚨 2 ঘন্টা 2 মিনিট দেরি"
+   },
+   "tableSoon": {
+    "color": "rgb(180, 83, 9)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(15, 23, 41, 0.1)",
+      "color": "rgb(82, 95, 112)"
+     },
+     {
+      "background": "rgba(125, 211, 252, 0.12)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     }
+    ],
+    "text": "⏰ 25 মিনিট বাকি"
+   }
+  },
+  "light:admin/deposits": {
+   "tierElevated": {
+    "color": "rgb(190, 18, 60)",
+    "background": "color(srgb 0.745098 0.0705882 0.235294 / 0.1)",
+    "border": "color(srgb 0.745098 0.0705882 0.235294 / 0.34)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(15, 23, 41, 0.09)",
+      "color": "rgb(15, 23, 41)"
+     }
+    ],
+    "text": "বাড়তি যাচাই দরকার"
+   },
+   "tierTrusted": {
+    "color": "rgb(21, 128, 61)",
+    "background": "color(srgb 0.0823529 0.501961 0.239216 / 0.1)",
+    "border": "color(srgb 0.0823529 0.501961 0.239216 / 0.32)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(15, 23, 41, 0.09)",
+      "color": "rgb(15, 23, 41)"
+     }
+    ],
+    "text": "পরিচিত গ্রাহক"
+   },
+   "signalWarn": {
+    "color": "rgb(15, 23, 41)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "color(srgb 0.705882 0.32549 0.0352941 / 0.08)",
+      "border": "color(srgb 0.705882 0.32549 0.0352941 / 0.28)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     }
+    ],
+    "text": "প্রেরকের নাম্বার নিবন্ধিত নাম্বারের সাথে মিলছে না"
+   },
+   "signalGood": {
+    "color": "rgb(15, 23, 41)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "color(srgb 0.0823529 0.501961 0.239216 / 0.08)",
+      "border": "color(srgb 0.0823529 0.501961 0.239216 / 0.28)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     }
+    ],
+    "text": "পরিচিত গ্রাহক — 10 টি সফল ডিপোজিট"
+   }
+  },
+  "light:admin/payments": {
+   "count": 2,
+   "sample": [
+    {
+     "tag": "SPAN",
+     "color": "rgb(21, 128, 61)",
+     "text": "প্রস্তুত"
+    },
+    {
+     "tag": "SPAN",
+     "color": "rgb(21, 128, 61)",
+     "text": ""
+    }
+   ]
+  },
+  "light:account/order-breached": {
+   "slaLate": {
+    "color": "rgb(190, 18, 60)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "color(srgb 0.745098 0.0705882 0.235294 / 0.1)",
+      "border": "color(srgb 0.745098 0.0705882 0.235294 / 0.35)",
+      "color": "rgb(190, 18, 60)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(15, 23, 41, 0.1)",
+      "color": "rgb(15, 23, 41)"
+     }
+    ],
+    "text": "প্রতিশ্রুত সময়ের চেয়ে 2 ঘন্টা 2 মিনিট দেরি হয়ে গেছে — দুঃ"
+   }
+  },
+  "light:account/order-refunded": {
+   "placedCard": {
+    "color": "rgb(15, 23, 41)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "color(srgb 0.0823529 0.501961 0.239216 / 0.06)",
+      "border": "color(srgb 0.0823529 0.501961 0.239216 / 0.35)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     }
+    ],
+    "text": "✓ অর্ডার #82 গ্রহণ করা হয়েছে"
+   },
+   "cancelledIcon": {
+    "color": "rgb(15, 23, 41)",
+    "background": "color(srgb 0.745098 0.0705882 0.235294 / 0.12)",
+    "border": "color(srgb 0.745098 0.0705882 0.235294 / 0.3)",
+    "ancestors": [
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(15, 23, 41, 0.1)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     }
+    ],
+    "text": "↩"
+   }
+  },
+  "light:account/wallet-deposit": {
+   "rejectHeading": {
+    "color": "rgb(190, 18, 60)",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "rgb(229, 231, 235)",
+    "ancestors": [
+     {
+      "background": "color(srgb 0.745098 0.0705882 0.235294 / 0.08)",
+      "border": "color(srgb 0.745098 0.0705882 0.235294 / 0.28)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgba(15, 23, 41, 0.1)",
+      "color": "rgb(15, 23, 41)"
+     },
+     {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "rgb(229, 231, 235)",
+      "color": "rgb(15, 23, 41)"
+     }
+    ],
+    "text": "কেন বাতিল হলো"
+   }
+  }
+ }
+}
