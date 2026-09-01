@@ -66,6 +66,16 @@ const RETIRED: Array<{ re: RegExp; was: string; hex: string; role: 'success' | '
   // ★ ছাড়: `StorefrontShell` — ওটি সাজসজ্জার গ্রেডিয়েন্ট-প্রিসেট,
   //   অবস্থা-বাহী নয়; UIUX_PROBLEM_MAP §১৩.৬ এর ২৬৯টির অংশ (আলাদা কাজ)
   { re: /#38bdf8\b/gi, was: 'আকাশি', hex: '#38bdf8', role: 'info', exempt: ['src/components/home/StorefrontShell.tsx'] },
+  /**
+   * ★ ২০২৬-০৯-০১ — স্টোরফ্রন্টের পালা।
+   *   ছাড়: `globals.css` — সেখানেই টোকেনের **সংজ্ঞা**, তাই মানটি
+   *   থাকা বাধ্যতামূলক। `StoreHowFaq` এ দুটি বাকি — সেখানে
+   *   রংদুটি **বুলেট-গ্লিফ ও borderLeft**, অর্থাৎ সাজসজ্জা —
+   *   পাশের লেখাই অর্থ বহন করে, তাই WCAG অনুসারে ছাড়প্রাপ্ত।
+   */
+  { re: /#1a1408/gi, was: 'গোল্ড-চিপের near-black', hex: '#1a1408', role: 'success', exempt: ['src/app/globals.css'] },
+  { re: /#65a30d/gi, was: 'ব্যাজ "নতুন"', hex: '#65a30d', role: 'success', exempt: ['src/app/globals.css', 'src/components/home/StoreHowFaq.tsx'] },
+  { re: /#0284c7/gi, was: 'ব্যাজ "জনপ্রিয়"', hex: '#0284c7', role: 'info', exempt: ['src/app/globals.css', 'src/components/home/StoreHowFaq.tsx'] },
 ];
 
 /** কোড-লাইন থেকে মন্তব্য বাদ — ইতিহাস লেখা থাকা দোষ নয় */
@@ -120,6 +130,9 @@ const CHANGED = [
   'src/app/admin/orders/page.tsx',
   'src/app/account/orders/[id]/page.tsx',
   'src/app/account/wallet/deposit/page.tsx',
+  // ২০২৬-০৯-০১ — পাবলিক স্টোরফ্রন্ট
+  'src/components/home/StorefrontShell.tsx',
+  'src/components/home/StoreHowFaq.tsx',
 ];
 
 function harvest(): string[] {
@@ -127,7 +140,7 @@ function harvest(): string[] {
   for (const f of CHANGED) {
     const body = stripComments(readFileSync(f, 'utf8'));
     for (const m of body.matchAll(/color-mix\(in srgb,\s*var\(--sem-[a-z]+\)\s*\d+%,\s*transparent\)/g)) set.add(m[0]);
-    for (const m of body.matchAll(/var\(--sem-[a-z]+\)/g)) set.add(m[0]);
+    for (const m of body.matchAll(/var\(--sem-(?:success|warning|danger|info)\)/g)) set.add(m[0]);
   }
   return [...set].sort();
 }
@@ -140,13 +153,15 @@ type Probe = {
   exprs: Record<string, string>;
   ratios: Record<string, number>;
   oldRatios: Record<string, number>;
+  tintRatios?: Record<string, number>;
 };
 
 /** পাতার ভিতরে চলে — ES5, স্ট্রিং হিসেবে পাঠানো */
-function probeSrc(exprs: string[], oldHexes: Record<string, string>): string {
+function probeSrc(exprs: string[], oldHexes: Record<string, string>, tint: Array<[string, string]>): string {
   return `(function(){
   var EX = ${JSON.stringify(exprs)};
   var OLD = ${JSON.stringify(oldHexes)};
+  var TINT = ${JSON.stringify(tint)};
   var host = document.createElement('div');
   host.style.position='fixed'; host.style.left='-9999px'; host.style.top='0';
   document.body.appendChild(host);
@@ -206,8 +221,21 @@ function probeSrc(exprs: string[], oldHexes: Record<string, string>): string {
   }
   for (var k in OLD) { if (OLD.hasOwnProperty(k) && card) oldRatios[k] = ratio(hex2rgb(OLD[k]), card); }
 
+  // ভূমিকা-রঙ তার নিজের টিন্টের উপর (টিন্ট আগে কার্ডের উপর সমতল করা হয়)
+  var tintRatios = {};
+  for (var ti=0; ti<TINT.length; ti++){
+    var fgS = computed('color', TINT[ti][0]);
+    var bgS = computed('color', TINT[ti][1]);
+    var fgP = parse(fgS), bgP = parse(bgS);
+    if (fgP && bgP && card) {
+      var flatBg = bgP.a < 1 ? over(bgP, card) : bgP;
+      var flatFg = fgP.a < 1 ? over(fgP, flatBg) : fgP;
+      tintRatios[TINT[ti][0] + '|' + TINT[ti][1]] = ratio(flatFg, flatBg);
+    }
+  }
+
   document.body.removeChild(host);
-  return { tokens: tokens, card: cardStr, exprs: exprs, ratios: ratios, oldRatios: oldRatios };
+  return { tokens: tokens, card: cardStr, exprs: exprs, ratios: ratios, oldRatios: oldRatios, tintRatios: tintRatios };
 })()`;
 }
 
@@ -302,6 +330,15 @@ async function main() {
   ok('অন্তত একটি `--sem-*` প্রকাশ ব্যবহৃত', exprs.length > 0);
   exprs.forEach((e) => console.log(`     ${e}`));
 
+  // ★ ভূমিকা-রঙ **নিজের টিন্টের উপর** — এটাই ব্যাজের আসল পটভূমি।
+  //   কার্ডের বিপরীতে মাপা যথেষ্ট নয়: `--sem-success` সাদা কার্ডে
+  //   ৫.০২:১, কিন্তু নিজের ১৬% টিন্টে ৪.০৩:১ (AA ফেল)। সেই কারণেই
+  //   `--sem-*-tint` থিম-প্রতি আলাদা।
+  const TINTED: Array<[string, string]> = [
+    ['var(--sem-success)', 'var(--sem-success-tint)'],
+    ['var(--sem-info)', 'var(--sem-info-tint)'],
+  ];
+
   // পুরনো লিটারেল — পাশাপাশি তুলনার জন্য
   const oldHexes: Record<string, string> = {
     'success (পুরনো #6ec49a)': '#6ec49a',
@@ -369,7 +406,7 @@ async function main() {
     await page.goto(`${BASE}/admin/orders`, { waitUntil: 'domcontentloaded' });
     await settle(page);
 
-    measured[theme] = (await page.evaluate(probeSrc(exprs, oldHexes))) as Probe;
+    measured[theme] = (await page.evaluate(probeSrc(exprs, oldHexes, TINTED))) as Probe;
 
     nodes[`${theme}:admin/orders`] = (await page.evaluate(nodeSrc({
       banner: 'টি অর্ডারের সময় পেরিয়ে গেছে',
@@ -449,6 +486,15 @@ async function main() {
     for (const e of exprs.filter((x) => x.startsWith('var('))) {
       const r = m.ratios[e];
       ok(`কনট্রাস্ট ≥৪.৫ (${theme}) ${e} = ${r}:১`, typeof r === 'number' && r >= 4.5, { ratio: r, card: m.card });
+    }
+  }
+
+  // টিন্টের উপর লেখা — ≥৪.৫:১
+  for (const theme of ['dark', 'light'] as const) {
+    const m = measured[theme];
+    for (const [fg, bg] of TINTED) {
+      const r = m.tintRatios?.[`${fg}|${bg}`];
+      ok(`টিন্টে কনট্রাস্ট ≥৪.৫ (${theme}) ${fg} on ${bg} = ${r}:১`, typeof r === 'number' && r >= 4.5, { ratio: r });
     }
   }
 

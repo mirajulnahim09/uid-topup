@@ -74,7 +74,7 @@ export default function StoreHowFaq() {
             </div>
             <div className="card p-6" style={{ borderLeft: '4px solid #0284c7' }}>
               <h4 className="mb-4 flex items-center gap-2.5 text-[16px] font-extrabold" style={{ color: 'var(--v-ink)' }}>
-                <span className="grid h-6 w-6 place-items-center rounded-full text-[14px] font-extrabold" style={{ background: 'rgba(56,189,248,.14)', color: '#7dd3fc' }}>?</span>
+                <span className="grid h-6 w-6 place-items-center rounded-full text-[14px] font-extrabold" style={{ background: 'var(--sem-info-tint)', color: 'var(--sem-info)' }}>?</span>
                 Player ID/UID কোথায় পাবেন
               </h4>
               <ol className="flex flex-col gap-3.5">

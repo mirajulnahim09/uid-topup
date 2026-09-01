@@ -303,7 +303,7 @@ export default function StorefrontShell({
                 {deliveries.slice(0, 6).map((d, i) => {
                   const c = pal(i);
                   return (
-                    <div key={d.id} className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,.05)' }}>
+                    <div key={d.id} className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid var(--hairline)' }}>
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] text-[15px] font-extrabold text-white"
                         style={{ background: `linear-gradient(135deg,${c.g1},${c.g2})` }}>
                         {d.name.trim().charAt(0) || 'U'}
@@ -314,7 +314,7 @@ export default function StorefrontShell({
                       </span>
                       <span className="shrink-0 text-right">
                         <span className="inline-block rounded-[5px] px-1.5 py-0.5 text-[9.5px] font-extrabold"
-                          style={{ background: 'rgba(163,230,53,.16)', color: '#bef264' }}>সম্পন্ন</span>
+                          style={{ background: 'var(--sem-success-tint)', color: 'var(--sem-success)' }}>সম্পন্ন</span>
                         <span className="mt-0.5 block whitespace-nowrap text-[10px]" style={{ color: 'var(--v-dim)' }}>{timeAgo(d.at)}</span>
                       </span>
                     </div>
@@ -340,7 +340,7 @@ export default function StorefrontShell({
                 {deliveries.map((d, i) => {
                   const c = pal(i);
                   return (
-                    <div key={d.id} className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,.05)' }}>
+                    <div key={d.id} className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid var(--hairline)' }}>
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] text-[15px] font-extrabold text-white"
                         style={{ background: `linear-gradient(135deg,${c.g1},${c.g2})` }}>
                         {d.name.trim().charAt(0) || 'U'}
@@ -351,7 +351,7 @@ export default function StorefrontShell({
                       </span>
                       <span className="shrink-0 text-right">
                         <span className="inline-block rounded-[5px] px-1.5 py-0.5 text-[9.5px] font-extrabold"
-                          style={{ background: 'rgba(163,230,53,.16)', color: '#bef264' }}>সম্পন্ন</span>
+                          style={{ background: 'var(--sem-success-tint)', color: 'var(--sem-success)' }}>সম্পন্ন</span>
                         <span className="mt-0.5 block whitespace-nowrap text-[10px]" style={{ color: 'var(--v-dim)' }}>{timeAgo(d.at)}</span>
                       </span>
                     </div>
@@ -559,9 +559,31 @@ function StoreHero({
         *     শান্ত গৌণ লিংক; গন্তব্য (#how) অপরিবর্তিত।
         *   • হাইলাইট ফোনে ২টি (sm+ এ চারটিই) — বাকিগুলো `sm:` এ ফেরে
         */}
+      {/**
+        * ⚠️⚠️ শেষ লাইনের জোর-দেওয়া রঙ আগে `var(--accent-2)` ছিল, অথচ
+        *   উপরের প্যানেলের পটভূমি **inline হার্ডকোড** বেগুনি গ্রেডিয়েন্ট —
+        *   থিম ও প্রিসেট পটভূমিকে ছোঁয় না, কিন্তু `--accent-2` কে ছোঁয়।
+        *   ফলে ৫ প্রিসেট × ২ থিম = ১০ সমন্বয়ের **৮টি** WCAG ফেল করত
+        *   (লাইটে পাঁচটিই), সবচেয়ে খারাপ blue/dark = ১.০৪:১ — শিরোনামটি
+        *   পটভূমিতে প্রায় মিলিয়েই যেত। এখন দশটিতেই ৪.৮৫:১।
+        *   `--hero-ink`/`--hero-accent` স্থির পৃষ্ঠতলের স্থির ইঙ্ক;
+        *   মান দুটি আজকের ডিফল্ট (lime · dark) চেহারার হুবহু সমান।
+        *   বিস্তারিত globals.css এর টোকেন-সংজ্ঞায়।
+        *
+        * ★ একই প্যানেলের ✓ গ্লিফ ও গৌণ লিংকও `--hero-*` এ নেওয়া হলো,
+        *   তবে **সেগুলো আগেও পাস করত** (মাপা ৪.৮৪–৫.৪৩ ও ৫.০৪–৫.১৪)।
+        *   সেটি ত্রুটি-সংশোধন নয়, সঙ্গতি — একই স্থির পৃষ্ঠতলের সব ইঙ্ক
+        *   একই জায়গা থেকে আসুক। (প্রথমে "সবচেয়ে খারাপ গ্রেডিয়েন্ট-স্টপ"
+        *   ধরে হিসাব করে এদের ফেল ভেবেছিলাম; আসল পিক্সেল মেপে দেখা গেল
+        *   লেখাগুলো গ্রেডিয়েন্টের হালকা প্রান্তে পৌঁছায়ই না।)
+        *
+        * ★ `titleLines.length === 1` হলে (সিড করা hero_title-এ newline
+        *   নেই) `i === length-1` প্রথম লাইনেই সত্য — অর্থাৎ **গোটা
+        *   শিরোনামটাই** এই রঙে যায়। তাই এটি হোমপেজের সবচেয়ে বড় লেখা।
+        */}
       <h1 className="mt-3.5 max-w-xl font-extrabold leading-[1.12] sm:mt-4" style={{ fontSize: 'clamp(1.45rem,4.6vw,2.5rem)', letterSpacing: '-.02em' }}>
         {titleLines.map((l, i) => (
-          <span key={i} className="block" style={i === titleLines.length - 1 ? { color: 'var(--accent-2)' } : undefined}>{l}</span>
+          <span key={i} className="block" style={i === titleLines.length - 1 ? { color: 'var(--hero-accent)' } : undefined}>{l}</span>
         ))}
       </h1>
 
@@ -576,7 +598,7 @@ function StoreHero({
         </Link>
         <Link href="#how"
           className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl px-3 text-[13px] font-bold underline-offset-4 hover:underline"
-          style={{ color: 'rgba(255,255,255,.88)' }}>
+          style={{ color: 'var(--hero-ink)' }}>
           কিভাবে অর্ডার করবেন
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7" /></svg>
         </Link>
@@ -588,7 +610,7 @@ function StoreHero({
             <span key={i}
               className={`items-center gap-1.5 text-[12.5px] font-semibold ${i < 2 ? 'inline-flex' : 'hidden sm:inline-flex'}`}
               style={{ opacity: 0.92 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a3e635" strokeWidth="3"><path d="M4 12.5l5.5 5.5L20 7" /></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ stroke: 'var(--hero-accent)' }} strokeWidth="3"><path d="M4 12.5l5.5 5.5L20 7" /></svg>
               {h}
             </span>
           ))}
@@ -666,13 +688,13 @@ function ProductCard({ p, tone }: { p: SProduct; tone: { bg: string; fg: string;
   const t = useT();
   const mono = (p.name.match(/\d+/)?.[0] || p.name.trim().charAt(0) || 'FF').slice(0, 3);
   const badge = p.soldOut
-    ? { t: t('common.soldOut'), c: '#64748b' }
+    ? { t: t('common.soldOut'), c: 'var(--badge-sold)' }
     : p.discountPct > 0
-      ? { t: `${p.discountPct}% ${t('common.discount')}`, c: '#e11d48' }
+      ? { t: `${p.discountPct}% ${t('common.discount')}`, c: 'var(--badge-sale)' }
       : p.popular
-        ? { t: t('common.popular'), c: '#0284c7' }
+        ? { t: t('common.popular'), c: 'var(--badge-popular)' }
         : p.isNew
-          ? { t: t('common.new'), c: '#65a30d' }
+          ? { t: t('common.new'), c: 'var(--badge-new)' }
           : null;
 
   return (

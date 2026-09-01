@@ -130,7 +130,7 @@ export default async function AdminOrders({
               style={
                 variantFilter
                   ? { background: 'var(--v-void)', color: 'var(--mut)' }
-                  : { background: 'var(--gold)', color: '#1a1408' }
+                  : { background: 'var(--gold)', color: 'var(--gold-ink)' }
               }
             >
               সব ({groups.reduce((s, g) => s + g.count, 0)})
@@ -147,7 +147,7 @@ export default async function AdminOrders({
                   className="inline-flex min-h-[40px] items-center rounded-lg px-3 text-xs font-semibold transition"
                   style={
                     active
-                      ? { background: 'var(--gold)', color: '#1a1408' }
+                      ? { background: 'var(--gold)', color: 'var(--gold-ink)' }
                       : { background: 'var(--v-void)', color: 'var(--ink)' }
                   }
                 >

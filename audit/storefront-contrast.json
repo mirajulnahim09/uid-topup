@@ -1,0 +1,1130 @@
+{
+ "hero:mobile:dark:lime": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 23.2,
+   "fontWeight": "800",
+   "worstRatio": 5.16,
+   "worstAt": {
+    "x": 306,
+    "y": 127,
+    "bg": "rgb(122,63,230)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.17,
+   "worstAt": {
+    "x": 158,
+    "y": 293,
+    "bg": "rgb(118,55,225)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 6.59,
+   "worstAt": {
+    "x": 27,
+    "y": 327,
+    "bg": "rgb(107,40,212)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 358,
+   "h": 355,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:mobile:dark:purple": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 23.2,
+   "fontWeight": "800",
+   "worstRatio": 5.16,
+   "worstAt": {
+    "x": 306,
+    "y": 127,
+    "bg": "rgb(122,63,230)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.17,
+   "worstAt": {
+    "x": 158,
+    "y": 293,
+    "bg": "rgb(118,55,225)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 6.59,
+   "worstAt": {
+    "x": 27,
+    "y": 327,
+    "bg": "rgb(107,40,212)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 358,
+   "h": 355,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:mobile:dark:blue": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 23.2,
+   "fontWeight": "800",
+   "worstRatio": 5.16,
+   "worstAt": {
+    "x": 306,
+    "y": 127,
+    "bg": "rgb(122,63,230)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.17,
+   "worstAt": {
+    "x": 158,
+    "y": 293,
+    "bg": "rgb(118,55,225)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 6.59,
+   "worstAt": {
+    "x": 27,
+    "y": 327,
+    "bg": "rgb(107,40,212)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 358,
+   "h": 355,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:mobile:dark:red": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 23.2,
+   "fontWeight": "800",
+   "worstRatio": 5.16,
+   "worstAt": {
+    "x": 306,
+    "y": 127,
+    "bg": "rgb(122,63,230)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.17,
+   "worstAt": {
+    "x": 158,
+    "y": 293,
+    "bg": "rgb(118,55,225)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 6.59,
+   "worstAt": {
+    "x": 27,
+    "y": 327,
+    "bg": "rgb(107,40,212)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 358,
+   "h": 355,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:mobile:dark:orange": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 23.2,
+   "fontWeight": "800",
+   "worstRatio": 5.16,
+   "worstAt": {
+    "x": 306,
+    "y": 127,
+    "bg": "rgb(122,63,230)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.17,
+   "worstAt": {
+    "x": 158,
+    "y": 293,
+    "bg": "rgb(118,55,225)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 6.59,
+   "worstAt": {
+    "x": 27,
+    "y": 327,
+    "bg": "rgb(107,40,212)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 358,
+   "h": 355,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "pairs:mobile:dark": {
+  "সফল-ব্যাজের লেখা নিজের টিন্টে": {
+   "fg": "rgb(163, 230, 53)",
+   "bg": "rgba(163, 230, 53, 0.16)",
+   "need": 4.5,
+   "ratio": 8.41
+  },
+  "তথ্য-ব্যাজের লেখা নিজের টিন্টে": {
+   "fg": "rgb(125, 211, 252)",
+   "bg": "rgba(56, 189, 248, 0.14)",
+   "need": 4.5,
+   "ratio": 8.56
+  },
+  "ব্যাজ \"সোল্ড আউট\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(100, 116, 139)",
+   "need": 4.5,
+   "ratio": 4.76
+  },
+  "ব্যাজ \"ছাড়\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(225, 29, 72)",
+   "need": 4.5,
+   "ratio": 4.7
+  },
+  "ব্যাজ \"জনপ্রিয়\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(3, 105, 161)",
+   "need": 4.5,
+   "ratio": 5.93
+  },
+  "ব্যাজ \"নতুন\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(77, 124, 15)",
+   "need": 4.5,
+   "ratio": 4.99
+  },
+  "ফিল্টার-চিপের লেখা --gold পৃষ্ঠতলে": {
+   "fg": "rgb(26, 20, 8)",
+   "bg": "rgb(190, 242, 100)",
+   "need": 4.5,
+   "ratio": 14.01
+  }
+ },
+ "nodes:mobile:dark": {
+  "completedBadge": {
+   "color": "rgb(163, 230, 53)",
+   "background": "rgba(163, 230, 53, 0.16)",
+   "borderBottom": "rgb(229, 231, 235)",
+   "text": "সম্পন্ন"
+  },
+  "uidBadge": {
+   "color": "rgb(125, 211, 252)",
+   "background": "rgba(56, 189, 248, 0.14)",
+   "borderBottom": "rgb(229, 231, 235)",
+   "text": "?"
+  },
+  "_feedDivider": {
+   "color": "rgba(255, 255, 255, 0.05)",
+   "width": "1px"
+  }
+ },
+ "hero:mobile:light:lime": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 23.2,
+   "fontWeight": "800",
+   "worstRatio": 5.16,
+   "worstAt": {
+    "x": 306,
+    "y": 127,
+    "bg": "rgb(122,63,230)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.17,
+   "worstAt": {
+    "x": 158,
+    "y": 293,
+    "bg": "rgb(118,55,225)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 6.59,
+   "worstAt": {
+    "x": 27,
+    "y": 327,
+    "bg": "rgb(107,40,212)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 358,
+   "h": 355,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:mobile:light:purple": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 23.2,
+   "fontWeight": "800",
+   "worstRatio": 5.16,
+   "worstAt": {
+    "x": 306,
+    "y": 127,
+    "bg": "rgb(122,63,230)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.17,
+   "worstAt": {
+    "x": 158,
+    "y": 293,
+    "bg": "rgb(118,55,225)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 6.59,
+   "worstAt": {
+    "x": 27,
+    "y": 327,
+    "bg": "rgb(107,40,212)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 358,
+   "h": 355,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:mobile:light:blue": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 23.2,
+   "fontWeight": "800",
+   "worstRatio": 5.16,
+   "worstAt": {
+    "x": 306,
+    "y": 127,
+    "bg": "rgb(122,63,230)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.17,
+   "worstAt": {
+    "x": 158,
+    "y": 293,
+    "bg": "rgb(118,55,225)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 6.59,
+   "worstAt": {
+    "x": 27,
+    "y": 327,
+    "bg": "rgb(107,40,212)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 358,
+   "h": 355,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:mobile:light:red": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 23.2,
+   "fontWeight": "800",
+   "worstRatio": 5.16,
+   "worstAt": {
+    "x": 306,
+    "y": 127,
+    "bg": "rgb(122,63,230)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.17,
+   "worstAt": {
+    "x": 158,
+    "y": 293,
+    "bg": "rgb(118,55,225)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 6.59,
+   "worstAt": {
+    "x": 27,
+    "y": 327,
+    "bg": "rgb(107,40,212)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 358,
+   "h": 355,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:mobile:light:orange": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 23.2,
+   "fontWeight": "800",
+   "worstRatio": 5.16,
+   "worstAt": {
+    "x": 306,
+    "y": 127,
+    "bg": "rgb(122,63,230)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.17,
+   "worstAt": {
+    "x": 158,
+    "y": 293,
+    "bg": "rgb(118,55,225)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 6.59,
+   "worstAt": {
+    "x": 27,
+    "y": 327,
+    "bg": "rgb(107,40,212)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 358,
+   "h": 355,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "pairs:mobile:light": {
+  "সফল-ব্যাজের লেখা নিজের টিন্টে": {
+   "fg": "rgb(21, 128, 61)",
+   "bg": "rgba(21, 128, 61, 0.06)",
+   "need": 4.5,
+   "ratio": 4.63
+  },
+  "তথ্য-ব্যাজের লেখা নিজের টিন্টে": {
+   "fg": "rgb(3, 105, 161)",
+   "bg": "rgba(3, 105, 161, 0.1)",
+   "need": 4.5,
+   "ratio": 5.13
+  },
+  "ব্যাজ \"সোল্ড আউট\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(100, 116, 139)",
+   "need": 4.5,
+   "ratio": 4.76
+  },
+  "ব্যাজ \"ছাড়\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(225, 29, 72)",
+   "need": 4.5,
+   "ratio": 4.7
+  },
+  "ব্যাজ \"জনপ্রিয়\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(3, 105, 161)",
+   "need": 4.5,
+   "ratio": 5.93
+  },
+  "ব্যাজ \"নতুন\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(77, 124, 15)",
+   "need": 4.5,
+   "ratio": 4.99
+  },
+  "ফিল্টার-চিপের লেখা --gold পৃষ্ঠতলে": {
+   "fg": "rgb(10, 18, 0)",
+   "bg": "rgb(90, 138, 0)",
+   "need": 4.5,
+   "ratio": 4.61
+  }
+ },
+ "nodes:mobile:light": {
+  "completedBadge": {
+   "color": "rgb(21, 128, 61)",
+   "background": "rgba(21, 128, 61, 0.06)",
+   "borderBottom": "rgb(229, 231, 235)",
+   "text": "সম্পন্ন"
+  },
+  "uidBadge": {
+   "color": "rgb(3, 105, 161)",
+   "background": "rgba(3, 105, 161, 0.1)",
+   "borderBottom": "rgb(229, 231, 235)",
+   "text": "?"
+  },
+  "_feedDivider": {
+   "color": "rgba(15, 23, 41, 0.06)",
+   "width": "1px"
+  }
+ },
+ "hero:desktop:dark:lime": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 40,
+   "fontWeight": "800",
+   "worstRatio": 4.85,
+   "worstAt": {
+    "x": 550,
+    "y": 157,
+    "bg": "rgb(126,69,233)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.04,
+   "worstAt": {
+    "x": 361,
+    "y": 285,
+    "bg": "rgb(119,57,227)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 7.41,
+   "worstAt": {
+    "x": 41,
+    "y": 339,
+    "bg": "rgb(98,37,194)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 652,
+   "h": 376,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:desktop:dark:purple": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 40,
+   "fontWeight": "800",
+   "worstRatio": 4.85,
+   "worstAt": {
+    "x": 550,
+    "y": 157,
+    "bg": "rgb(126,69,233)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.04,
+   "worstAt": {
+    "x": 361,
+    "y": 285,
+    "bg": "rgb(119,57,227)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 7.41,
+   "worstAt": {
+    "x": 41,
+    "y": 339,
+    "bg": "rgb(98,37,194)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 652,
+   "h": 376,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:desktop:dark:blue": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 40,
+   "fontWeight": "800",
+   "worstRatio": 4.85,
+   "worstAt": {
+    "x": 550,
+    "y": 157,
+    "bg": "rgb(126,69,233)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.04,
+   "worstAt": {
+    "x": 361,
+    "y": 285,
+    "bg": "rgb(119,57,227)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 7.41,
+   "worstAt": {
+    "x": 41,
+    "y": 339,
+    "bg": "rgb(98,37,194)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 652,
+   "h": 376,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:desktop:dark:red": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 40,
+   "fontWeight": "800",
+   "worstRatio": 4.85,
+   "worstAt": {
+    "x": 550,
+    "y": 157,
+    "bg": "rgb(126,69,233)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.04,
+   "worstAt": {
+    "x": 361,
+    "y": 285,
+    "bg": "rgb(119,57,227)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 7.41,
+   "worstAt": {
+    "x": 41,
+    "y": 339,
+    "bg": "rgb(98,37,194)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 652,
+   "h": 376,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:desktop:dark:orange": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 40,
+   "fontWeight": "800",
+   "worstRatio": 4.85,
+   "worstAt": {
+    "x": 550,
+    "y": 157,
+    "bg": "rgb(126,69,233)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.04,
+   "worstAt": {
+    "x": 361,
+    "y": 285,
+    "bg": "rgb(119,57,227)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 7.41,
+   "worstAt": {
+    "x": 41,
+    "y": 339,
+    "bg": "rgb(98,37,194)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 652,
+   "h": 376,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "pairs:desktop:dark": {
+  "সফল-ব্যাজের লেখা নিজের টিন্টে": {
+   "fg": "rgb(163, 230, 53)",
+   "bg": "rgba(163, 230, 53, 0.16)",
+   "need": 4.5,
+   "ratio": 8.41
+  },
+  "তথ্য-ব্যাজের লেখা নিজের টিন্টে": {
+   "fg": "rgb(125, 211, 252)",
+   "bg": "rgba(56, 189, 248, 0.14)",
+   "need": 4.5,
+   "ratio": 8.56
+  },
+  "ব্যাজ \"সোল্ড আউট\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(100, 116, 139)",
+   "need": 4.5,
+   "ratio": 4.76
+  },
+  "ব্যাজ \"ছাড়\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(225, 29, 72)",
+   "need": 4.5,
+   "ratio": 4.7
+  },
+  "ব্যাজ \"জনপ্রিয়\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(3, 105, 161)",
+   "need": 4.5,
+   "ratio": 5.93
+  },
+  "ব্যাজ \"নতুন\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(77, 124, 15)",
+   "need": 4.5,
+   "ratio": 4.99
+  },
+  "ফিল্টার-চিপের লেখা --gold পৃষ্ঠতলে": {
+   "fg": "rgb(26, 20, 8)",
+   "bg": "rgb(190, 242, 100)",
+   "need": 4.5,
+   "ratio": 14.01
+  }
+ },
+ "nodes:desktop:dark": {
+  "completedBadge": {
+   "color": "rgb(163, 230, 53)",
+   "background": "rgba(163, 230, 53, 0.16)",
+   "borderBottom": "rgb(229, 231, 235)",
+   "text": "সম্পন্ন"
+  },
+  "uidBadge": {
+   "color": "rgb(125, 211, 252)",
+   "background": "rgba(56, 189, 248, 0.14)",
+   "borderBottom": "rgb(229, 231, 235)",
+   "text": "?"
+  },
+  "_feedDivider": {
+   "color": "rgba(255, 255, 255, 0.05)",
+   "width": "1px"
+  }
+ },
+ "hero:desktop:light:lime": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 40,
+   "fontWeight": "800",
+   "worstRatio": 4.85,
+   "worstAt": {
+    "x": 550,
+    "y": 157,
+    "bg": "rgb(126,69,233)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.04,
+   "worstAt": {
+    "x": 361,
+    "y": 285,
+    "bg": "rgb(119,57,227)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 7.41,
+   "worstAt": {
+    "x": 41,
+    "y": 339,
+    "bg": "rgb(98,37,194)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 652,
+   "h": 376,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:desktop:light:purple": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 40,
+   "fontWeight": "800",
+   "worstRatio": 4.85,
+   "worstAt": {
+    "x": 550,
+    "y": 157,
+    "bg": "rgb(126,69,233)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.04,
+   "worstAt": {
+    "x": 361,
+    "y": 285,
+    "bg": "rgb(119,57,227)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 7.41,
+   "worstAt": {
+    "x": 41,
+    "y": 339,
+    "bg": "rgb(98,37,194)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 652,
+   "h": 376,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:desktop:light:blue": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 40,
+   "fontWeight": "800",
+   "worstRatio": 4.85,
+   "worstAt": {
+    "x": 550,
+    "y": 157,
+    "bg": "rgb(126,69,233)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.04,
+   "worstAt": {
+    "x": 361,
+    "y": 285,
+    "bg": "rgb(119,57,227)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 7.41,
+   "worstAt": {
+    "x": 41,
+    "y": 339,
+    "bg": "rgb(98,37,194)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 652,
+   "h": 376,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:desktop:light:red": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 40,
+   "fontWeight": "800",
+   "worstRatio": 4.85,
+   "worstAt": {
+    "x": 550,
+    "y": 157,
+    "bg": "rgb(126,69,233)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.04,
+   "worstAt": {
+    "x": 361,
+    "y": 285,
+    "bg": "rgb(119,57,227)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 7.41,
+   "worstAt": {
+    "x": 41,
+    "y": 339,
+    "bg": "rgb(98,37,194)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 652,
+   "h": 376,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "hero:desktop:light:orange": {
+  "heading": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 40,
+   "fontWeight": "800",
+   "worstRatio": 4.85,
+   "worstAt": {
+    "x": 550,
+    "y": 157,
+    "bg": "rgb(126,69,233)"
+   },
+   "text": "দ্রুততম রাস্তা"
+  },
+  "secondaryLink": {
+   "fg": "rgb(255, 255, 255)",
+   "fontSizePx": 13,
+   "fontWeight": "700",
+   "worstRatio": 6.04,
+   "worstAt": {
+    "x": 361,
+    "y": 285,
+    "bg": "rgb(119,57,227)"
+   },
+   "text": "কিভাবে অর্ডার করবেন"
+  },
+  "checkGlyph": {
+   "fg": "rgb(228, 255, 140)",
+   "fontSizePx": 12.5,
+   "fontWeight": "600",
+   "worstRatio": 7.41,
+   "worstAt": {
+    "x": 41,
+    "y": 339,
+    "bg": "rgb(98,37,194)"
+   },
+   "text": ""
+  },
+  "_hero": {
+   "w": 652,
+   "h": 376,
+   "deg": 120,
+   "stops": 3
+  }
+ },
+ "pairs:desktop:light": {
+  "সফল-ব্যাজের লেখা নিজের টিন্টে": {
+   "fg": "rgb(21, 128, 61)",
+   "bg": "rgba(21, 128, 61, 0.06)",
+   "need": 4.5,
+   "ratio": 4.63
+  },
+  "তথ্য-ব্যাজের লেখা নিজের টিন্টে": {
+   "fg": "rgb(3, 105, 161)",
+   "bg": "rgba(3, 105, 161, 0.1)",
+   "need": 4.5,
+   "ratio": 5.13
+  },
+  "ব্যাজ \"সোল্ড আউট\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(100, 116, 139)",
+   "need": 4.5,
+   "ratio": 4.76
+  },
+  "ব্যাজ \"ছাড়\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(225, 29, 72)",
+   "need": 4.5,
+   "ratio": 4.7
+  },
+  "ব্যাজ \"জনপ্রিয়\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(3, 105, 161)",
+   "need": 4.5,
+   "ratio": 5.93
+  },
+  "ব্যাজ \"নতুন\" — সাদা লেখা": {
+   "fg": "rgb(255, 255, 255)",
+   "bg": "rgb(77, 124, 15)",
+   "need": 4.5,
+   "ratio": 4.99
+  },
+  "ফিল্টার-চিপের লেখা --gold পৃষ্ঠতলে": {
+   "fg": "rgb(10, 18, 0)",
+   "bg": "rgb(90, 138, 0)",
+   "need": 4.5,
+   "ratio": 4.61
+  }
+ },
+ "nodes:desktop:light": {
+  "completedBadge": {
+   "color": "rgb(21, 128, 61)",
+   "background": "rgba(21, 128, 61, 0.06)",
+   "borderBottom": "rgb(229, 231, 235)",
+   "text": "সম্পন্ন"
+  },
+  "uidBadge": {
+   "color": "rgb(3, 105, 161)",
+   "background": "rgba(3, 105, 161, 0.1)",
+   "borderBottom": "rgb(229, 231, 235)",
+   "text": "?"
+  },
+  "_feedDivider": {
+   "color": "rgba(15, 23, 41, 0.06)",
+   "width": "1px"
+  }
+ }
+}
