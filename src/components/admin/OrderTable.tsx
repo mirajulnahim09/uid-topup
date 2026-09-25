@@ -76,7 +76,10 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [bulkAct, setBulkAct] = useState<'CLAIM' | 'PROCESSING' | 'COMPLETE' | null>(null);
   /** ★ আংশিক ফেরত ডায়ালগের অবস্থা (3.14) */
-  const [partial, setPartial] = useState<{ o: O; amount: string; reason: string } | null>(null);
+  const [partial, setPartial] = useState<{ o: O; amount: string; reason: string; key: string } | null>(null);
+  // ★ idempotency — এক ডায়ালগ-বিষয়বস্তু = এক চাবি; ব্যর্থ হলে একই অর্ডারে আবার খুললে
+  //   একই চাবি ও মান ফিরে আসে, তাই প্রথমটি আসলে পৌঁছে থাকলে সার্ভার দ্বিতীয়বার ফেরত দেয় না
+  const [refundDraft, setRefundDraft] = useState<{ o: O; amount: string; reason: string; key: string } | null>(null);
   const [bulkResult, setBulkResult] = useState<
     { okCount: number; failCount: number; results: { orderNo: number | null; ok: boolean; error?: string }[] } | null
   >(null);
@@ -244,13 +247,16 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
       const res = await fetch('/api/admin/order/refund', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: p.o.id, amount: amt, reason: p.reason.trim() }),
+        body: JSON.stringify({ orderId: p.o.id, amount: amt, reason: p.reason.trim(), requestId: p.key }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error);
-      toast.success(`৳${amt.toFixed(2)} ফেরত দেওয়া হয়েছে`);
+      toast.success(j.duplicate ? 'এই ফেরত আগেই দেওয়া হয়েছে — আবার দেওয়া হয়নি' : `৳${amt.toFixed(2)} ফেরত দেওয়া হয়েছে`);
+      setRefundDraft(null);
       startTransition(() => router.refresh());
     } catch (e) {
+      // ★ খসড়া + চাবি রাখা — আবার খুললে একই চাবিতে retry (নেট-কাটায় দুবার ফেরত নয়)
+      setRefundDraft(p);
       toast.error(e instanceof Error ? e.message : 'কাজটি করা যায়নি');
     } finally {
       setBusy(null);
@@ -377,7 +383,8 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                       </label>
                     )}
                   </td>
-                  <td data-label="অর্ডার" className="font-mono font-semibold text-rose-600">#{o.orderNo}</td>
+                  {/* ★ nowrap — ৫ অঙ্কের নম্বর সরু কলামে "#474 / 5" হয়ে ভাঙত (walkthrough ১৪৪০px) */}
+                  <td data-label="অর্ডার" className="whitespace-nowrap font-mono font-semibold text-rose-600">#{o.orderNo}</td>
                   <td data-label="ইউজার">
                     <div className="text-sm font-medium text-slate-900">{o.user.name}</div>
                     <div className="text-xs text-slate-400">{o.user.phone}</div>
@@ -390,7 +397,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                     {/* ★ একই CopyButton — আগে এখানে আলাদা বাস্তবায়ন ছিল,
                         এখন পুরো অ্যাডমিনে একই আচরণ ও একই a11y (3.4) */}
                     <span className="inline-flex items-center gap-1.5">
-                      <code className="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-amber-700">
+                      <code className="whitespace-nowrap rounded bg-slate-100 px-2 py-1 font-mono text-xs text-amber-700">
                         {o.playerUid}
                       </code>
                       <CopyButton value={o.playerUid} label="Player UID" />
@@ -499,7 +506,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                          তখনই যখন ফেরত দেওয়ার মতো টাকা বাকি আছে (3.14) */
                       <button
                         disabled={busy === o.id}
-                        onClick={() => setPartial({ o, amount: '', reason: '' })}
+                        onClick={() => setPartial(refundDraft && refundDraft.o.id === o.id ? refundDraft : { o, amount: '', reason: '', key: crypto.randomUUID() })}
                         className="btn-ghost px-2.5 py-1.5 text-xs"
                         title={`সর্বোচ্চ ৳${round2(o.price - o.refundedAmount).toFixed(2)}`}
                       >
@@ -550,7 +557,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
             max={partial ? round2(partial.o.price - partial.o.refundedAmount) : undefined}
             className="input"
             value={partial?.amount ?? ''}
-            onChange={(e) => setPartial((p) => (p ? { ...p, amount: e.target.value } : p))}
+            onChange={(e) => setPartial((p) => (p ? { ...p, amount: e.target.value, key: crypto.randomUUID() } : p))}
             placeholder="যেমন 50.00"
           />
         </div>
@@ -560,7 +567,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
             id="pr-reason"
             className="input"
             value={partial?.reason ?? ''}
-            onChange={(e) => setPartial((p) => (p ? { ...p, reason: e.target.value } : p))}
+            onChange={(e) => setPartial((p) => (p ? { ...p, reason: e.target.value, key: crypto.randomUUID() } : p))}
             placeholder="যেমন: ৫০০ এর বদলে ৩০০ ডায়মন্ড পৌঁছেছে"
           />
         </div>

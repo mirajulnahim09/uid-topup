@@ -14,6 +14,20 @@ import LogoutButton from '@/components/LogoutButton';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'প্রোফাইল' };
 
+/**
+ * ★ খতিয়ানের ধরন গ্রাহকের ভাষায় — আগে কাঁচা enum (`ORDER`, `DEPOSIT`) দেখাত,
+ *   বাংলা পাতায় যা গ্রাহকের কাছে অর্থহীন (MASTER 2 walkthrough, ৩৯০px)।
+ */
+const LEDGER_TYPE_BN: Record<string, string> = {
+  DEPOSIT: 'টাকা যোগ',
+  ORDER: 'অর্ডার',
+  REFUND: 'ফেরত',
+  ADMIN_ADJUST: 'সমন্বয়',
+  REFERRAL_BONUS: 'রেফারেল বোনাস',
+  WITHDRAWAL: 'টাকা তোলা',
+  WITHDRAWAL_REVERSAL: 'তোলা বাতিল — ফেরত',
+};
+
 export default async function AccountPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
@@ -265,7 +279,7 @@ export default async function AccountPage() {
                 return (
                   <tr key={l.id}>
                     <td data-label="তারিখ" className="whitespace-nowrap text-xs text-slate-400">{fmtDate(l.createdAt)}</td>
-                    <td data-label="ধরন" className="text-xs">{l.type}</td>
+                    <td data-label="ধরন" className="text-xs">{LEDGER_TYPE_BN[l.type] ?? l.type}</td>
                     {/* ★ ফোনে নোটটি লেবেলের ডানে বসে, তাই ডান-সারিবদ্ধ —
                         নাহলে লম্বা নোট দুই লাইনে ভেঙে বাঁয়ে ঝুলে থাকত */}
                     <td data-label="বিবরণ" className="text-xs text-slate-400 max-md:text-right">{l.note}</td>

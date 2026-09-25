@@ -13,12 +13,17 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { db } from '../vitest.setup';
 import { client, signedInUser, signedInAdmin } from './helpers/app';
+
+// ★ আংশিক ফেরতে এখন idempotency key বাধ্যতামূলক — এখানে প্রতিটি অনুরোধ ইচ্ছাকৃত ও আলাদা,
+//   তাই প্রতিবার নতুন চাবি (পুনরাবৃত্তি-আচরণ `admin-money-idempotency.test.ts`-এ)
+let rq = 0;
+const rid = () => `test-refund-${Date.now().toString(36)}-${rq++}`;
 import {
   createVariant, createCompletedOrder, balanceOf, ledgerSum,
 } from './helpers/factories';
 
 beforeAll(async () => {
-  await client().post('/api/admin/order/refund', { orderId: 'warmup', amount: 1, reason: 'warm' });
+  await client().post('/api/admin/order/refund', { orderId: 'warmup', amount: 1, reason: 'warm', requestId: rid() });
 });
 
 /** ★ প্রতিটি টেস্টের সাধারণ শুরু: একজন গ্রাহক + একটি COMPLETED অর্ডার */
@@ -38,7 +43,7 @@ describe('রিফান্ড — আংশিক', () => {
 
     const res = await adminClient.post<{ success: boolean; totalRefunded: number }>(
       '/api/admin/order/refund',
-      { orderId: order.id, amount: 30, reason: 'দেরির ক্ষতিপূরণ' },
+      { orderId: order.id, requestId: rid(), amount: 30, reason: 'দেরির ক্ষতিপূরণ' },
     );
 
     expect(res.status).toBe(200);
@@ -64,7 +69,7 @@ describe('রিফান্ড — আংশিক', () => {
 
     for (const amount of [40, 35, 25]) {
       const res = await adminClient.post('/api/admin/order/refund', {
-        orderId: order.id, amount, reason: `কিস্তি ${amount}`,
+        orderId: order.id, requestId: rid(), amount, reason: `কিস্তি ${amount}`,
       });
       expect(res.status).toBe(200);
     }
@@ -83,7 +88,7 @@ describe('রিফান্ড — পূর্ণ ও সীমা', () => {
     const { user, order, adminClient } = await seedCompletedOrder(250);
 
     const res = await adminClient.post('/api/admin/order/refund', {
-      orderId: order.id, amount: 250, reason: 'সম্পূর্ণ ব্যর্থ ডেলিভারি',
+      orderId: order.id, requestId: rid(), amount: 250, reason: 'সম্পূর্ণ ব্যর্থ ডেলিভারি',
     });
 
     expect(res.status).toBe(200);
@@ -95,7 +100,7 @@ describe('রিফান্ড — পূর্ণ ও সীমা', () => {
     const { user, order, adminClient } = await seedCompletedOrder(100);
 
     const res = await adminClient.post<{ error: string }>('/api/admin/order/refund', {
-      orderId: order.id, amount: 100.01, reason: 'অতিরিক্ত',
+      orderId: order.id, requestId: rid(), amount: 100.01, reason: 'অতিরিক্ত',
     });
 
     expect(res.status).toBe(400);
@@ -110,7 +115,7 @@ describe('রিফান্ড — পূর্ণ ও সীমা', () => {
     const { user, order, adminClient } = await seedCompletedOrder(100, 70);
 
     const res = await adminClient.post<{ error: string }>('/api/admin/order/refund', {
-      orderId: order.id, amount: 40, reason: 'বাকিটার বেশি',
+      orderId: order.id, requestId: rid(), amount: 40, reason: 'বাকিটার বেশি',
     });
 
     expect(res.status).toBe(400);
@@ -120,7 +125,7 @@ describe('রিফান্ড — পূর্ণ ও সীমা', () => {
 
     // ★ ঠিক ৩০ চাইলে যায়
     const ok = await adminClient.post('/api/admin/order/refund', {
-      orderId: order.id, amount: 30, reason: 'অবশিষ্ট',
+      orderId: order.id, requestId: rid(), amount: 30, reason: 'অবশিষ্ট',
     });
     expect(ok.status).toBe(200);
     expect(await balanceOf(db, user.id)).toBe(30);
@@ -130,7 +135,7 @@ describe('রিফান্ড — পূর্ণ ও সীমা', () => {
     const { user, order, adminClient } = await seedCompletedOrder(100, 100);
 
     const res = await adminClient.post<{ error: string }>('/api/admin/order/refund', {
-      orderId: order.id, amount: 1, reason: 'আরেকবার',
+      orderId: order.id, requestId: rid(), amount: 1, reason: 'আরেকবার',
     });
 
     expect(res.status).toBe(409);
@@ -152,7 +157,7 @@ describe('রিফান্ড — পূর্ণ ও সীমা', () => {
     const { client: adminClient } = await signedInAdmin(db);
 
     const res = await adminClient.post('/api/admin/order/refund', {
-      orderId: order.id, amount: 50, reason: 'চলমান অর্ডারে',
+      orderId: order.id, requestId: rid(), amount: 50, reason: 'চলমান অর্ডারে',
     });
 
     expect(res.status).toBe(409);
@@ -171,10 +176,10 @@ describe('রিফান্ড — সমান্তরালতা', () => {
 
     const results = await Promise.all([
       adminClient.post<{ error?: string }>('/api/admin/order/refund', {
-        orderId: order.id, amount: 60, reason: 'সমান্তরাল ক',
+        orderId: order.id, requestId: rid(), amount: 60, reason: 'সমান্তরাল ক',
       }),
       adminClient.post<{ error?: string }>('/api/admin/order/refund', {
-        orderId: order.id, amount: 60, reason: 'সমান্তরাল খ',
+        orderId: order.id, requestId: rid(), amount: 60, reason: 'সমান্তরাল খ',
       }),
     ]);
 
@@ -193,7 +198,7 @@ describe('রিফান্ড — সমান্তরালতা', () => {
     const results = await Promise.all(
       Array.from({ length: 5 }, (_, i) =>
         adminClient.post('/api/admin/order/refund', {
-          orderId: order.id, amount: 200, reason: `চেষ্টা ${i}`,
+          orderId: order.id, requestId: rid(), amount: 200, reason: `চেষ্টা ${i}`,
         }),
       ),
     );

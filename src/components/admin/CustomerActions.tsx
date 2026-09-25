@@ -31,6 +31,8 @@ export default function CustomerActions({
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  // ★ এক ডায়ালগ = এক সমন্বয়: ডাবল-ক্লিক বা নেট-কাটা retry সার্ভারে একবারই গোনে
+  const [adjustKey, setAdjustKey] = useState('');
 
   const STATUS_LABEL: Record<string, string> = { ACTIVE: 'সক্রিয়', SUSPENDED: 'সাময়িক স্থগিত', BLOCKED: 'স্থায়ীভাবে বন্ধ' };
 
@@ -44,13 +46,15 @@ export default function CustomerActions({
       const res = await fetch('/api/admin/user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, amount: amt, note: note.trim() }),
+        body: JSON.stringify({ userId, amount: amt, note: note.trim(), requestId: adjustKey || undefined }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
-      toast.success(`${name} — ${amt > 0 ? '+' : ''}৳${amt.toFixed(2)} (নতুন ব্যালেন্স ৳${d.balance})`);
+      if (d.duplicate) toast.success(`এই সমন্বয় আগেই হয়ে গেছে — আবার যোগ করা হয়নি (ব্যালেন্স ৳${d.balance})`);
+      else toast.success(`${name} — ${amt > 0 ? '+' : ''}৳${amt.toFixed(2)} (নতুন ব্যালেন্স ৳${d.balance})`);
       setAmount('');
       setNote('');
+      setAdjustKey('');
       startTransition(() => router.refresh());
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'সমন্বয় করা যায়নি');
@@ -83,7 +87,7 @@ export default function CustomerActions({
 
   return (
     <div className="flex flex-wrap gap-2">
-      <button disabled={busy} onClick={() => { setAmount(''); setNote(''); setAdjustOpen(true); }} className="btn-primary">
+      <button disabled={busy} onClick={() => { if (!adjustKey) { setAmount(''); setNote(''); setAdjustKey(crypto.randomUUID()); } setAdjustOpen(true); }} className="btn-primary">
         ৳ ব্যালেন্স যোগ / কাটা
       </button>
       {!isAdmin && (
@@ -112,11 +116,11 @@ export default function CustomerActions({
           <div>
             <label className="label">পরিমাণ (+ / −)</label>
             <input aria-label="পরিমাণ (+ / −)" className="input" type="number" step="0.01" value={amount}
-              onChange={(e) => setAmount(e.target.value)} placeholder="যেমন: 100 বা -50" />
+              onChange={(e) => { setAmount(e.target.value); setAdjustKey(crypto.randomUUID()); }} placeholder="যেমন: 100 বা -50" />
           </div>
           <div>
             <label className="label">কারণ (বাধ্যতামূলক)</label>
-            <input aria-label="কারণ (বাধ্যতামূলক)" className="input" value={note} onChange={(e) => setNote(e.target.value)}
+            <input aria-label="কারণ (বাধ্যতামূলক)" className="input" value={note} onChange={(e) => { setNote(e.target.value); setAdjustKey(crypto.randomUUID()); }}
               placeholder="যেমন: ম্যানুয়াল রিফান্ড" />
           </div>
         </div>

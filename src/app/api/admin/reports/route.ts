@@ -13,11 +13,48 @@ function cell(v: unknown): string {
   return s;
 }
 
-function toCsv(headers: string[], rows: unknown[][]): string {
-  const lines = [headers.map(cell).join(',')];
-  for (const r of rows) lines.push(r.map(cell).join(','));
-  // ★ BOM — Excel এ বাংলা ঠিক দেখাবে
-  return '\uFEFF' + lines.join('\r\n');
+/**
+ * ★★★ CSV **স্ট্রিম** করে পাঠানো — ২০০০ সারির ব্যাচে।
+ *
+ *   ⚠️ মাপা (সিমুলেশন, ২০২৬-০৯-২৫): আগে পুরো রিপোর্ট মেমরিতে একটি স্ট্রিং
+ *   হয়ে তারপর যেত। ~৫০ হাজার অর্ডারে ৬.২MB/৩s, ৫ লাখে ৪৬MB/২৭s। Vercel-এর
+ *   সাধারণ (non-streaming) ফাংশন-উত্তরের সীমা ৪.৫MB — অর্থাৎ ব্যস্ত মাসে
+ *   ডিফল্ট ৩০-দিনের রিপোর্ট প্রোডাকশনে ডাউনলোডই হতো না।
+ *
+ *   ⚠️ কেন Prisma-র `cursor` পাতা নয়: প্রথম সংস্করণে সেটিই ছিল, আর প্রতিটি
+ *   ব্যাচে পুরো টেবিল স্ক্যান হতো (`Order.createdAt`-এ একক সূচি নেই) —
+ *   ৫ লাখে মোট সময় ২৭s → **৭৫s** হয়ে গিয়েছিল। এখন: প্রথমে একবারই কেবল
+ *   `id`-গুলো সাজানো ক্রমে (এক স্ক্যান), তারপর প্রতিটি ব্যাচ primary key দিয়ে।
+ */
+const BATCH = 2000;
+
+function streamCsv<T extends { id: string }>(
+  headers: string[],
+  fetchIds: () => Promise<string[]>,
+  fetchRows: (ids: string[]) => Promise<T[]>,
+  toRow: (r: T) => unknown[],
+): ReadableStream<Uint8Array> {
+  const enc = new TextEncoder();
+  let ids: string[] | null = null;
+  let at = 0;
+  return new ReadableStream<Uint8Array>({
+    async pull(ctrl) {
+      if (ids === null) {
+        ids = await fetchIds();
+        // ★ BOM — Excel এ বাংলা ঠিক দেখাবে
+        ctrl.enqueue(enc.encode('﻿' + headers.map(cell).join(',')));
+        if (ids.length === 0) ctrl.close();
+        return;
+      }
+      const chunk = ids.slice(at, at + BATCH);
+      at += BATCH;
+      // ★ `IN (...)` ক্রম রাখে না — id-তালিকার ক্রমে ফিরিয়ে সাজানো
+      const byId = new Map((await fetchRows(chunk)).map((r) => [r.id, r]));
+      const lines = chunk.map((id) => byId.get(id)).filter((r): r is T => !!r);
+      if (lines.length) ctrl.enqueue(enc.encode(lines.map((r) => '\r\n' + toRow(r).map(cell).join(',')).join('')));
+      if (at >= ids.length) ctrl.close();
+    },
+  });
 }
 
 export async function GET(req: Request) {
@@ -37,56 +74,66 @@ export async function GET(req: Request) {
       throw new ApiError('সঠিক তারিখ দিন', 400);
     }
 
-    let csv = '';
+    let body: ReadableStream<Uint8Array>;
     let name = '';
+    const order = [{ createdAt: 'desc' as const }, { id: 'desc' as const }];
 
     if (type === 'deposits') {
-      const rows = await prisma.deposit.findMany({
-        where: { createdAt: { gte: from, lte: to } },
-        orderBy: { createdAt: 'desc' },
-        include: { user: { select: { name: true, phone: true } } },
-      });
-      csv = toCsv(
+      body = streamCsv(
         ['রিচার্জ নং', 'নাম', 'ফোন', 'মেথড', 'পরিমাণ', 'TrxID', 'প্রেরক নং', 'স্ট্যাটাস', 'তারিখ'],
-        rows.map((d: (typeof rows)[number]) => [
+        () => prisma.deposit.findMany({
+          where: { createdAt: { gte: from, lte: to } },
+          orderBy: order, select: { id: true },
+        }).then((r) => r.map((x) => x.id)),
+        (ids) => prisma.deposit.findMany({
+          where: { id: { in: ids } },
+          include: { user: { select: { name: true, phone: true } } },
+        }),
+        (d) => [
           d.depositNo, d.user.name, d.user.phone, d.method, Number(d.amount),
           d.trxId, d.senderNo, d.status, d.createdAt.toISOString(),
-        ])
+        ],
       );
       name = 'recharge';
     } else if (type === 'users') {
-      const rows = await prisma.user.findMany({
-        where: { role: 'USER', createdAt: { gte: from, lte: to } },
-        orderBy: { createdAt: 'desc' },
-        select: { name: true, email: true, phone: true, balance: true, isBanned: true, createdAt: true },
-      });
-      csv = toCsv(
+      body = streamCsv(
         ['নাম', 'ইমেইল', 'ফোন', 'ব্যালেন্স', 'ব্যান', 'যোগদান'],
-        rows.map((u: (typeof rows)[number]) => [
+        () => prisma.user.findMany({
+          where: { role: 'USER', createdAt: { gte: from, lte: to } },
+          orderBy: order, select: { id: true },
+        }).then((r) => r.map((x) => x.id)),
+        (ids) => prisma.user.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, name: true, email: true, phone: true, balance: true, isBanned: true, createdAt: true },
+        }),
+        (u) => [
           u.name, u.email, u.phone, Number(u.balance), u.isBanned ? 'হ্যাঁ' : 'না',
           u.createdAt.toISOString(),
-        ])
+        ],
       );
       name = 'users';
     } else {
       // orders (default)
-      const rows = await prisma.order.findMany({
-        where: { createdAt: { gte: from, lte: to } },
-        orderBy: { createdAt: 'desc' },
-        include: { user: { select: { name: true, phone: true } } },
-      });
-      csv = toCsv(
+      body = streamCsv(
         ['অর্ডার নং', 'নাম', 'ফোন', 'প্রোডাক্ট', 'প্যাকেজ', 'UID', 'মূল্য', 'ছাড়', 'স্ট্যাটাস', 'তারিখ'],
-        rows.map((o: (typeof rows)[number]) => [
+        () => prisma.order.findMany({
+          where: { createdAt: { gte: from, lte: to } },
+          orderBy: order, select: { id: true },
+        }).then((r) => r.map((x) => x.id)),
+        (ids) => prisma.order.findMany({
+          where: { id: { in: ids } },
+          include: { user: { select: { name: true, phone: true } } },
+        }),
+        (o) => [
           o.orderNo, o.user.name, o.user.phone, o.productName, o.variantName,
           o.playerUid, Number(o.price), Number(o.discount), o.status, o.createdAt.toISOString(),
-        ])
+        ],
       );
       name = 'orders';
     }
 
     const stamp = new Date().toISOString().slice(0, 10);
-    return new Response(csv, {
+    return new Response(body, {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="${name}-${stamp}.csv"`,

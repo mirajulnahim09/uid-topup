@@ -1,19 +1,31 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * ★ Custom cursor — glow বিন্দু + পিছনে চলা ring।
  *   শুধু desktop (hover) এ; touch device এ স্বাভাবিক cursor।
+ *
+ * ⚠️ touch/reduced-motion-এ বিন্দু ও রিং **রেন্ডারই হয় না**। আগে effect
+ *   শুধু আগেভাগে ফিরে যেত, কিন্তু div দুটি থেকে যেত — `fixed` অথচ
+ *   `left/top` কখনো বসত না, তাই পাতার মাঝখানে একটি স্থির হলুদ রিং
+ *   ভাসত: প্যাকেজ-কার্ডের উপর, পেমেন্ট-বোতামের উপর, ফুটারে।
+ *   মাপা (MASTER 2 walkthrough, ২০২৬-০৯-২৫, ৩৯০px স্ক্রিনশট) —
+ *   অর্থাৎ **প্রত্যেক মোবাইল গ্রাহক** এটি দেখতেন।
  */
 export default function CustomCursor() {
   const dotRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
+  const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
     const touch = window.matchMedia('(hover: none)').matches;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (touch || reduce) return;
+    setEnabled(!touch && !reduce);
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || !dotRef.current || !ringRef.current) return;
 
     document.body.style.cursor = 'none';
     const dot = dotRef.current!;
@@ -64,7 +76,9 @@ export default function CustomCursor() {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseover', over);
     };
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) return null;
 
   return (
     <div aria-hidden="true">

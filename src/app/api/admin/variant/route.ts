@@ -11,6 +11,37 @@ import { revalidatePath } from 'next/cache';
  *   এই রুটে adminLog **import করা ছিল কিন্তু কখনো ডাকা হয়নি** —
  *   ফলে বাইরে থেকে দেখে মনে হতো লগ হচ্ছে, আসলে হচ্ছিল না।
  */
+/**
+ * ★★★ দাম ও স্টকের সীমা — তৈরি ও সম্পাদনা দুই পথে **একই** নিয়ম।
+ *
+ *   ⚠️ মাপা (সিমুলেশন-ফাজ, ২০২৬-০৯-২৫): আগে কেবল `isNaN` দেখা হতো। ফলে
+ *   স্টক `1.5` গৃহীত হলো (লগে "স্টক -1 → 1.5", DB-তে Postgres-এর গোল করা
+ *   মান), `-5` দিলে অর্ডার-পথ সেটিকে কার্যত "সীমাহীন" ধরত (সে কেবল `0`
+ *   ও `> 0` দেখে) — অর্থাৎ oversell। দামে সম্পাদনায় `0` চলত অথচ তৈরিতে
+ *   চলত না, আর `1e13` Decimal(12,2) ছাড়িয়ে ৫০০ দিত।
+ */
+const MAX_PRICE = 1_000_000;
+const MAX_STOCK = 1_000_000;
+function priceOf(v: unknown, msg: string, allowZero: boolean): number {
+  const n = Number(v);
+  const ok = Number.isFinite(n) && (allowZero ? n >= 0 : n > 0) && n <= MAX_PRICE
+    && Math.abs(n * 100 - Math.round(n * 100)) < 1e-6;
+  if (!ok) {
+    throw new ApiError(
+      `${msg} — ${allowZero ? '০' : '০-এর বেশি'} থেকে ৳${MAX_PRICE.toLocaleString('bn-BD')} পর্যন্ত, দশমিকের পরে সর্বোচ্চ ২ অঙ্ক`,
+      400,
+    );
+  }
+  return n;
+}
+function stockOf(v: unknown): number {
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < -1 || n > MAX_STOCK) {
+    throw new ApiError('স্টক পূর্ণসংখ্যা হতে হবে — সীমাহীন হলে -1, নাহলে ০ বা তার বেশি', 400);
+  }
+  return n;
+}
+
 export async function POST(req: Request) {
   try {
     const admin = await requireAdmin();
@@ -21,14 +52,9 @@ export async function POST(req: Request) {
     const lbl = cleanText(String(label || ''), 60);
     if (lbl.length < 1) throw new ApiError('প্যাকেজের নাম দিন', 400);
 
-    const p = Number(price);
-    if (isNaN(p) || p <= 0) throw new ApiError('সঠিক বিক্রয় মূল্য দিন', 400);
-
-    const cp = Number(costPrice || 0);
-    if (isNaN(cp) || cp < 0) throw new ApiError('সঠিক ক্রয় মূল্য দিন', 400);
-
-    const st = Number(stock ?? -1);
-    if (isNaN(st)) throw new ApiError('সঠিক স্টক দিন', 400);
+    const p = priceOf(price, 'সঠিক বিক্রয় মূল্য দিন', false);
+    const cp = priceOf(costPrice || 0, 'সঠিক ক্রয় মূল্য দিন', true);
+    const st = stockOf(stock ?? -1);
 
     const count = await prisma.variant.count({ where: { productId: Number(productId) } });
 
@@ -73,24 +99,19 @@ export async function PATCH(req: Request) {
     }
 
     if (body.price !== undefined) {
-      const p = Number(body.price);
-      if (isNaN(p) || p < 0) throw new ApiError('সঠিক বিক্রয় মূল্য দিন', 400);
-      data.price = p;
+      // ★ তৈরির মতোই শূন্যের বেশি — ০ দামের অর্ডার খতিয়ান-পথ কখনো নেয় না
+      data.price = priceOf(body.price, 'সঠিক বিক্রয় মূল্য দিন', false);
     }
 
     if (body.costPrice !== undefined) {
-      const cp = Number(body.costPrice);
-      if (isNaN(cp) || cp < 0) throw new ApiError('সঠিক ক্রয় মূল্য দিন', 400);
-      data.costPrice = cp;
+      data.costPrice = priceOf(body.costPrice, 'সঠিক ক্রয় মূল্য দিন', true);
     }
 
     if (body.oldPrice !== undefined) {
       if (body.oldPrice === null || body.oldPrice === '') {
         data.oldPrice = null;
       } else {
-        const op = Number(body.oldPrice);
-        if (isNaN(op) || op < 0) throw new ApiError('সঠিক কাটা দাম দিন', 400);
-        data.oldPrice = op;
+        data.oldPrice = priceOf(body.oldPrice, 'সঠিক কাটা দাম দিন', true);
       }
     }
 
@@ -101,6 +122,8 @@ export async function PATCH(req: Request) {
         data.resellerPrice = null;
       } else {
         const rp = Number(body.resellerPrice);
+        // ★ উপরের সীমা ও দশমিক — বাকি দামের মতোই (০/ঋণাত্মকের নিজস্ব বার্তা নিচে)
+        if (rp > 0) priceOf(rp, 'সঠিক রিসেলার দাম দিন', false);
         // ⚠️ শূন্য ইচ্ছাকৃতভাবে **প্রত্যাখ্যাত**, শুধু ঋণাত্মক নয়।
         //   এই সিস্টেমে ফ্রি অর্ডার সম্ভব নয় (প্রতিটি অর্ডার একটি
         //   ধনাত্মক খতিয়ান-এন্ট্রি লেখে)। ০ বসাতে দিলে অ্যাডমিন ভাবতেন
@@ -118,9 +141,7 @@ export async function PATCH(req: Request) {
     }
 
     if (body.stock !== undefined) {
-      const st = Number(body.stock);
-      if (isNaN(st)) throw new ApiError('সঠিক স্টক দিন', 400);
-      data.stock = st;
+      data.stock = stockOf(body.stock);
     }
 
     if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);

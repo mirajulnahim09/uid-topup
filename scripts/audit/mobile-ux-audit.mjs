@@ -56,7 +56,9 @@ const ONLY = (process.env.AUDIT_ONLY || '').split(',').map((s) => s.trim()).filt
 const VP_FILTER = (process.env.AUDIT_VPS || '').split(',').map((s) => s.trim()).filter(Boolean);
 
 /** ⚠️ স্পষ্ট ডেভ URL — `.env` (লাইভ Neon) ভুল করেও ছোঁয়া যাবে না */
-const DEV_URL = 'postgresql://dev:dev@localhost:5434/uidtopup_dev';
+// ★ AUDIT_DATABASE_URL — সিম-রিগের বিরুদ্ধে চালাতে (সার্ভার যে DB পড়ে, অডিটও সেটিই); কেবল localhost
+const DEV_URL = process.env.AUDIT_DATABASE_URL || 'postgresql://dev:dev@localhost:5434/uidtopup_dev';
+if (!['localhost', '127.0.0.1'].includes(new URL(DEV_URL).hostname)) { console.error('✗ অডিট-DB localhost নয় — থামানো হলো'); process.exit(1); }
 const db = new PrismaClient({ datasources: { db: { url: DEV_URL } } });
 
 const CHROME = [
@@ -72,6 +74,7 @@ const ADMIN = { email: 'admin@uidtopup.local', password: 'Admin@2026Secure' };
 const MOBILE_VPS = [
   { name: '320x568', width: 320, height: 568 },   // iPhone SE 1 / পুরনো Android
   { name: '360x640', width: 360, height: 640 },   // সবচেয়ে সাধারণ Android
+  { name: '360x800', width: 360, height: 800 },   // লম্বা সাধারণ Android (MASTER 2)
   { name: '375x667', width: 375, height: 667 },   // iPhone SE 2/3
   { name: '390x844', width: 390, height: 844 },   // iPhone 12–15
   { name: '393x852', width: 393, height: 852 },   // iPhone 15 Pro / Pixel
@@ -79,12 +82,17 @@ const MOBILE_VPS = [
   { name: '430x932', width: 430, height: 932 },   // iPhone Pro Max
 ];
 const DESKTOP_VPS = [
+  { name: '600x800', width: 600, height: 800 },    // ছোট ট্যাবলেট (MASTER 2)
   { name: '768x1024', width: 768, height: 1024 },
+  { name: '800x1280', width: 800, height: 1280 },  // Android ট্যাবলেট (MASTER 2)
   { name: '1024x768', width: 1024, height: 768 },
+  { name: '1024x1366', width: 1024, height: 1366 }, // iPad Pro লম্বালম্বি (MASTER 2)
   { name: '1280x720', width: 1280, height: 720 },
   { name: '1366x768', width: 1366, height: 768 },   // সবচেয়ে সাধারণ ল্যাপটপ প্রস্থ
   { name: '1440x900', width: 1440, height: 900 },
+  { name: '1600x900', width: 1600, height: 900 },   // MASTER 2
   { name: '1920x1080', width: 1920, height: 1080 },
+  { name: '2560x1440', width: 2560, height: 1440 }, // বড় মনিটর (MASTER 2)
 ];
 /** ★ ল্যান্ডস্কেপ — কেবল কয়েকটি রুটে, নাহলে রান বিশাল হয়ে যায় */
 const LANDSCAPE_VPS = [

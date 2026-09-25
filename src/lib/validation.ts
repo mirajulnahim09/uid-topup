@@ -245,6 +245,14 @@ export const adminPartialRefundSchema = z.object({
   orderId: z.string().min(1).max(40),
   amount: z.number().positive('অঙ্ক শূন্যের বেশি হতে হবে').max(1_000_000),
   reason: z.string().trim().min(3, 'কারণ লিখুন — কেন ফেরত দেওয়া হচ্ছে').max(300),
+  /**
+   * ★★★ idempotency key — **বাধ্যতামূলক**। UI প্রতিটি ফেরত-ডায়ালগে একটি বানায়।
+   *   এটি ছাড়া "একই অনুরোধ দুবার পৌঁছেছে" আর "ইচ্ছাকৃত দ্বিতীয় ফেরত" আলাদা করার
+   *   কোনো উপায় নেই (`api/admin/order/refund` দেখুন)। পুরনো খোলা ট্যাব এটি পাঠায়
+   *   না — তাই বার্তায় রিফ্রেশ করতে বলা।
+   */
+  requestId: z.string({ required_error: 'পাতাটি রিফ্রেশ করে আবার চেষ্টা করুন' })
+    .trim().regex(/^[A-Za-z0-9_-]{8,64}$/, 'পাতাটি রিফ্রেশ করে আবার চেষ্টা করুন'),
 });
 
 export const adminAdjustSchema = z.object({
@@ -253,6 +261,8 @@ export const adminAdjustSchema = z.object({
     .refine((n) => n !== 0, 'পরিমাণ ০ হতে পারে না')
     .refine((n) => Math.abs(n) <= 500_000, 'পরিমাণ অনেক বড়'),
   note: z.string().trim().min(2, 'কারণ লিখুন').max(300),
+  /** ★ idempotency key — প্রতিবার ডায়ালগ খুললে নতুন (ঐচ্ছিক; `api/admin/user` দেখুন) */
+  requestId: z.string().trim().regex(/^[A-Za-z0-9_-]{8,64}$/, 'অনুরোধ-আইডি সঠিক নয়').optional(),
 });
 
 export const adminCouponSchema = z.object({

@@ -73,6 +73,12 @@ const PALETTE = [
 ];
 const pal = (i: number) => PALETTE[i % PALETTE.length];
 
+/**
+ * ⚠️ "কত আগে" লেখাটি সার্ভার-রেন্ডার ও হাইড্রেশনের মাঝে মিনিট-সীমা পেরোলে বদলে যায়
+ *   ("এইমাত্র" → "১ মিনিট আগে")। মাপা (MASTER 2, Firefox ৩৯০px): তখন React #425/#418
+ *   ছুড়ে পুরো root আবার ক্লায়েন্টে রেন্ডার করত। তাই যে <span>-এ এটি বসে সেখানে
+ *   `suppressHydrationWarning` — কেবল এই লেখার জন্য, বাকি পাতার যাচাই অক্ষত।
+ */
 function timeAgo(iso: string): string {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return 'এইমাত্র';
@@ -315,7 +321,7 @@ export default function StorefrontShell({
                       <span className="shrink-0 text-right">
                         <span className="inline-block rounded-[5px] px-1.5 py-0.5 text-[9.5px] font-extrabold"
                           style={{ background: 'var(--sem-success-tint)', color: 'var(--sem-success)' }}>সম্পন্ন</span>
-                        <span className="mt-0.5 block whitespace-nowrap text-[10px]" style={{ color: 'var(--v-dim)' }}>{timeAgo(d.at)}</span>
+                        <span suppressHydrationWarning className="mt-0.5 block whitespace-nowrap text-[10px]" style={{ color: 'var(--v-dim)' }}>{timeAgo(d.at)}</span>
                       </span>
                     </div>
                   );
@@ -352,7 +358,7 @@ export default function StorefrontShell({
                       <span className="shrink-0 text-right">
                         <span className="inline-block rounded-[5px] px-1.5 py-0.5 text-[9.5px] font-extrabold"
                           style={{ background: 'var(--sem-success-tint)', color: 'var(--sem-success)' }}>সম্পন্ন</span>
-                        <span className="mt-0.5 block whitespace-nowrap text-[10px]" style={{ color: 'var(--v-dim)' }}>{timeAgo(d.at)}</span>
+                        <span suppressHydrationWarning className="mt-0.5 block whitespace-nowrap text-[10px]" style={{ color: 'var(--v-dim)' }}>{timeAgo(d.at)}</span>
                       </span>
                     </div>
                   );
@@ -470,7 +476,8 @@ function CatRow({
       className="relative flex w-full items-center gap-3 px-4 py-2.5 text-left text-[14px] font-semibold transition-colors"
       style={{
         borderTop: '1px solid var(--v-edge)',
-        color: on ? '#c4b5fd' : 'var(--v-mut)',
+        // ★ `--violet` থিম-সচেতন লেখা-টোকেন — আগে হার্ডকোড #c4b5fd লাইট থিমে ১.৭২:১ (মাপা, MASTER 2)
+        color: on ? 'var(--violet)' : 'var(--v-mut)',
         background: on ? 'rgba(139,92,246,.16)' : 'transparent',
       }}
     >
@@ -480,7 +487,7 @@ function CatRow({
       </span>
       <span className="flex-1 leading-tight">{name}</span>
       <span className="rounded-full px-2 py-0.5 text-[11px] font-bold"
-        style={{ background: on ? 'var(--v-steel)' : 'var(--v-fill2)', color: on ? '#c4b5fd' : 'var(--v-dim)' }}>{count}</span>
+        style={{ background: on ? 'var(--v-steel)' : 'var(--v-fill2)', color: on ? 'var(--violet)' : 'var(--v-dim)' }}>{count}</span>
     </button>
   );
 }

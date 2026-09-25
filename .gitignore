@@ -40,6 +40,8 @@ ws.txt
 .certs/
 .prod-server.log
 .prod-https.log
+# সিম রিগের প্রতি-রানের ক্রন-সিক্রেট ও লগ (scripts/sim/sim-rig.mjs)
+.sim/
 
 # ★ vitest এর JSON ফলাফল — test-run.mjs ব্যর্থ টেস্টের নাম ছাপতে ও
 #   test-flaky.mjs বহু রানের ফল জড়ো করতে এটি পড়ে। প্রতি রানে নতুন।

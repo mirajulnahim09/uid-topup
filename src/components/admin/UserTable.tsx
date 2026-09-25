@@ -25,6 +25,11 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
   const [ban, setBan] = useState<U | null>(null);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
+  // ★ idempotency — এক ডায়ালগ-বিষয়বস্তু = এক সমন্বয় (`api/admin/user` দেখুন)।
+  //   ব্যর্থ হলে একই গ্রাহকে আবার খুললে একই key ও মান ফিরে আসে, তাই প্রথমটি
+  //   আসলে পৌঁছে থাকলে সার্ভার দ্বিতীয়বার যোগ করে না; মান বদলালে নতুন key।
+  const [adjustKey, setAdjustKey] = useState('');
+  const [adjustFor, setAdjustFor] = useState('');
 
   function doSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -35,8 +40,12 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
   }
 
   function openAdjust(u: U) {
-    setAmount('');
-    setNote('');
+    if (!(adjustKey && adjustFor === u.id)) {
+      setAmount('');
+      setNote('');
+      setAdjustKey(crypto.randomUUID());
+      setAdjustFor(u.id);
+    }
     setAdjust(u);
   }
 
@@ -55,14 +64,18 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
       const res = await fetch('/api/admin/user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: u.id, amount: amt, note: note.trim() }),
+        body: JSON.stringify({ userId: u.id, amount: amt, note: note.trim(), requestId: adjustKey || undefined }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
 
       toast.success(
-        `${u.name} — ${amt > 0 ? '+' : ''}৳${amt.toFixed(2)} (নতুন ব্যালেন্স ৳${d.balance})`
+        d.duplicate
+          ? `এই সমন্বয় আগেই হয়ে গেছে — আবার যোগ করা হয়নি (ব্যালেন্স ৳${d.balance})`
+          : `${u.name} — ${amt > 0 ? '+' : ''}৳${amt.toFixed(2)} (নতুন ব্যালেন্স ৳${d.balance})`
       );
+      setAdjustKey('');
+      setAdjustFor('');
       startTransition(() => router.refresh());
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'সমন্বয় করা যায়নি');
@@ -232,7 +245,7 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
             <input aria-label="পরিমাণ (+ / −)"
               className="input" type="number" step="0.01"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => { setAmount(e.target.value); setAdjustKey(crypto.randomUUID()); }}
               placeholder="যেমন: 100 বা -50"
             />
           </div>
@@ -241,7 +254,7 @@ export default function UserTable({ users, q }: { users: U[]; q: string }) {
             <input aria-label="কারণ (বাধ্যতামূলক)"
               className="input"
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(e) => { setNote(e.target.value); setAdjustKey(crypto.randomUUID()); }}
               placeholder="যেমন: ম্যানুয়াল রিফান্ড"
             />
           </div>

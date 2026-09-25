@@ -41,7 +41,16 @@ export async function POST(req: Request) {
 
     const q = parsed.data.q;
     const digits = q.replace(/\D/g, '');
-    const asNumber = /^\d+$/.test(q) ? Number(q) : null;
+    /**
+     * ★★★ অর্ডার/ডিপোজিট নম্বর Postgres `INT` (সর্বোচ্চ ২,১৪৭,৪৮৩,৬৪৭)।
+     *
+     *   ⚠️ মাপা (সিমুলেশন, ২০২৬-০৯-২৫): Free Fire UID ৯–১২ অঙ্কের, অনেকগুলোই
+     *   এই সীমার উপরে (যেমন `4149987572`)। সংখ্যাটি `orderNo`-তেও বসানো হতো →
+     *   Prisma "INT-এ ধরে না" ত্রুটি → পুরো সার্চ ৪০০ "অনুরোধের ডেটা সঠিক নয়"।
+     *   ফলে সাপোর্টের সবচেয়ে সাধারণ প্রশ্ন — "আমার UID এটা" — দিয়ে খোঁজাই যেত না।
+     *   সীমার বাইরে হলে সংখ্যাটি কেবল UID/TrxID/ফোন হিসেবে খোঁজা হয়।
+     */
+    const asNumber = /^\d+$/.test(q) && Number(q) <= 2_147_483_647 ? Number(q) : null;
     const upper = q.toUpperCase();
 
     // ★ সব খোঁজা সমান্তরালে — একটির জন্য আরেকটি অপেক্ষা করবে না

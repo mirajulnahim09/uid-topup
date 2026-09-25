@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, apiError, ApiError, readJson } from '@/lib/guard';
 import { adminPartialRefundSchema } from '@/lib/validation';
-import { adminLog } from '@/lib/adminLog';
 import { getIp } from '@/lib/rateLimit';
 import { notify } from '@/lib/notify';
 import { telegramEvent } from '@/lib/telegram';
@@ -42,9 +41,21 @@ export async function POST(req: Request) {
     const parsed = adminPartialRefundSchema.safeParse(await readJson(req));
     if (!parsed.success) throw new ApiError(parsed.error.errors[0].message, 400);
 
-    const { orderId } = parsed.data;
+    const { orderId, requestId } = parsed.data;
     const amount = round2(parsed.data.amount);
     const reason = cleanText(parsed.data.reason, 300);
+    /**
+     * ★★★ idempotency — অনুরোধের চাবি এই ফেরতের **অডিট-সারিতেই** থাকে
+     *   (`AdminLog.detail`-এর শেষে `[req:<id>]`), এবং সেই সারি এখন টাকার সাথে
+     *   একই ট্রানজেকশনে লেখা হয়। ফলে "টাকা গেল কিন্তু চাবি লেখা হয়নি" বা উল্টোটা
+     *   অসম্ভব, আর নতুন টেবিল/কলাম (স্কিমা-মাইগ্রেশন) লাগেনি।
+     *
+     *   ⚠️ মাপা (সিমুলেশন, ২০২৬-০৯-২৫): উত্তর আসার আগে নেট কাটলে অ্যাডমিন আবার
+     *   চাপতেন → দুটি ফেরত (সীমার ভেতরে বলে দুটোই বৈধ দেখাত)। এর আগের অস্থায়ী
+     *   সমাধান ছিল "একই অঙ্ক+কারণ ২ মিনিটে" অনুমান — মালিকের রিভিউতে বাতিল, কারণ
+     *   সেটি ইচ্ছাকৃত দ্বিতীয় ফেরতও আটকাত এবং কেবল লেখার মিলের উপর নির্ভর করত।
+     */
+    const keyMark = `[req:${requestId}]`;
 
     const out = await prisma.$transaction(
       async (tx) => {
@@ -61,6 +72,31 @@ export async function POST(req: Request) {
 
         const row = locked[0];
         if (!row) throw new ApiError('অর্ডার পাওয়া যায়নি', 404);
+
+        // ★★★ একই চাবি আগে কাজ করেছে? — Order রো লকের **পরে** খোঁজা, তাই একই
+        //   চাবির সমান্তরাল অনুরোধগুলো ক্রমিক: দ্বিতীয়টি প্রথমটির অডিট-সারি দেখে।
+        //   সীমা/অবস্থা-যাচাইয়ের **আগে**, যাতে পুরো ফেরতের পরের retry-ও "হয়ে গেছে"
+        //   পায়, ভুল করে "আর ফেরত দেওয়া যাবে না" নয়।
+        const prior = await tx.adminLog.findFirst({
+          where: { action: 'ORDER_PARTIAL_REFUND', targetId: orderId, detail: { endsWith: keyMark } },
+          select: { amount: true },
+        });
+        if (prior) {
+          if (round2(Number(prior.amount)) !== amount) {
+            throw new ApiError(
+              'এই অনুরোধ-আইডি আগে অন্য অঙ্কে ব্যবহার হয়েছে — কিছুই ফেরত দেওয়া হয়নি। পাতাটি রিফ্রেশ করে নতুন করে দিন।',
+              409,
+              'REQUEST_ID_REUSED',
+            );
+          }
+          return {
+            duplicate: true as const,
+            orderNo: row.orderNo,
+            userId: row.userId,
+            totalRefunded: round2(Number(row.refundedAmount)),
+            price: round2(Number(row.price)),
+          };
+        }
 
         if (row.status !== 'COMPLETED') {
           throw new ApiError(
@@ -107,7 +143,27 @@ export async function POST(req: Request) {
           actorId: admin.id,
         });
 
+        // ★★★ অডিট-সারি **একই ট্রানজেকশনে** — এটিই idempotency-চাবির ঘর।
+        //   আগে এটি ট্রানজেকশনের পরে best-effort (`adminLog().catch()`) লেখা হতো;
+        //   এখন টাকা নড়লে অডিটও নিশ্চিত, না নড়লে কোনোটিই নয়। মানুষ-পড়ার অংশ
+        //   ৪৪০ অক্ষরে কাটা, যাতে শেষের চাবি কখনো ৫০০-সীমায় কাটা না পড়ে।
+        const totalAfter = round2(already + amount);
+        await tx.adminLog.create({
+          data: {
+            adminId: admin.id,
+            adminName: admin.name,
+            actorType: 'ADMIN',
+            role: 'ADMIN',
+            action: 'ORDER_PARTIAL_REFUND',
+            targetId: orderId,
+            amount,
+            detail: `${`#${row.orderNo} — ৳${amount.toFixed(2)} ফেরত (মোট ৳${totalAfter.toFixed(2)} / ৳${price.toFixed(2)}) — ${reason}`.slice(0, 440)} ${keyMark}`,
+            ip: getIp(req),
+          },
+        });
+
         return {
+          duplicate: false as const,
           orderNo: row.orderNo,
           userId: row.userId,
           totalRefunded: round2(already + amount),
@@ -117,15 +173,10 @@ export async function POST(req: Request) {
       { timeout: 15000 }
     );
 
-    adminLog({
-      adminId: admin.id,
-      adminName: admin.name,
-      action: 'ORDER_PARTIAL_REFUND',
-      targetId: orderId,
-      amount,
-      detail: `#${out.orderNo} — ৳${amount.toFixed(2)} ফেরত (মোট ৳${out.totalRefunded.toFixed(2)} / ৳${out.price.toFixed(2)}) — ${reason}`,
-      ip: getIp(req),
-    }).catch(() => {});
+    // ★ একই চাবির পুনরাবৃত্তি — টাকা নড়েনি; বিজ্ঞপ্তি/টেলিগ্রাম আবার নয়
+    if (out.duplicate) {
+      return Response.json({ success: true, duplicate: true, totalRefunded: out.totalRefunded });
+    }
 
     // ★ guarded (defense-in-depth): notify নিজে throw করে না (ভেতরে
     //   try/catch), তবু .catch() রাখা — refactor-এ throw এলেও order/money

@@ -159,7 +159,7 @@ export default function DepositForm({
               <strong>১.</strong> নিচের নাম্বারে bKash/Nagad দিয়ে <strong>Send Money</strong> করুন
             </li>
             <li>
-              <strong>২.</strong> যে <strong>TrxID</strong> পাবেন সেটা ডান পাশের ফর্মে লিখুন
+              <strong>২.</strong> যে <strong>TrxID</strong> পাবেন সেটা <strong>“২. তথ্য জমা দিন”</strong> অংশে লিখুন
             </li>
             <li>
               <strong>৩.</strong> আমরা মিলিয়ে দেখে <strong>৫–৩০ মিনিটে</strong> টাকা যোগ করে দেব

@@ -51,7 +51,15 @@ if (!existsSync(key) || !existsSync(cert)) {
  *   পাতা তবু খোলে (Next নিজেই fallback করে), কিন্তু কনসোল-ত্রুটি গোনা
  *   যাচাইয়ে সেটি মিথ্যা FAIL হয়ে আসত।
  */
-const agent = new http.Agent({ keepAlive: true, maxSockets: 64, keepAliveMsecs: 30_000 });
+/**
+ * ★ `timeout: 4000` — Next-এর keep-alive (৫s) ফুরোনোর **আগেই** পুলের
+ *   অলস সকেট ফেলে দেওয়া। Node-এর Agent `timeout`-এ কেবল *অলস (free)*
+ *   সকেট ধ্বংস করে, চলমান অনুরোধে হাত দেয় না।
+ *   মাপা (সিমুলেশন ২০২৬-০৯-২৫): এটি ছাড়া ১.২ লাখ অনুরোধে ২১টি POST
+ *   `ECONNRESET reused=true` → 502 পেত — নিচের retry কেবল GET-এ, আর POST
+ *   আবার পাঠানো যায় না (টাকা দুবার)। তাই রেসটি উৎসেই বন্ধ করা।
+ */
+const agent = new http.Agent({ keepAlive: true, maxSockets: 64, keepAliveMsecs: 30_000, timeout: 4000 });
 
 const server = https.createServer(
   { key: readFileSync(key), cert: readFileSync(cert) },

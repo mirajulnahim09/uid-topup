@@ -398,7 +398,8 @@ export default function DepositQueue({ deposits }: { deposits: QueueDeposit[] })
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs" style={{ color: 'var(--mut)' }}>
+                  {/* ★ "কত আগে" SSR ও হাইড্রেশনের মাঝে মিনিট-সীমায় বদলায় — StorefrontShell-এর মতোই */}
+                  <p suppressHydrationWarning className="text-xs" style={{ color: 'var(--mut)' }}>
                     {ago(d.createdAt)}
                   </p>
                   <p className="text-[11px]" style={{ color: 'var(--mut)' }}>
