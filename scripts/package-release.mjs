@@ -58,6 +58,8 @@ const DENY_DIRS = new Set([
   'release',        // নিজের আউটপুট, নাহলে পুনরাবৃত্তি
   '.vercel',
   '.turbo',
+  '.certs',         // local TLS cert + private key (prod-https.mjs)
+  '.sim',           // simulation scratch output
 ]);
 
 /** একটি ফাইল/ফোল্ডার বাদ যাবে কিনা (রুট-সাপেক্ষ পথ, `/` বিভাজক) */
@@ -75,6 +77,8 @@ function isExcluded(rel) {
   if (base.endsWith('.tsbuildinfo')) return true;   // §2.6
   if (base === 'ws.txt') return true;               // মেশিন-নির্দিষ্ট
   if (base === '.DS_Store') return true;
+  if (/\.(pem|key|p12|pfx)$/i.test(base)) return true; // key material, wherever it sits
+  if (base.endsWith('.log')) return true;           // dev/server logs
 
   return false;
 }
@@ -112,7 +116,7 @@ async function assertNoSecrets(dir) {
     for (const e of await fs.readdir(d, { withFileTypes: true })) {
       const abs = path.join(d, e.name);
       if (e.isDirectory()) { await scan(abs); continue; }
-      if (e.name.startsWith('.env') && e.name !== '.env.example') {
+      if ((e.name.startsWith('.env') && e.name !== '.env.example') || /\.(pem|key|p12|pfx)$/i.test(e.name)) {
         found.push(path.relative(dir, abs));
       }
     }
