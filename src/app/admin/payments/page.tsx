@@ -4,6 +4,7 @@ import PaymentProviders from '@/components/admin/PaymentProviders';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { getFulfillmentConfig } from '@/lib/fulfillment/policy';
 import { providerInfos } from '@/lib/payments/config';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const metadata: Metadata = { title: 'পেমেন্ট ও ফুলফিলমেন্ট' };
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,8 @@ export const dynamic = 'force-dynamic';
  *   registry-তে এক লাইন, তারপর অ্যাডমিন থেকে কী বসিয়ে চালু করা।
  */
 export default async function AdminPaymentsPage() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const [cfg, providers] = await Promise.all([getFulfillmentConfig(), providerInfos()]);
   return (
     <div className="space-y-6">

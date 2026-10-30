@@ -1,5 +1,6 @@
 import { requireAdmin, apiError } from '@/lib/guard';
 import { periodSummary, revenueTrend, customerInsights } from '@/lib/analytics';
+import { dhakaDayStart } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,8 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const days = Math.min(Math.max(parseInt(url.searchParams.get('days') || '30', 10) || 30, 7), 90);
 
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    // ★ "আজ" = ঢাকার আজ; ৭/৩০ দিন চলমান জানালা (দিন-সীমা নয়), তাই অপরিবর্তিত
+    const today = dhakaDayStart();
     const d7 = new Date(); d7.setDate(d7.getDate() - 7);
     const d30 = new Date(); d30.setDate(d30.getDate() - 30);
 

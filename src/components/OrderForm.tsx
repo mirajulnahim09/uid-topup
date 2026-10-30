@@ -61,6 +61,7 @@ export type PayChannel = {
   accountNo: string;
   accountType: string;
   instruction: string;
+  qrImage?: string | null;
 };
 
 export default function OrderForm({
@@ -183,6 +184,15 @@ export default function OrderForm({
     };
   }, [status, productId]);
 
+  /**
+   * ★ সার্ভার থেকে নতুন `variants` এলে (router.refresh — যেমন PRICE_CHANGED এর
+   *   পর) বাছাই করা প্যাকেজটিও নতুন রো-তে বদলাই। নাহলে `sel` পুরনো অবজেক্ট ধরে
+   *   রাখত, নিশ্চিতকরণ আবার পুরনো দাম দেখাত, আর গ্রাহক ৪০৯-এর চক্রে আটকে যেতেন।
+   */
+  useEffect(() => {
+    setSel((s) => (s ? variants.find((x) => x.id === s.id && x.stock !== 0) ?? null : s));
+  }, [variants]);
+
   const total = applied ? applied.finalPrice : sel?.price ?? 0;
   const bal = balance ?? 0;
   const short = Math.max(0, total - bal); // আরও কত টাকা লাগবে
@@ -276,6 +286,9 @@ export default function OrderForm({
           playerName: playerName.trim() || undefined,
           couponCode: applied?.code || undefined,
           clientRef: clientRefRef.current,
+          // ★ নিশ্চিতকরণে দেখানো দাম — এর বেশি হলে সার্ভার থামায় (৪০৯ PRICE_CHANGED)।
+          //   ডাইরেক্ট-পে তে `amount` মিলিয়ে দেখা আগে থেকেই হয়।
+          ...(isDirect ? {} : { expectedPrice: payable }),
           ...(isDirect
             ? {
                 method: dpMethod,
@@ -287,6 +300,12 @@ export default function OrderForm({
         }),
       });
       const d = await res.json();
+      if (res.status === 409 && d.code === 'PRICE_CHANGED') {
+        // ★ দাম বদলেছে — কিছুই কাটা হয়নি। নতুন দাম আনি (নিচের effect বাছাই করা
+        //   প্যাকেজকে হালনাগাদ করে), আর পুরনো দামে হিসাব করা কুপন বাতিল করি।
+        setApplied(null);
+        startTransition(() => router.refresh());
+      }
       if (!res.ok) throw new Error(d.error || 'অর্ডার করা যায়নি');
 
       // ★★★ ক্যাশ বাতিল (4.5) — টাকা কাটা হয়েছে, তাই পুরনো ব্যালেন্স
@@ -366,7 +385,7 @@ export default function OrderForm({
             <div
               role="radiogroup"
               aria-label="প্যাকেজ বেছে নিন"
-              className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+              className="pkg-grid grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-3"
             >
               {variants.map((v: (typeof variants)[number], i: number) => {
                 const out = v.stock === 0;
@@ -479,7 +498,7 @@ export default function OrderForm({
                         "TK" শব্দটি দামের চেয়ে বেশি জায়গা নিত, ফলে
                         বাঁয়ের নামটি বেশি লাইনে ভেঙে একই সারির
                         কার্ডগুলোর উচ্চতা অসমান দেখাত। */}
-                    <span className="shrink-0 text-right">
+                    <span className="pkg-price shrink-0 text-right">
                       <span className="v-dsp block whitespace-nowrap text-base font-extrabold" style={{ color: 'var(--v-ink)' }}>
                         ৳{v.price.toFixed(0)}
                       </span>
@@ -780,7 +799,7 @@ export default function OrderForm({
                           : 'border-slate-200 bg-white text-slate-600 hover:border-[var(--violet)]'
                       }`}
                     >
-                      {c.method}
+                      {c.method === 'BANGLA_QR' ? 'Bangla QR' : c.method}
                     </button>
                   ))}
                 </div>
@@ -792,6 +811,10 @@ export default function OrderForm({
                       <p className="text-[11px] font-semibold text-slate-500">
                         {c.method} — {c.accountType}
                       </p>
+                      {c.qrImage && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.qrImage} alt="Bangla QR — স্ক্যান করে পেমেন্ট করুন" className="mx-auto my-2 aspect-square w-full max-w-[220px] rounded-lg bg-white object-contain p-2" />
+                      )}
                       <p className="font-mono text-lg font-bold text-slate-900">{c.accountNo}</p>
                       {c.instruction && (
                         <p className="mt-1 text-[11px] leading-relaxed text-slate-500">

@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { requireAdmin, apiError, ApiError, readJson } from '@/lib/guard';
+import { requireAdmin, apiError, ApiError, readJson, readForm } from '@/lib/guard';
 import { rateLimit, LIMITS } from '@/lib/rateLimit';
 import { uploadImage, deleteImage, UploadError, storageName } from '@/lib/upload';
 import { referencedUrls } from '@/lib/mediaRefs';
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     const rl = await rateLimit(`media:${admin.id}`, LIMITS.upload.limit, LIMITS.upload.window);
     if (!rl.ok) throw new ApiError('অনেক বেশি আপলোড। একটু পর চেষ্টা করুন।', 429);
 
-    const form = await req.formData();
+    const form = await readForm(req);
     const file = form.get('file');
     const folder = String(form.get('folder') || 'media');
     if (!FOLDERS.includes(folder)) throw new ApiError('অবৈধ ফোল্ডার', 400);
@@ -141,7 +141,8 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const admin = await requireAdmin();
-    const body = await req.json().catch(() => ({}));
+    // ★ `null` বডিও বৈধ JSON — `?? {}` ছাড়া `body.id` TypeError দিয়ে ৫০০ হতো
+    const body = (await req.json().catch(() => null)) ?? {};
     const id = String(body.id || '');
     const force = body.force === true;
     if (!id) throw new ApiError('id দরকার', 400);

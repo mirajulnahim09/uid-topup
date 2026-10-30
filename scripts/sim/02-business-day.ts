@@ -129,7 +129,8 @@ async function main() {
         // ভুল-প্রবণ/আক্রমণকারী: একই TrxID আবার (ডাবল-সাবমিট বা প্রতারণা)
         if ((p === 'error_prone' || p === 'adversarial' || p === 'impatient') && R.chance(0.25)) {
           const r2 = await call('POST /api/deposit (dup trx)', c.cookie, 'POST', '/api/deposit', { method: 'BKASH', amount, trxId: trxId.toLowerCase(), senderNo: '01911111111' });
-          check('একই TrxID (ছোট হাতের) দ্বিতীয়বার → 409', r2.status === 409, `HTTP ${r2.status}`);
+          // ★ replay-সিদ্ধান্ত (২০২৬-০৯-৩০): একই গ্রাহক + একই অঙ্ক (PENDING) → ২০০ duplicate, নতুন সারি নয়
+          check('একই TrxID (ছোট হাতের) দ্বিতীয়বার → 200 replay', r2.status === 200 && r2.json?.duplicate === true, `HTTP ${r2.status}`);
         }
         need -= amount;
       }

@@ -21,6 +21,7 @@ const LINKS: { href: string; label: string; icon: IconName; key?: string }[] = [
   { href: '/admin/homepage', label: 'হোমপেজ', icon: 'play' },
   { href: '/admin/banners', label: 'ব্যানার ছবি', icon: 'image' },
   { href: '/admin/media', label: 'মিডিয়া', icon: 'camera' },
+  { href: '/admin/codes', label: 'কোড স্টক', icon: 'gem' },
   { href: '/admin/coupons', label: 'কুপন', icon: 'gift' },
   { href: '/admin/users', label: 'ইউজার', icon: 'user' },
   { href: '/admin/reports', label: 'রিপোর্ট', icon: 'chart' },

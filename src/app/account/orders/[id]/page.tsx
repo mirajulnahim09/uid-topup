@@ -1,9 +1,10 @@
+import CodeReveal from '@/components/account/CodeReveal';
 import Link from 'next/link';
 import AutoRefresh from '@/components/AutoRefresh';
+import { orderFingerprint } from '@/lib/orderFingerprint';
 import { notFound } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireUserPage } from '@/lib/pageGuard';
 import { bdt } from '@/lib/money';
 import { fmtDate } from '@/lib/date';
 import Badge from '@/components/Badge';
@@ -24,8 +25,12 @@ export default async function OrderDetail({
   params: { id: string };
   searchParams: { placed?: string };
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)।
+  //   নাম `viewer` — নিচে `me` নামটি রেফারেল-কোডের কোয়েরির জন্য আগেই ব্যবহৃত।
+  const viewer = await requireUserPage();
+
+  // ★ SCL-02 — শুরুর ছাপ ডেটা পড়ার **আগে**: মাঝে কিছু বদলালে বড়জোর একটি বাড়তি রিফ্রেশ, বদল হারায় না
+  const fp = await orderFingerprint(viewer.id, { kind: 'one', orderId: params.id });
 
   const [order, settings, me] = await Promise.all([
     prisma.order.findUnique({
@@ -38,26 +43,27 @@ export default async function OrderDetail({
           select: { status: true, note: true, createdAt: true },
         },
         review: { select: { id: true } },
+        voucherCode: { select: { code: true, status: true } },
       },
     }),
     getSettings(),
     // ★ রেফারেল কোড (5.4) — শুধু এই একটি ফিল্ড, পুরো User সারি নয়
     //   (CLAUDE.md §8: User এ সবসময় `select`)
     prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: viewer.id },
       select: { referralCode: true },
     }),
   ]);
 
   // ★ শুধু নিজের অর্ডার দেখা যাবে — অন্যের ID দিলেও নয়
-  if (!order || order.userId !== session.user.id) notFound();
+  if (!order || order.userId !== viewer.id) notFound();
 
   const sla = slaFromSettings(settings);
   const isCancelled = order.status === 'REFUNDED' || order.status === 'FAILED';
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      <AutoRefresh seconds={30} />
+      <AutoRefresh seconds={30} scope="one" orderId={order.id} initial={fp} />
       {/* ★ `min-h-[40px]` — অডিটে মাপা উচ্চতা ছিল **২০px** (২০২৬-০৮-২৬,
           প্রতিটি ভিউপোর্টে)। একই ত্রুটি `wallet/withdraw` এ আগেই সারানো
           হয়েছিল, কিন্তু ডিটেইল-পাতাগুলো তখন অডিটের রুট-তালিকায় ছিল না
@@ -113,6 +119,12 @@ export default async function OrderDetail({
       />
 
       <section className="card p-5">
+        {order.voucherCode?.status === 'ASSIGNED' && (
+          <div className="mb-5 rounded-2xl p-4" style={{ background: 'var(--sem-success-tint)', border: '1px solid var(--v-edge)' }}>
+            <p className="mb-2 text-sm font-bold" style={{ color: 'var(--sem-success)' }}>🎉 আপনার কোড</p>
+            <CodeReveal code={order.voucherCode.code} />
+          </div>
+        )}
         <h2 className="mb-4 font-bold text-slate-900">বিস্তারিত</h2>
 
         <dl className="space-y-3 text-sm">

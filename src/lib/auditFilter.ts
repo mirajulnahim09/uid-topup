@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import { dhakaRangeFrom, dhakaRangeTo } from './date';
 
 /** ★ অডিট টাইমলাইন ফিল্টার — page ও CSV export একই যুক্তি ব্যবহার করে (DRY)। */
 export type AuditFilter = { q?: string; actor?: string; action?: string; from?: string; to?: string };
@@ -15,8 +16,11 @@ export function buildAuditWhere(sp: AuditFilter): Prisma.AdminLogWhereInput {
     { ip: { contains: sp.q, mode: 'insensitive' } },
   ] });
   const range: Prisma.DateTimeFilter = {};
-  if (sp.from && !Number.isNaN(Date.parse(sp.from))) range.gte = new Date(sp.from);
-  if (sp.to && !Number.isNaN(Date.parse(sp.to))) { const d = new Date(sp.to); d.setHours(23, 59, 59, 999); range.lte = d; }
+  // ★ তারিখ = ঢাকার দিন (`lib/date.ts`); আগে from UTC-মধ্যরাত আর to সার্ভারের ঘড়িতে দিনশেষ
+  const from = sp.from ? dhakaRangeFrom(sp.from) : null;
+  const to = sp.to ? dhakaRangeTo(sp.to) : null;
+  if (from) range.gte = from;
+  if (to) range.lte = to;
   if (range.gte || range.lte) and.push({ createdAt: range });
   if (and.length) w.AND = and;
   return w;

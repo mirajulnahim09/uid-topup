@@ -1,7 +1,6 @@
 import Link from 'next/link';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireUserPage } from '@/lib/pageGuard';
 import { getSettings } from '@/lib/settings';
 import { bdt } from '@/lib/money';
 import { fmtDate, fmtDay } from '@/lib/date';
@@ -29,8 +28,9 @@ const LEDGER_TYPE_BN: Record<string, string> = {
 };
 
 export default async function AccountPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) return null;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)।
+  //   ⚠️ নিচের try/catch-এর **বাইরে** — ভেতরে থাকলে catch `redirect()` গিলে ফেলত।
+  const me = await requireUserPage();
 
   // ★ DB সাময়িকভাবে অকেজো হলে ভুল সংখ্যা (৳0.00) দেখানো যাবে না —
   //   তার বদলে সৎ "দেখানো যাচ্ছে না" স্ক্রিন। বিস্তারিত: DataUnavailable.tsx
@@ -40,7 +40,7 @@ export default async function AccountPage() {
 
   async function loadUser() {
     return prisma.user.findUnique({
-      where: { id: session!.user.id },
+      where: { id: me.id },
       include: {
         ledger: { orderBy: { createdAt: 'desc' }, take: 20 },
         _count: { select: { orders: true, deposits: true, referrals: true } },
@@ -49,7 +49,7 @@ export default async function AccountPage() {
   }
   async function loadRefEarn() {
     return prisma.ledgerEntry.aggregate({
-      where: { userId: session!.user.id, type: 'REFERRAL_BONUS' },
+      where: { userId: me.id, type: 'REFERRAL_BONUS' },
       _sum: { amount: true },
     });
   }
@@ -189,9 +189,10 @@ export default async function AccountPage() {
         *   গন্তব্য (`/account/wallet/deposit`) অক্ষত ও এখনো দুই
         *   জায়গা থেকে পৌঁছানো যায় — কেবল পুনরাবৃত্তিটি গেল।
         */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
         {[
           { href: '/account/orders', icon: 'box' as const, label: 'অর্ডার' },
+          { href: '/account/codes', icon: 'gift' as const, label: 'আমার কোড' },
           { href: '/account/notifications', icon: 'bell' as const, label: 'নোটিফিকেশন' },
           // ★ Group I (৪) — সাপোর্ট টিকিট
           { href: '/account/tickets', icon: 'chat' as const, label: 'সাপোর্ট' },

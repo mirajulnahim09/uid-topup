@@ -1,11 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import BannerManager from '@/components/admin/BannerManager';
 import { isBlobConfigured } from '@/lib/upload';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'ব্যানার ছবি' };
 
 export default async function AdminBanners() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const banners = await prisma.banner.findMany({ orderBy: { sortOrder: 'asc' } });
 
   return (

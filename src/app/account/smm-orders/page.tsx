@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import AutoRefresh from '@/components/AutoRefresh';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { orderFingerprint, SMM_CATEGORY_SLUG } from '@/lib/orderFingerprint';
 import { prisma } from '@/lib/prisma';
+import { requireUserPage } from '@/lib/pageGuard';
 import { bdt } from '@/lib/money';
 import { fmtDate } from '@/lib/date';
 import Badge from '@/components/Badge';
@@ -15,15 +15,17 @@ export const metadata = { title: 'SMM অর্ডার' };
 //   (YouTube Premium, Netflix, Amazon Prime ইত্যাদি)।
 //   Free Fire টপ-আপ থেকে আলাদা করে এখানে দেখানো হয়।
 //   কোনো schema বদল লাগে না — category slug দিয়ে filter।
-const SMM_CATEGORY_SLUG = 'like-follow-subscribe';
 
 export default async function SmmOrdersPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) return null;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)
+  const me = await requireUserPage();
+
+  // ★ SCL-02 — শুরুর ছাপ ডেটা পড়ার **আগে**: মাঝে কিছু বদলালে বড়জোর একটি বাড়তি রিফ্রেশ, বদল হারায় না
+  const fp = await orderFingerprint(me.id, { kind: 'smm' });
 
   const orders = await prisma.order.findMany({
     where: {
-      userId: session.user.id,
+      userId: me.id,
       variant: { product: { category: { slug: SMM_CATEGORY_SLUG } } },
     },
     orderBy: { createdAt: 'desc' },
@@ -32,7 +34,7 @@ export default async function SmmOrdersPage() {
 
   return (
     <div className="space-y-5">
-      <AutoRefresh seconds={30} />
+      <AutoRefresh seconds={30} scope="smm" initial={fp} />
       <div>
         <h1 className="lux-text text-2xl font-medium sm:text-[27px]">SMM অর্ডার</h1>
         <p className="mt-1.5 text-sm font-light text-slate-500">

@@ -14,5 +14,7 @@ export default async function ProductRedirect({ params }: { params: { id: string
   });
   if (!p || !p.isActive) notFound();
 
-  redirect(`/product/${id}/${p.slug}`);
+  // ★ encode আবশ্যক — বাংলা slug কাঁচা অবস্থায় `Location` হেডারে বসালে
+  //   Node `ERR_INVALID_CHAR` দিয়ে ৫০০ হতো (`[slug]/page.tsx` এ বিস্তারিত)
+  redirect(`/product/${id}/${encodeURIComponent(p.slug)}`);
 }

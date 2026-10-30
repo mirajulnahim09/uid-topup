@@ -30,6 +30,25 @@ export type ReviewItem = {
   name: string;
 };
 
+/**
+ * ★ দ্বিতীয় স্তরের পাহারা — রিভিউর ছবি কেবল `https:` বা নিজের `/…` পথ হলে।
+ *
+ *   প্রথম স্তর `validation.ts` এর `isOwnUploadUrl` (লেখার সময়)। কিন্তু সেটি
+ *   যোগ হওয়ার **আগে** জমা পড়া সারি ডাটাবেসে থেকে যেতে পারে, আর এই পাতা
+ *   পাবলিক — তাই `javascript:`/`data:` কখনো `href` হয়ে বসবে না। পুরনো
+ *   বৈধ ছবি (যেকোনো https হোস্ট) যেন হারিয়ে না যায়, তাই এখানে হোস্ট নয়,
+ *   কেবল স্কিম দেখা হয়।
+ */
+function safePhotoUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  if (raw.startsWith('/') && !raw.startsWith('//')) return raw;
+  try {
+    return new URL(raw).protocol === 'https:' ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
 function Stars({ n, label }: { n: number; label?: string }) {
   return (
     <span aria-label={label ?? `৫ এর মধ্যে ${n}`} title={label}>
@@ -87,12 +106,12 @@ export default function ProductReviews({
                 {r.body}
               </p>
             )}
-            {r.photoUrl && (
-              /* ★ গ্রাহকের ঐচ্ছিক স্ক্রিনশট — থাকলেই দেখানো হয় */
-              <a href={r.photoUrl} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+            {safePhotoUrl(r.photoUrl) && (
+              /* ★ গ্রাহকের ঐচ্ছিক স্ক্রিনশট — থাকলেই দেখানো হয় (নিরাপদ স্কিম হলে) */
+              <a href={safePhotoUrl(r.photoUrl)!} target="_blank" rel="noopener noreferrer" className="mt-2 block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={r.photoUrl}
+                  src={safePhotoUrl(r.photoUrl)!}
                   alt="গ্রাহকের অর্ডার স্ক্রিনশট"
                   loading="lazy"
                   className="h-28 w-28 rounded-lg border object-cover transition hover:opacity-90"

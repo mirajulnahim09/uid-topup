@@ -5,6 +5,7 @@ import AdminTicketThread from '@/components/admin/AdminTicketThread';
 import { fmtDate } from '@/lib/date';
 import { listAdminTickets, getThread } from '@/lib/services/tickets';
 import type { TicketStatus } from '@prisma/client';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const metadata: Metadata = { title: 'সাপোর্ট টিকিট' };
 export const dynamic = 'force-dynamic';
@@ -36,6 +37,9 @@ export default async function AdminTicketsPage({
 }: {
   searchParams: { id?: string; status?: string };
 }) {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড, থ্রেড ও সারি **দুই** শাখার আগে
+  await requireAdminPage();
+
   // ── থ্রেড ──
   if (searchParams.id) {
     const t = await getThread(searchParams.id, null);

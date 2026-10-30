@@ -30,16 +30,15 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import net from 'node:net';
 import path from 'node:path';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { TEST_DATABASE_URL, assertSafeTestUrl } from './helpers/testEnv';
+import {
+  TEST_DATABASE_URL, TEST_BACKUP_SIGNING_KEY, TEST_NEXTAUTH_SECRET, TEST_ISOLATED_ENV, assertSafeTestUrl,
+  applyIsolatedEnv, assertNoLiveEnv,
+} from './helpers/testEnv';
 
 const ROOT = path.resolve(__dirname, '..');
 const NEXT_BIN = path.join(ROOT, 'node_modules', 'next', 'dist', 'bin', 'next');
-
-/** ★ টেস্টে ব্যবহৃত স্থির secret — প্রোডাকশনের `NEXTAUTH_SECRET` নয়।
- *  আসল secret টেস্ট-প্রসেসে টানা CLAUDE.md §2.3 এর বিপরীত। */
-const TEST_NEXTAUTH_SECRET = 'test-only-nextauth-secret-not-a-real-key-000000';
 
 let server: ChildProcess | null = null;
 
@@ -85,12 +84,20 @@ async function waitForReady(baseUrl: string, timeoutMs = 120_000): Promise<void>
  *   কোনো ডাটাবেসে (যেমন প্রোডাকশন Neon) থাকত, সেখানে এই ইমেইল নেই —
  *   লগইন ব্যর্থ হতো এবং আমরা সাথে সাথেই থামতাম, একটি সারিও লেখার আগে।
  */
-async function proveTestDatabase(baseUrl: string): Promise<void> {
+async function proveTestDatabase(
+  baseUrl: string,
+  PrismaClient: new (o: { datasources: { db: { url: string } } }) => PrismaClientType,
+): Promise<void> {
   const db = new PrismaClient({ datasources: { db: { url: TEST_DATABASE_URL } } });
   const email = `canary-${Date.now()}@test.local`;
   const password = 'CanaryPass!234';
 
   try {
+    // ★ আগের রানের শেষ টেস্টের rate-limit বাকেট টেস্ট DB-তে থেকে যায় (truncate হয়
+    //   প্রতিটি টেস্টের **আগে**, রানের শেষে নয়)। মাপা: `login:ip:unknown` = ১৩ > ১০ —
+    //   পরের রানের canary লগইন আটকে পুরো রান "no tests" হয়ে থামত। কেবল টেস্ট DB।
+    await db.rateLimitBucket.deleteMany({});
+
     await db.user.create({
       data: {
         email,
@@ -147,6 +154,13 @@ async function proveTestDatabase(baseUrl: string): Promise<void> {
 export async function setup({ provide }: { provide: (k: string, v: unknown) => void }) {
   assertSafeTestUrl();
 
+  // ★★★ গোপন-মান বিচ্ছিন্নতা (helpers/testEnv.ts): `@prisma/client` import-এর
+  //   আগেই এই প্রসেসের গোপন কী টেস্ট-মানে — নাহলে Prisma `.env` থেকে লাইভ মান
+  //   বসাত আর নিচের `...rest` সেগুলো টেস্ট-সার্ভারে পৌঁছে দিত। লিক হলে থামে।
+  const envBeforePrisma = applyIsolatedEnv();
+  const { PrismaClient } = await import('@prisma/client');
+  assertNoLiveEnv(envBeforePrisma);
+
   const port = await freePort();
   const baseUrl = `http://127.0.0.1:${port}`;
 
@@ -180,6 +194,10 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
   const { DATABASE_URL: _prod, ...rest } = process.env;
   const env: NodeJS.ProcessEnv = {
     ...rest,
+    // ★ `...rest`-এ Prisma-র বসানো লাইভ `.env` কী থাকে (এই ফাইলের PrismaClient
+    //   import-এ) — সব গোপন/ইন্টিগ্রেশন কী এখানে টেস্ট-মানে ঢেকে দিই
+    //   (helpers/testEnv.ts)। নিচের নির্দিষ্ট মানগুলো (mock URL ইত্যাদি) পরে বসে।
+    ...TEST_ISOLATED_ENV,
     DATABASE_URL: TEST_DATABASE_URL,
     TEST_DATABASE_URL,
     NEXTAUTH_URL: baseUrl,
@@ -193,6 +211,11 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
     // ★ TRUSTED_PROXY ফাঁকা — তাই `pickIp()` ক্লায়েন্টের
     //   x-forwarded-for উপেক্ষা করে (H2 এর আচরণ, যেমন প্রোডাকশনে)
     TRUSTED_PROXY: '',
+    // ★ BKP-01 — ব্যাকআপ-স্বাক্ষর চাবি (টেস্ট-কেবল); টেস্ট-প্রসেসও একই মান জানে
+    BACKUP_SIGNING_KEY: TEST_BACKUP_SIGNING_KEY,
+    // ★ CFG-01 — প্রতিটি টেস্টের আগে টেবিল খালি হয়; থ্রটল ০ হলে IP-অনুপস্থিতির
+    //   DB-চিহ্ন প্রতিবার লেখা হয় (প্রোডাকশনে ১০ মিনিটে একবার)
+    CLIENT_IP_WARN_THROTTLE_MS: '0',
     // ★ SSLCommerz ড্রাইভার আসল গেটওয়ের বদলে mock-এ কল করবে।
     //   ⚠️ টেস্ট কখনো sandbox.sslcommerz.com-এ পৌঁছাবে না।
     SSLCZ_BASE_URL: `http://127.0.0.1:${sslczMockPort}`,
@@ -201,7 +224,13 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
     GAME_API_KEY: 'test-fulfill-key',
     // ★ ৩s — টাইমআউট-টেস্ট যেন ১৫ সেকেন্ড ধরে ঝুলে না থাকে
     GAME_API_TIMEOUT_MS: '3000',
+    // ★ RT-01 — SSE-স্ট্রিমের প্রমাণীকরণ/সীমা পরীক্ষার জন্য কেবল টেস্ট-সার্ভারে চালু
+    //   (প্রোডাকশনের ডিফল্ট বন্ধই — কোনো ক্লায়েন্ট এখনো স্ট্রিম ব্যবহার করে না)
+    STREAM_ENABLED: '1',
   };
+
+  // ★ টেস্ট-সার্ভারের চূড়ান্ত env-ও একই গার্ডে — কেবল mock ডেলিভারি কী ইচ্ছাকৃত
+  assertNoLiveEnv(new Set(Object.keys(env)), env, ['GAME_API_URL', 'GAME_API_KEY']);
 
   server = spawn(process.execPath, [NEXT_BIN, 'dev', '-p', String(port)], {
     cwd: ROOT,
@@ -223,7 +252,7 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
 
   console.log(`  Next dev চালু হচ্ছে → ${baseUrl} (টেস্ট DB)`);
   await waitForReady(baseUrl);
-  await proveTestDatabase(baseUrl);
+  await proveTestDatabase(baseUrl, PrismaClient);
   console.log('  ✓ প্রমাণিত: সার্ভার টেস্ট ডাটাবেস পড়ছে');
 
   provide('baseUrl', baseUrl);

@@ -55,6 +55,33 @@ if (/^https:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(BASE)) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
+/**
+ * ★★★ রিগে চালালে স্ক্রিপ্ট-প্রসেসও `production` — নইলে **ফাঁপা পাস**
+ *
+ *   ⚠️ যে ফাঁদটি ধরা পড়েছে (EXTREME অডিট, ২০২৬-০৯-১৮):
+ *   `authCookies.ts` কুকির নাম ঠিক করে `NODE_ENV` দেখে। রিগের সার্ভার
+ *   `next start` — অর্থাৎ production — তাই সে পড়ে
+ *   `__Secure-next-auth.session-token`। কিন্তু যাচাই-স্ক্রিপ্টের নিজের
+ *   প্রসেসে `NODE_ENV` production ছিল না, তাই সে হাতে-বানানো সেশন কুকি
+ *   লিখত `next-auth.session-token` নামে — সার্ভার যা কখনো পড়েই না।
+ *
+ *   ফল দুই রকম, দুটোই খারাপ:
+ *     · `ban-revocation` / `order-price-lock` — 401 পেয়ে **মিথ্যা লাল**।
+ *     · `isr-no-user-leak` — দুই "ভিন্ন" ইউজারই আসলে **অতিথি** হয়ে
+ *       যেত, তাই "A এর তথ্য B এর HTML এ নেই" দাবিটি শূন্যগর্ভভাবে পাস
+ *       করত (মাপা: দুজনের মার্কআপ-হ্যাশ হুবহু এক)। এটিই বেশি বিপজ্জনক —
+ *       লাল হলে চোখে পড়ে, ফাঁপা সবুজ পড়ে না।
+ *
+ *   তাই রিগের ঠিকানায় চালালে এখানেই একবার স্থির করে দেওয়া হয়, এবং
+ *   `authCookies` এর **আগেই** (consumer → `_db` → `authCookies`)।
+ */
+if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]):(3443|3100)(\/|$)/.test(BASE)) {
+  // ⚠️ Next-এর টাইপে `NODE_ENV` read-only (অ্যাপ-কোড যেন বদলাতে না পারে)।
+  //    এটি অ্যাপ নয়, আলাদা যাচাই-প্রসেস — রানটাইমে বদলানো বৈধ ও উদ্দেশ্যমূলক,
+  //    তাই সরাসরি অ্যাসাইনমেন্টের বদলে `Object.assign` (typecheck ভাঙে না)।
+  Object.assign(process.env, { NODE_ENV: 'production' });
+}
+
 const URL_ = process.env.VERIFY_DATABASE_URL || process.env.DATABASE_URL || '';
 
 /** হোস্ট স্থানীয় কি না — পাসওয়ার্ড ছাপা হয় না, শুধু হোস্ট দেখা হয় */

@@ -1,10 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import ProductManager from '@/components/admin/ProductManager';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'প্রোডাক্ট' };
 
 export default async function AdminProducts() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const categories = await prisma.category.findMany({
     orderBy: { sortOrder: 'asc' },
     include: {
@@ -35,6 +38,7 @@ export default async function AdminProducts() {
             image: p.image,
             description: p.description,
             uidLabel: p.uidLabel,
+            deliveryType: p.deliveryType,
             uidHint: p.uidHint,
             isActive: p.isActive,
             variants: p.variants.map((v: (typeof p.variants)[number]) => ({

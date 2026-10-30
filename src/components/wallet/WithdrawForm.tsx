@@ -21,11 +21,14 @@ export default function WithdrawForm({
   min,
   methods,
   holdHours,
+  referralHoldHours,
 }: {
   withdrawable: number;
   min: number;
   methods: string[];
   holdHours: number;
+  /** ★ FIN-01 — সার্ভারের `REFERRAL_HOLD_HOURS` থেকে আসে; এখানে হাতে লেখা সংখ্যা নয় */
+  referralHoldHours: number;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -83,7 +86,8 @@ export default function WithdrawForm({
       <div className="card p-5 text-sm" style={{ color: 'var(--v-mut)' }}>
         এখন তোলার মতো টাকা নেই।
         <br />
-        ⚠️ সাম্প্রতিক জমা ও ফেরত <b>{holdHours} ঘণ্টা</b> পর তোলা যায় — এটি
+        ⚠️ সাম্প্রতিক জমা ও ফেরত <b>{holdHours} ঘণ্টা</b> পর, রেফারেল বোনাস <b>{referralHoldHours} ঘণ্টা</b> পর
+        তোলা যায়; অ্যাডমিনের দেওয়া ব্যালেন্স কেনাকাটায় খরচ করা যায়, তোলা যায় না — এটি
         নিরাপত্তার নিয়ম, সবার জন্য এক।
       </div>
     );

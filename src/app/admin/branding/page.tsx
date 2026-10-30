@@ -4,6 +4,7 @@ import BrandingManager from '@/components/admin/BrandingManager';
 import { getSettings } from '@/lib/settings';
 import { resolveBranding, LOGO_SLOTS, TEXT_FIELDS } from '@/lib/branding';
 import { storageReady, storageReason } from '@/lib/upload';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const metadata: Metadata = { title: 'ব্র্যান্ডিং' };
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,8 @@ export const dynamic = 'force-dynamic';
  *   পাতার মতো এখানে গোপন-ছাঁকনির দরকার নেই।
  */
 export default async function AdminBrandingPage() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const settings = await getSettings();
   const branding = resolveBranding(settings);
 

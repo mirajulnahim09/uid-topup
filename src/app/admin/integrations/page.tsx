@@ -3,6 +3,7 @@ import Link from 'next/link';
 import IntegrationsManager from '@/components/admin/IntegrationsManager';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { allProviderInfos } from '@/lib/integrations/hub';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const metadata: Metadata = { title: 'ইন্টিগ্রেশন হাব' };
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,8 @@ export const dynamic = 'force-dynamic';
  *   চালু/বন্ধ/নির্বাচন করা যায়; মূল ব্যবসায়িক যুক্তি বদলাতে হয় না।
  */
 export default async function AdminIntegrationsPage() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const infos = await allProviderInfos();
   return (
     <div className="space-y-6">

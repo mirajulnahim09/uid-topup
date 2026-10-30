@@ -14,6 +14,10 @@ import { db } from '../vitest.setup';
 import { signedInAdmin } from './helpers/app';
 import { createUser } from './helpers/factories';
 import { verifyBackup } from '../src/lib/backup';
+import { TEST_BACKUP_SIGNING_KEY } from './helpers/testEnv';
+
+// ★ BKP-01 — টেস্ট-প্রসেসও সার্ভারের একই (টেস্ট-কেবল) স্বাক্ষর-চাবি জানে
+process.env.BACKUP_SIGNING_KEY = TEST_BACKUP_SIGNING_KEY;
 
 describe('অ্যাডমিন ব্যাকআপ — স্ট্রিম', () => {
   it('ফাইলটি verifyBackup পাস করে, সব ইউজার ঠিক একবার, পাসওয়ার্ড নেই', async () => {
@@ -34,6 +38,7 @@ describe('অ্যাডমিন ব্যাকআপ — স্ট্রি�
     const text = await res.text();
     const data = JSON.parse(text);
 
+    expect(data._meta.signature).toMatch(/^[0-9a-f]{64}$/); // BKP-01: HMAC স্বাক্ষর আছে
     expect(verifyBackup(data)).toEqual({ ok: true, version: data._meta.version });
     const dbUsers = await db.user.count();
     expect(data.users).toHaveLength(dbUsers);

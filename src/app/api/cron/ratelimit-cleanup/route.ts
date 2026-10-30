@@ -2,6 +2,7 @@ import { apiError } from '@/lib/guard';
 import { assertCronAuth } from '@/lib/cronAuth';
 import { runJob } from '@/lib/jobRuns';
 import { cleanupRateLimitBuckets } from '@/lib/rateLimit';
+import { cleanupRevokedSessions } from '@/lib/sessionRevocation';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,12 @@ async function handle(req: Request) {
 
     const r = await runJob('ratelimit-cleanup', async () => {
       const deleted = await cleanupRateLimitBuckets();
-      return { result: { deleted }, detail: `${deleted} টি মেয়াদোত্তীর্ণ সারি মুছেছে` };
+      // ★ AUTH-05 — মেয়াদোত্তীর্ণ লগআউট-সারি (টোকেন নিজেই তখন অচল)
+      const revokedDeleted = await cleanupRevokedSessions();
+      return {
+        result: { deleted, revokedDeleted },
+        detail: `${deleted} টি মেয়াদোত্তীর্ণ সারি মুছেছে · ${revokedDeleted} টি লগআউট-সারি`,
+      };
     });
 
     if (!r.ok) return Response.json({ success: false, error: r.error, ms: r.ms }, { status: 500 });

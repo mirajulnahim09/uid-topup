@@ -4,9 +4,20 @@ import { buildAuditWhere } from '@/lib/auditFilter';
 
 export const dynamic = 'force-dynamic';
 
-/** ★ অডিট টাইমলাইন → CSV এক্সপোর্ট (একই ফিল্টার যুক্তি)। শুধু অ্যাডমিন। */
+/**
+ * ★ অডিট টাইমলাইন → CSV এক্সপোর্ট (একই ফিল্টার যুক্তি)। শুধু অ্যাডমিন।
+ *
+ * ★★★ Formula-injection গার্ড। কোটে মোড়ানো যথেষ্ট নয় — Excel/Sheets
+ *   `"=…"` সেলকেও সূত্র হিসেবে চালায়। এই লগে গ্রাহকের নিয়ন্ত্রিত মান
+ *   যায়: `userAgent` (কাঁচা হেডার, যেমন `=HYPERLINK("https://…",…)`),
+ *   নাম ও বিবরণ। মালিক এক্সপোর্ট খুললেই সূত্রটি চলত। `reports/route.ts`
+ *   এ গার্ডটি আগেই ছিল; এখানে ছিল না।
+ *   ⚠️ শুদ্ধ সংখ্যা (যেমন ঋণাত্মক অঙ্ক `-50`) ছাড় পায় — সেটি সূত্র নয়,
+ *   আর আগে `'` বসালে Excel সংখ্যাটিকে লেখা ধরে যোগফল ভেঙে দিত।
+ */
 function csvCell(v: unknown): string {
-  const s = v == null ? '' : String(v);
+  let s = v == null ? '' : String(v);
+  if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`;
   return `"${s.replace(/"/g, '""').replace(/[\r\n]+/g, ' ')}"`;
 }
 

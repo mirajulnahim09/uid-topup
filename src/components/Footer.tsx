@@ -64,6 +64,9 @@ export default async function Footer() {
         { href: '/faq', label: t('nav.faq') },
         { href: '/contact', label: t('nav.contact') },
         { href: '/refund', label: t('footer.refund') },
+        { href: '/tutorial', label: 'টিউটোরিয়াল' },
+        { href: '/about', label: 'আমাদের সম্পর্কে' },
+        { href: '/developers', label: 'Reseller API' },
       ],
     },
     {
@@ -71,6 +74,7 @@ export default async function Footer() {
       links: [
         { href: '/terms', label: t('footer.terms') },
         { href: '/privacy', label: t('footer.privacy') },
+        { href: '/delete-account', label: 'অ্যাকাউন্ট মোছার নীতি' },
       ],
     },
   ];

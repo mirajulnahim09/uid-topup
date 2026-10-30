@@ -78,7 +78,9 @@ function prismaEntry(): string {
 function runPrismaOnce(args: string[], url: string) {
   const r = spawnSync(process.execPath, [prismaEntry(), ...args], {
     encoding: 'utf8',
-    env: { ...process.env, DATABASE_URL: url },
+    // ★ `directUrl` — migrate CLI এটিই ব্যবহার করে। `MIGRATE_CHECK_DIRECT_URL` (non-pooler)
+    //   থাকলে সেটি, নাহলে একই URL (pooler-এ `migrate status` সাধারণত চলে, কিন্তু নিশ্চিত নয়)।
+    env: { ...process.env, DATABASE_URL: url, DIRECT_URL: process.env.MIGRATE_CHECK_DIRECT_URL?.trim() || url },
     maxBuffer: 16 * 1024 * 1024,
   });
   return { status: r.status ?? 1, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
@@ -215,16 +217,27 @@ check(
       : 'drift আছে — নিচে প্রয়োজনীয় SQL',
 );
 
+/**
+ * ★ Prisma-র সংযোগ-ত্রুটিতে ডাটাবেস-হোস্ট থাকে (`Can't reach database server at
+ *   \`ep-…neon.tech:5432\``) — CI-লগ প্রায়ই অনেকে দেখেন। পরিচয় ছাপার নিয়ম
+ *   (উপরে "credential কখনো নয়") ত্রুটি-বার্তাতেও মানা হয়। (চূড়ান্ত অডিটে
+ *   এই স্ক্রিপ্টই টার্মিনালে লাইভ হোস্টনাম ছেপেছিল।)
+ */
+const redactHost = (s: string) => {
+  const host = new URL(url).hostname;
+  return host ? s.split(host).join('<db-host>') : s;
+};
+
 // ── ব্যর্থ হলে প্রকৃত কারণটি দেখাই ──
 if (fail > 0) {
   if (pending || status.status !== 0) {
     console.log('\n── prisma migrate status ──');
-    console.log(status.out.split('\n').filter((l) => !/ at "| at localhost/.test(l)).join('\n').trim());
+    console.log(redactHost(status.out.split('\n').filter((l) => !/ at "| at localhost/.test(l)).join('\n').trim()));
   }
   /** ⚠️ diff **চলতেই পারেনি** হলে এটি drift নয়, সংযোগ-ব্যর্থতা — আলাদা শিরোনাম */
   if (diff.status !== 0) {
     console.log('\n── prisma migrate diff ব্যর্থ ──');
-    console.log(diff.out.trim().slice(0, 2000));
+    console.log(redactHost(diff.out.trim().slice(0, 2000)));
   } else if (!empty) {
     console.log('\n── drift (প্রয়োগ করলে DB schema.prisma-র সমান হতো) ──');
     console.log(diff.out.trim().slice(0, 4000));

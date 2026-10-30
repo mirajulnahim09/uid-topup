@@ -80,16 +80,19 @@ const MOBILE_VPS = [
   { name: '393x852', width: 393, height: 852 },   // iPhone 15 Pro / Pixel
   { name: '412x915', width: 412, height: 915 },   // Android বড়
   { name: '430x932', width: 430, height: 932 },   // iPhone Pro Max
+  { name: '480x960', width: 480, height: 960 },   // বড় Android / ভাঁজ-ফোন (চূড়ান্ত অডিট, ২০২৬-০৯-১৭)
 ];
 const DESKTOP_VPS = [
   { name: '600x800', width: 600, height: 800 },    // ছোট ট্যাবলেট (MASTER 2)
   { name: '768x1024', width: 768, height: 1024 },
   { name: '800x1280', width: 800, height: 1280 },  // Android ট্যাবলেট (MASTER 2)
+  { name: '820x1180', width: 820, height: 1180 },   // iPad Air (চূড়ান্ত অডিট)
   { name: '1024x768', width: 1024, height: 768 },
   { name: '1024x1366', width: 1024, height: 1366 }, // iPad Pro লম্বালম্বি (MASTER 2)
   { name: '1280x720', width: 1280, height: 720 },
   { name: '1366x768', width: 1366, height: 768 },   // সবচেয়ে সাধারণ ল্যাপটপ প্রস্থ
   { name: '1440x900', width: 1440, height: 900 },
+  { name: '1536x864', width: 1536, height: 864 },   // ১২৫% স্কেলের Windows ল্যাপটপ (চূড়ান্ত অডিট)
   { name: '1600x900', width: 1600, height: 900 },   // MASTER 2
   { name: '1920x1080', width: 1920, height: 1080 },
   { name: '2560x1440', width: 2560, height: 1440 }, // বড় মনিটর (MASTER 2)
@@ -344,6 +347,13 @@ const MEASURE = String.raw`(function () {
       /* line-clamp ইচ্ছাকৃত — অভিযোগ নয় */
       if (vcs.webkitLineClamp && vcs.webkitLineClamp !== 'none') continue;
       if (vcs.textOverflow === 'ellipsis') continue;
+      /* ★ চলমান নোটিশ (marquee) — লেখা ঘুরে ঘুরে পুরোটাই দেখা যায়, স্থায়ীভাবে কাটা
+         নয়। ছাড় কেবল তখনই যখন চলন **সত্যিই চলছে**; reduced-motion-এ থামলে
+         অভিযোগ আগের মতোই ওঠে (তখন জানালাটি স্ক্রলযোগ্য কি না সেটিই আসল প্রশ্ন,
+         যা tests/e2e-smoke.test.ts মাপে)। এখানেও backtick নিষেধ (String.raw)। */
+      var mq = vi.closest('.marquee-track');
+      if (mq && getComputedStyle(mq).animationName !== 'none' && getComputedStyle(mq).animationPlayState === 'running'
+          && parseFloat(getComputedStyle(mq).animationDuration) > 1) continue;
       var own = (vi.textContent || '').trim();
       if (!own) continue;
       var vr = vi.getBoundingClientRect();

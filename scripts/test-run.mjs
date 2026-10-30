@@ -87,7 +87,9 @@ if (!reachable) {
 
 // ★ প্রোডাকশন DATABASE_URL বাদ দিয়ে পরিবেশ বানাই
 const { DATABASE_URL: _prod, ...rest } = process.env;
-const env = { ...rest, DATABASE_URL: TEST_URL, TEST_DATABASE_URL: TEST_URL };
+// ★ DIRECT_URL — schema-র `directUrl`; না দিলে `db push` P1012-এ থামে (মাপা)।
+//   টেস্ট DB-তে pooler নেই, তাই দুটো একই। `.env`-এর প্রোডাকশন DIRECT_URL-ও এভাবে ঢাকা পড়ে।
+const env = { ...rest, DATABASE_URL: TEST_URL, DIRECT_URL: TEST_URL, TEST_DATABASE_URL: TEST_URL };
 
 // ── ৩. স্কিমা ──
 console.log('  prisma db push → টেস্ট ডাটাবেস …');

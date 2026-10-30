@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import OrderTable from '@/components/admin/OrderTable';
-import { requireAdmin } from '@/lib/guard';
+import { requireAdminPage } from '@/lib/pageGuard';
 import { claimState } from '@/lib/orderClaim';
 import { breachInfo, SLA_WARN_MIN } from '@/lib/slaBreach';
 
@@ -16,10 +16,12 @@ type S = (typeof VALID)[number];
 export default async function AdminOrders({
   searchParams,
 }: {
-  searchParams: { status?: string; variant?: string };
+  searchParams: { status?: string; variant?: string; order?: string };
 }) {
   // ★ claim "আমার না অন্যের" — এটি বলতে হলে কে দেখছে জানা দরকার (3.7)
-  const admin = await requireAdmin();
+  // ★ SEC-01 — পাতার গার্ড: API-র `requireAdmin()` ব্যর্থতায় ApiError ছুড়ত
+  //   (ত্রুটি-পর্দা); এটি একই DB-যাচাই (role + ban + epoch) করে লগইনে পাঠায়
+  const admin = await requireAdminPage();
 
   const s = searchParams.status;
   const status = s && (VALID as readonly string[]).includes(s) ? (s as S) : undefined;
@@ -51,7 +53,20 @@ export default async function AdminOrders({
    */
   const OPEN = ['PENDING', 'PROCESSING'] as const;
   const include = { user: { select: { name: true, phone: true } } } as const;
+  /**
+   * ★ একটি নির্দিষ্ট অর্ডার (`?order=<id>`) — অ্যাডমিন-সার্চ থেকে আসে।
+   *   ⚠️ মাপা (REAL-USER অডিট, ২০২৬-০৯-২৫): ৫,০০০+ খোলা অর্ডারে নতুন অর্ডারটি
+   *   পুরনো-আগে কিউর প্রথম ১০০-তে থাকে না, আর সার্চের ফল নিয়ে যেত গ্রাহকের পাতায়
+   *   (সেখানে অর্ডারে কোনো বোতাম নেই)। ফলে অভিযোগ-করা গ্রাহকের অর্ডার সম্পন্ন/বাতিল
+   *   করার পথই ছিল না। এখন একই টেবিলে কেবল সেই অর্ডার, সব অ্যাকশনসহ।
+   */
+  const onlyOrder = typeof searchParams.order === 'string' && /^[a-z0-9]{8,40}$/i.test(searchParams.order)
+    ? searchParams.order : null;
+
   const loadRows = async () => {
+    if (onlyOrder) {
+      return prisma.order.findMany({ where: { id: onlyOrder }, include });
+    }
     if (status === 'PENDING' || status === 'PROCESSING') {
       return prisma.order.findMany({ where: { status, ...vWhere }, orderBy: { createdAt: 'asc' }, take: 100, include });
     }
@@ -212,7 +227,14 @@ export default async function AdminOrders({
       )}
 
       {/* ★ তালিকা সীমিত হলে সেটি **বলা** — নাহলে অ্যাডমিন ধরে নেন সব দেখছেন */}
-      {total > orders.length && (
+      {onlyOrder && (
+        <p className="text-sm" style={{ color: 'var(--mut)' }}>
+          সার্চ থেকে একটি অর্ডার খোলা হয়েছে।{' '}
+          <Link href="/admin/orders" className="font-semibold underline">সব অর্ডারে ফিরুন</Link>
+        </p>
+      )}
+
+      {!onlyOrder && total > orders.length && (
         <p className="text-xs" style={{ color: 'var(--mut)' }}>
           মোট {total.toLocaleString('bn-BD')}টির মধ্যে {orders.length}টি দেখানো হচ্ছে
           {status && status !== 'PENDING' && status !== 'PROCESSING' ? ' — সাম্প্রতিকটা আগে' : ' — যেটি সবচেয়ে বেশি অপেক্ষা করছে সেটি আগে'}।

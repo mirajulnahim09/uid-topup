@@ -1,3 +1,4 @@
+import type { OrderStatus } from '@prisma/client';
 import { prisma } from '../prisma';
 import { logger } from '../logger';
 import { hub } from '../integrations/hub';
@@ -8,6 +9,7 @@ import { applyOrderStatus } from '../fulfilment';
 import { notify } from '../notify';
 import { emailOrderCompleted } from '../email';
 import { telegramEvent } from '../telegram';
+import { AUTO_FULFILL_ACTOR_ID, AUTO_INFLIGHT_MAX_MS } from '../orderClaim';
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -42,7 +44,18 @@ const MAX_ATTEMPTS = 3;
 const BACKOFF_BASE_MS = 300;
 
 /** ★ সিস্টেম যখন অর্ডার ধরে — অ্যাডমিন প্যানেলে এই নামেই দেখাবে */
-const SYSTEM_ACTOR = { id: 'system:auto-fulfill', name: 'অটো-ডেলিভারি' };
+const SYSTEM_ACTOR = { id: AUTO_FULFILL_ACTOR_ID, name: 'অটো-ডেলিভারি' };
+
+/**
+ * ★★★ F1 — claim-এর মুহূর্তেই লেখা "হতাশাবাদী" নোট।
+ *
+ *   Vercel `maxDuration`-এ ফাংশন মাঝপথে মারা গেলে কোনো `catch` চলে না — আগে
+ *   অর্ডারটি PROCESSING-এ কোনো সতর্কতা ছাড়াই পড়ে থাকত, আর ১৫ মিনিট পর claim
+ *   "ছেড়ে গেছেন" দেখাত; অ্যাডমিন সরল বিশ্বাসে আবার ডেলিভার করতেন। এখন সতর্কতা
+ *   **কাজ শুরুর আগেই** লেখা, আর কেবল সফল/ব্যর্থতার নিশ্চিত ফল এটিকে বদলায়।
+ */
+const IN_FLIGHT_NOTE =
+  '⏳ অটো-ডেলিভারি চলছে — এই নোট থেকে গেলে প্রক্রিয়াটি মাঝপথে থেমেছে; গেমে পৌঁছেছে কি না যাচাই না করে ডেলিভার বা বাতিল করবেন না';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -132,6 +145,7 @@ export async function autoFulfillOrder(orderId: string): Promise<AutoResult> {
           claimedById: SYSTEM_ACTOR.id,
           claimedByName: SYSTEM_ACTOR.name,
           claimedAt: new Date(),
+          internalNote: IN_FLIGHT_NOTE,
         },
       });
       await recordOrderEvent(tx, {
@@ -190,28 +204,58 @@ async function completeOrder(orderId: string, ref?: string): Promise<void> {
     // ★★★ আবার লক — প্রোভাইডারকে ডাকার সময়টুকুতে অ্যাডমিন হাতে
     //     অর্ডারটি সম্পন্ন বা বাতিল করে ফেলতে পারেন। তখন আমাদের
     //     লেখা অবস্থাটি তাঁরটিকে চাপা দিয়ে দিত।
-    const rows = await tx.$queryRaw<Array<{ id: string; status: string }>>`
-      SELECT id, status FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
-    if (!rows[0] || rows[0].status !== 'PROCESSING') return null;
+    const rows = await tx.$queryRaw<Array<{ id: string; status: OrderStatus; orderNo: number }>>`
+      SELECT id, status, "orderNo" FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
+    if (!rows[0]) return null;
+
+    // ★★★ D1-1 (খ) — ডেলিভারি পৌঁছেছে, কিন্তু অর্ডার ইতিমধ্যে বন্ধ (যেমন পুরনো
+    //     claim-এ বাতিল-রিফান্ড)। আগে এখানে **নীরবে** ফেরত যেত — গ্রাহক ডায়মন্ড
+    //     ও টাকা দুটোই রাখতেন, আর খতিয়ান মেলায় কেউ কখনো জানত না। এখন অর্ডারের
+    //     ঘটনাপঞ্জি ও অভ্যন্তরীণ নোটে স্থায়ীভাবে লেখা হয় এবং অপারেটরকে সতর্ক করা হয়।
+    //     ⚠️ টাকা স্বয়ংক্রিয়ভাবে কাটা হয় **না** — ফেরত নেওয়া মানুষের সিদ্ধান্ত।
+    if (rows[0].status !== 'PROCESSING') {
+      const warn = `🚨 অর্ডার "${rows[0].status}" হওয়ার পরে প্রোভাইডার ডেলিভারি নিশ্চিত করেছে (ref: ${ref ?? 'নেই'}) — গ্রাহক পণ্য পেয়েছেন; ফেরত দেওয়া টাকা সমন্বয় বিবেচনা করুন`;
+      await tx.order.update({ where: { id: orderId }, data: { internalNote: warn } });
+      await recordOrderEvent(tx, {
+        orderId,
+        status: rows[0].status,
+        note: 'বন্ধ অর্ডারে দেরিতে ডেলিভারি নিশ্চিত হয়েছে — অ্যাডমিনের পর্যালোচনা দরকার',
+        actorType: 'SYSTEM',
+      });
+      return { lateAfterClose: true as const, orderNo: rows[0].orderNo, status: rows[0].status };
+    }
 
     await applyOrderStatus(tx, {
       orderId,
       action: 'COMPLETE',
       admin: SYSTEM_ACTOR,
       adminNote: 'অটো-ডেলিভারি সম্পন্ন হয়েছে',
-      internalNote: ref ? `provider ref: ${ref}` : undefined,
+      // ★ F1 — সবসময় লেখা, যাতে claim-এর "⏳ চলছে" নোট সফলতার পরে থেকে না যায়
+      internalNote: ref ? `provider ref: ${ref}` : 'অটো-ডেলিভারি সম্পন্ন',
     });
 
-    return tx.order.findUnique({
+    const done = await tx.order.findUnique({
       where: { id: orderId },
       select: {
         orderNo: true, productName: true, variantName: true,
         user: { select: { id: true, name: true, email: true } },
       },
     });
+    return done ? { lateAfterClose: false as const, ...done } : null;
   });
 
   if (!out) return;
+
+  if (out.lateAfterClose) {
+    logger.error('fulfill', 'delivered after order was closed', { orderId, status: out.status });
+    telegramEvent(
+      'fulfillment_failed',
+      '🚨 বন্ধ অর্ডারে ডেলিভারি পৌঁছেছে',
+      `#${out.orderNo} — অর্ডার ${out.status} হওয়ার পরে প্রোভাইডার ডেলিভারি নিশ্চিত করেছে। গ্রাহক পণ্য ও ফেরত দুটোই পেয়ে থাকতে পারেন — এখনই যাচাই করুন।`,
+      '/admin/orders',
+    ).catch(() => {});
+    return;
+  }
 
   // ── commit-পরবর্তী, সবই guarded ──
   notify(
@@ -296,4 +340,41 @@ async function releaseToManualQueue(
       : `#${out.orderNo} — ${attempts} চেষ্টার পরেও হয়নি (${delivery.reason ?? 'কারণ অজানা'})। ম্যানুয়াল কিউতে ফেরত এসেছে।`,
     '/admin/orders',
   ).catch(() => {});
+}
+
+/**
+ * ★★★ F1 — মাঝপথে মরে যাওয়া অটো-ডেলিভারির ঝাড়ু (sla-breach ক্রন থেকে ডাকা)।
+ *
+ *   `AUTO_INFLIGHT_MAX_MS` পেরোনো system-claim মানে ফাংশনটি নিশ্চিতভাবে মৃত
+ *   (`maxDuration` ৬০s)। অর্ডারটি ম্যানুয়াল কিউতে ফেরে **UNKNOWN** হিসেবে —
+ *   "গেমে যাচাই করে তবেই" নোট ও টেলিগ্রাম সতর্কতাসহ। কখনো নিজে ডেলিভার বা
+ *   রিফান্ড করে না: ফল অজানা হলে মানুষই একমাত্র নিরাপদ বিচারক।
+ *
+ *   ⚠️ প্রার্থী-তালিকা লক ছাড়া পড়া, কিন্তু সিদ্ধান্ত `releaseToManualQueue`-এর
+ *   ভেতরে **লক করা রো** আবার দেখে নেয় (PROCESSING + এখনো আমাদের claim)।
+ *   ফলে এর মধ্যে সফল হওয়া বা অ্যাডমিনের হাতে যাওয়া অর্ডার অস্পৃশ্য থাকে।
+ */
+export async function sweepStuckAutoFulfill(limit = 50): Promise<number> {
+  const cutoff = new Date(Date.now() - AUTO_INFLIGHT_MAX_MS);
+  const stuck = await prisma.order.findMany({
+    where: { status: 'PROCESSING', claimedById: SYSTEM_ACTOR.id, claimedAt: { lt: cutoff } },
+    select: { id: true },
+    orderBy: { claimedAt: 'asc' },
+    take: limit,
+  });
+  let released = 0;
+  for (const { id } of stuck) {
+    // ★ একটির ব্যর্থতা বাকিগুলো আটকাবে না — পরের ক্রন-রানে আবার চেষ্টা হবে
+    try {
+      await releaseToManualQueue(
+        id,
+        { status: 'UNKNOWN', reason: 'সার্ভার-ফাংশন সময়সীমায় থেমে গেছে — প্রোভাইডারের ফল অজানা' },
+        0,
+      );
+      released++;
+    } catch (e) {
+      logger.error('fulfill', 'stuck auto-fulfill sweep failed', { orderId: id, err: e });
+    }
+  }
+  return released;
 }

@@ -3,14 +3,18 @@ import { logger } from './logger';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 import { prisma } from './prisma';
-import { rateLimit, resetRateLimit, pickIp, LOGIN_LIMITS } from './rateLimit';
+import { rateLimit, resetRateLimit, refundRateLimit, pickIp, LOGIN_LIMITS } from './rateLimit';
 import { uniqueReferralCode } from './referral';
 import { logActivity } from './adminLog';
 import { notifyAdmins } from './notify';
 import { emailWelcome } from './email';
 import { decryptSecret } from './secretbox';
-import { verifyTotp, hashRecoveryCode } from './totp';
+import { matchTotpStep, hashRecoveryCode } from './totp';
+import { claimTotpStep } from './totpReplay';
+import { revokeSession, isSessionRevoked } from './sessionRevocation';
+import { cleanName } from './sanitize';
 import {
   SESSION_COOKIE_NAME,
   CSRF_COOKIE_NAME,
@@ -44,9 +48,15 @@ async function findOrCreateGoogleUser(email: string, name: string) {
     //   চাইলে forgot-password দিয়ে পাসওয়ার্ড আবার সেট করতে পারবেন।
     if (!existing.emailVerified) {
       const lockPass = await bcrypt.hash('google-reclaim-' + Math.random().toString(36).slice(2) + Date.now(), 12);
+      // ★★★ `sessionEpoch`-ও বাড়ে — পাসওয়ার্ড বাতিল করা যথেষ্ট ছিল না।
+      //   মাপা (EXTREME অডিট, ২০২৬-০৯-২১, `tests/google-reclaim-session`):
+      //   আক্রমণকারী আগেই লগইন করে থাকলে reclaim-এর পরেও তাঁর সেশন ২০০
+      //   পেত — ৩০ দিন ধরে আসল মালিকের ওয়ালেট দিয়ে অর্ডার করা যেত। পাসওয়ার্ড
+      //   রিসেটের মতোই (`api/auth/reset`) এখন অন্য সব সেশন সাথে সাথে বাতিল;
+      //   এই Google সেশনটি jwt callback-এ নতুন epoch-ই পায়।
       const reclaimed = await prisma.user.update({
         where: { id: existing.id },
-        data: { emailVerified: true, password: lockPass },
+        data: { emailVerified: true, password: lockPass, sessionEpoch: { increment: 1 } },
       });
       // ★ এটি একটি **নিরাপত্তা** ঘটনা: একটি যাচাই-না-হওয়া অ্যাকাউন্টের
       //   মালিকানা বদলে গেছে ও পুরনো পাসওয়ার্ড বাতিল হয়েছে। তাই
@@ -69,7 +79,10 @@ async function findOrCreateGoogleUser(email: string, name: string) {
   const created = await prisma.user.create({
     data: {
       email,
-      name: name || email.split('@')[0],
+      // ★ Google-এর নাম বাইরের ইনপুট — credentials পথের মতোই পরিষ্কার করি।
+      //   আগে কাঁচা অবস্থায় বসত, অথচ নামটি ইমেইল-টেমপ্লেট ও টেলিগ্রাম
+      //   বার্তায় HTML হিসেবে যায় (চূড়ান্ত অডিট, মালিকের অনুমোদনে)।
+      name: cleanName(name, 60) || email.split('@')[0],
       phone: placeholderPhone,
       password: randomPass,
       referralCode,
@@ -119,7 +132,17 @@ export const authOptions: NextAuthOptions = {
       }).catch(() => {});
     },
     async signOut({ token }) {
-      const t = token as { id?: string; name?: string; role?: string } | null;
+      const t = token as { id?: string; name?: string; role?: string; sid?: string; exp?: number } | null;
+      /**
+       * ★★★ AUTH-05 — **কেবল এই সেশনটি** বাতিল (অন্য ডিভাইস অক্ষত)।
+       *   কুকি মোছা যথেষ্ট ছিল না — কপি করা কুকি ৩০ দিন চলত। মেয়াদ = টোকেনের
+       *   নিজের `exp`; তারপর সারিটি অর্থহীন। ব্যর্থ হলে লগ — কুকি তবু মুছে যায়।
+       */
+      if (t?.id && t.sid) {
+        const expiresAt = new Date(typeof t.exp === 'number' ? t.exp * 1000 : Date.now() + 30 * 24 * 60 * 60 * 1000);
+        await revokeSession(t.sid, t.id, expiresAt)
+          .catch((e) => logger.error('auth', 'সেশন বাতিল-তালিকায় তোলা যায়নি', { err: e }));
+      }
       if (t?.id) {
         logActivity({
           actorId: t.id, actorName: t.name || 'ব্যবহারকারী',
@@ -274,7 +297,9 @@ export const authOptions: NextAuthOptions = {
           let passed = false;
           try {
             const secret = decryptSecret(user.twoFactorSecret);
-            passed = verifyTotp(secret, code);
+            // ★★★ AUTH-06 — কোড মিললেও ধাপটি আগে ব্যবহৃত হলে (replay) গ্রহণ নয়
+            const step = matchTotpStep(secret, code);
+            passed = step !== null && (await claimTotpStep(user.id, step));
           } catch {
             logger.error('auth', '2FA secret decrypt failed (key rotated?)', { userId: user.id });
             // passed=false — নিচে recovery কোড চেষ্টা হবে
@@ -328,10 +353,14 @@ export const authOptions: NextAuthOptions = {
         //   গোনা হলে বৈধ ব্যবহারকারী নিজের সফল লগইন দিয়েই নিজেকে
         //   লক-আউট করতেন — বাস্তবে ঠিক তাই ঘটেছিল (৫টি সফল লগইনের
         //   পর ষষ্ঠটি "ইমেইল বা পাসওয়ার্ড ভুল" দেখাত)।
-        //   ⚠️ IP-বাকেট ইচ্ছাকৃতভাবে **রাখা হয়** — একটি বৈধ অ্যাকাউন্ট
+        //   ⚠️ IP-বাকেট ইচ্ছাকৃতভাবে **মোছা হয় না** — একটি বৈধ অ্যাকাউন্ট
         //   হাতে থাকলে আক্রমণকারী নাহলে বারবার লগইন করে IP-কোটা রিসেট
         //   করে অন্য অ্যাকাউন্টে ব্রুট-ফোর্স চালাতে পারত।
+        //   ★ তবে এই সফল চেষ্টার **নিজের** গণনাটুকু ফেরত (−১) — চূড়ান্ত মাস্টার
+        //   অডিট (২০২৬-০৯-১৭), মালিকের সিদ্ধান্ত: একই carrier-IP (CGNAT)-এর
+        //   পেছনের সফল লগইনগুলো আর একে অপরকে আটকায় না; ব্যর্থগুলো গোনা থাকে।
         await resetRateLimit(`login:email:${email}`);
+        await refundRateLimit(`login:ip:${ip}`);
 
         return {
           id: user.id,
@@ -369,6 +398,7 @@ export const authOptions: NextAuthOptions = {
         token.role = dbUser.role;
         token.epoch = dbUser.sessionEpoch ?? 0;
         token.lastChecked = Date.now();   // C5 — এইমাত্র DB দেখা হলো
+        token.sid = randomUUID();          // AUTH-05 — এই লগইনের স্থায়ী সেশন-id
         return token;
       }
 
@@ -382,6 +412,9 @@ export const authOptions: NextAuthOptions = {
         });
         token.epoch = withEpoch?.sessionEpoch ?? 0;
         token.lastChecked = Date.now();   // এইমাত্র DB দেখা হলো
+        // ★ AUTH-05 — এই লগইনের স্থায়ী সেশন-id: টোকেন পরে নতুন করে encode হলেও
+        //   (rolling) একই থাকে, তাই লগআউটে এটি বাতিল করলে কুকির পুরনো কপিও বাতিল
+        token.sid = randomUUID();
         return token;
       }
 
@@ -421,6 +454,8 @@ export const authOptions: NextAuthOptions = {
         if (!fresh || fresh.isBanned) return {}; // টোকেন বাতিল
         // ★★★ epoch mismatch = এই টোকেন revoke করা হয়েছে
         if ((token.epoch ?? 0) !== fresh.sessionEpoch) return {};
+        // ★ AUTH-05 — এই সেশনটি লগআউট করা হয়েছে
+        if (await isSessionRevoked(token.sid)) return {};
         token.role = fresh.role;
         token.lastChecked = Date.now();
       }
@@ -451,6 +486,20 @@ export const authOptions: NextAuthOptions = {
 
       session.user.id = token.id as string;
       session.user.role = token.role as 'USER' | 'ADMIN';
+      /**
+       * ★★★ টোকেনের session-যুগ সেশনেও — যাতে **প্রতিটি API অনুরোধে**
+       *   `requireUser()` DB-র `sessionEpoch`-এর সাথে মিলিয়ে দেখতে পারে।
+       *
+       *   ⚠️ কেন দরকার (EXTREME অডিটে মাপা, ২০২৬-০৯-১৮): epoch যাচাই হতো
+       *   কেবল এই jwt callback-এ, আর সেটি খরচ বাঁচাতে **৫ মিনিটে একবার**
+       *   (`lastChecked`)। ফলে "সব ডিভাইস থেকে সাইন-আউট" বা পাসওয়ার্ড-রিসেটের
+       *   পরেও চুরি হওয়া সেশন **৩০১ সেকেন্ড** পর্যন্ত অর্ডার/প্রত্যাহার করতে
+       *   পারত (মাপা)। ব্যান সাথে সাথে কাজ করত, কারণ সেটি `requireUser()`
+       *   প্রতিবার DB থেকে পড়ে — epoch-ও এখন সেই একই কোয়েরিতে মেলে।
+       */
+      session.user.epoch = (token.epoch as number | undefined) ?? 0;
+      // ★ AUTH-05 — `requireUser()`/পাতা-গার্ড প্রতিবার বাতিল-তালিকায় মেলায়
+      session.user.sid = token.sid;
       return session;
     },
   },

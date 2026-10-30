@@ -6,10 +6,14 @@ import { rateLimit, getIp, LIMITS } from '@/lib/rateLimit';
 import { uniqueReferralCode } from '@/lib/referral';
 import { emailWelcome } from '@/lib/email';
 import { cleanText } from '@/lib/sanitize';
-import { consumeOtp, otpMessage } from '@/lib/otp/core';
+import { consumeOtp } from '@/lib/otp/core';
 import { getOtpConfig } from '@/lib/otp/settings';
 
 import { notifyAdmins } from '@/lib/notify';
+import { logActivity, requestMeta } from '@/lib/adminLog';
+
+/** ★ AUTH-02 — OTP ব্যর্থতার সব কারণে একই বার্তা (enumeration রোধ) */
+const OTP_FAIL_MSG = 'কোডটি সঠিক নয় বা মেয়াদ শেষ — প্রয়োজনে নতুন কোড চেয়ে আবার দিন।';
 
 export async function POST(req: Request) {
   try {
@@ -29,17 +33,32 @@ export async function POST(req: Request) {
     const name = cleanText(parsed.data.name, 60); // ★ XSS guard
     const refCode = parsed.data.referralCode?.trim().toUpperCase();
 
-    const dupe = await prisma.user.findFirst({
-      where: { OR: [{ email }, { phone }] },
-      select: { email: true },
-    });
-    if (dupe) {
-      throw new ApiError(
-        dupe.email === email
-          ? 'এই ইমেইল দিয়ে অ্যাকাউন্ট আছে'
-          : 'এই মোবাইল নাম্বার দিয়ে অ্যাকাউন্ট আছে',
-        409
-      );
+    /**
+     * ★★★ AUTH-02 — অ্যাকাউন্ট-গণনা (enumeration) বন্ধ।
+     *
+     *   আগে কোড যাচাইয়ের **আগেই** এখানে বলা হতো "এই ইমেইল/মোবাইল দিয়ে অ্যাকাউন্ট
+     *   আছে" — অর্থাৎ কোড ছাড়াই যে কেউ যেকোনো ইমেইল/ফোনের অস্তিত্ব জেনে নিতে
+     *   পারত। এখন OTP বাধ্যতামূলক থাকলে (ডিফল্ট) এই আগাম যাচাই হয় না: আগে কোড
+     *   মেলে, তারপর তৈরির সময় DB-র @unique (P2002, নিচে) সংঘর্ষ ধরে। নিবন্ধিত
+     *   ইমেইলে `otp/send` কখনো কোড দেয় না, তাই সেখানে উত্তর সবসময় "কোড সঠিক নয়" —
+     *   অনিবন্ধিত ইমেইলের সাথে হুবহু এক (বার্তাও, নিচের `OTP_FAIL_MSG`)।
+     *   ⚠️ অ্যাডমিন OTP বন্ধ রাখলে ইমেইল-মালিকানার কোনো প্রমাণ থাকে না — তখন
+     *   আগের স্পষ্ট বার্তাই থাকে (সেই মোডে এটি জানা সীমাবদ্ধতা)।
+     */
+    const otpCfg = await getOtpConfig();
+    if (!otpCfg.requireAtSignup) {
+      const dupe = await prisma.user.findFirst({
+        where: { OR: [{ email }, { phone }] },
+        select: { email: true },
+      });
+      if (dupe) {
+        throw new ApiError(
+          dupe.email === email
+            ? 'এই ইমেইল দিয়ে অ্যাকাউন্ট আছে'
+            : 'এই মোবাইল নাম্বার দিয়ে অ্যাকাউন্ট আছে',
+          409
+        );
+      }
     }
 
     let referredById: string | null = null;
@@ -71,8 +90,6 @@ export async function POST(req: Request) {
      *   অ্যাকাউন্ট "যাচাইকৃত" দেখানোর চেয়ে "যাচাই হয়নি" দেখানো ভালো।
      * ═══════════════════════════════════════════════════════════
      */
-    const otpCfg = await getOtpConfig();
-
     const createUser = async (
       tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
       emailVerified: boolean,
@@ -88,7 +105,7 @@ export async function POST(req: Request) {
           referredById,
           emailVerified,
         },
-        select: { email: true, name: true, referralCode: true },
+        select: { id: true, email: true, name: true, referralCode: true },
       });
 
     let user;
@@ -102,7 +119,9 @@ export async function POST(req: Request) {
           (tx) => createUser(tx, true),
         );
 
-        if (!r.ok) throw new ApiError(otpMessage(r.reason), 400);
+        // ★ AUTH-02 — কারণ যাই হোক (কোড নেই/ভুল/মেয়াদ শেষ/অনেকবার) একই বার্তা:
+        //   নিবন্ধিত ইমেইলে কারণ সবসময় "কোড নেই" হতো, তাই আলাদা বার্তা = ফাঁস।
+        if (!r.ok) throw new ApiError(OTP_FAIL_MSG, 400);
         user = r.result;
       } else {
         // ★ অ্যাডমিন যাচাই বন্ধ রেখেছেন — তখন অ্যাকাউন্ট **যাচাই-হীন**
@@ -131,6 +150,13 @@ export async function POST(req: Request) {
 
     emailWelcome(user.email, user.name, user.referralCode).catch(() => {});
     notifyAdmins('নতুন রেজিস্ট্রেশন', `${name} নতুন অ্যাকাউন্ট খুলেছে।`, '/admin/users', 'user_registered').catch(() => {});
+    // ★ অডিট — `REGISTER` অ্যাকশন আগে থেকেই সংজ্ঞায়িত ও লগ-পাতায় লেবেলসহ ছিল,
+    //   কিন্তু কোথাও লেখা হতো না (চূড়ান্ত মাস্টার অডিট, ২০২৬-০৯-১৭)। ভুয়া-অ্যাকাউন্টের
+    //   ঢেউ তদন্তে "কোন IP/ডিভাইস থেকে কখন" জানা দরকার।
+    logActivity({
+      actorId: user.id, actorName: user.name, actorType: 'CUSTOMER', role: 'USER',
+      action: 'REGISTER', targetId: user.id, ...requestMeta(req),
+    }).catch(() => {});
 
     return Response.json({ success: true, referralCode: user.referralCode });
   } catch (e) {

@@ -4,6 +4,7 @@ import { creditWallet, debitWallet } from './wallet';
 import { round2 } from '../money';
 import { ApiError } from '../guard';
 import { cleanText } from '../sanitize';
+import { dhakaDayStart } from '../date';
 import type { Prisma } from '@prisma/client';
 
 /**
@@ -67,6 +68,9 @@ export async function getWithdrawalConfig(): Promise<WithdrawalConfig> {
   };
 }
 
+/** ★ FIN-01 — রেফারেল বোনাস কত ঘণ্টা তোলা যাবে না (মালিকের সিদ্ধান্ত: স্থির ৭২) */
+export const REFERRAL_HOLD_HOURS = 72;
+
 /**
  * ★★★ তোলার যোগ্য অঙ্ক — ব্যালেন্স নয়।
  *
@@ -102,28 +106,68 @@ export async function withdrawableAmount(
    *
    *   ⚠️ এটি গার্ডটিকে **শুধু তখনই** শিথিল করে যখন মালিক নিজে
    *   `withdrawal_hold_hours = 0` দিয়েছেন। ডিফল্ট ৭২ ঘণ্টা অপরিবর্তিত।
+   *   ⚠️ ০ কেবল ডিপোজিট/ফেরতের hold তোলে — রেফারেল-hold ও অ্যাডমিন-সমন্বয়ের
+   *   বাধা (FIN-01, নিচে) তখনও বহাল।
    */
-  if (!(holdHours > 0)) return Math.max(0, round2(Number(balance)));
+  let heldAmt = 0;
+  if (holdHours > 0) {
+    const since = new Date(Date.now() - holdHours * 3600_000);
+    const held = await tx.ledgerEntry.aggregate({
+      where: {
+        userId,
+        type: { in: ['DEPOSIT', 'REFUND'] },
+        createdAt: { gte: since },
+      },
+      _sum: { amount: true },
+    });
+    heldAmt += Number(held._sum.amount ?? 0);
+  }
 
-  const since = new Date(Date.now() - holdHours * 3600_000);
-
-  const held = await tx.ledgerEntry.aggregate({
-    where: {
-      userId,
-      type: { in: ['DEPOSIT', 'REFUND'] },
-      createdAt: { gte: since },
-    },
+  /**
+   * ★★★ FIN-01 (মালিকের সিদ্ধান্ত, ২০২৬-০৯-২৭) — রেফারেল বোনাস **৭২ ঘণ্টা** আটকে।
+   *
+   *   ⚠️ আগে `REFERRAL_BONUS` কোনো hold-এই পড়ত না: ভুয়া অ্যাকাউন্ট খুলে
+   *   নিজের কোডে রেফার → বোনাস → সাথে সাথে তোলা। ঘণ্টাটি **স্থির**, ডিপোজিট-
+   *   hold সেটিং থেকে আলাদা — `withdrawal_hold_hours = 0` দিলেও বোনাস ৭২
+   *   ঘণ্টা আটকে থাকে, কারণ সিদ্ধান্তটি বোনাসের জন্য আলাদাভাবে নেওয়া।
+   */
+  //   ⚠️ `gt`, `gte` নয়: ঠিক ৭২ ঘণ্টা পূর্ণ হওয়ার মুহূর্তেই বোনাস মুক্ত। সময়ের উৎস
+  //   সার্ভার (`Date.now()`) আর খতিয়ানের `createdAt` (ডাটাবেসের `now()`) — ক্লায়েন্টের
+  //   কোনো সময় এখানে ঢোকে না। প্রতিটি বোনাস-সারির নিজের `createdAt`, তাই একাধিক
+  //   বোনাসের hold আলাদা আলাদা শেষ হয়।
+  const refSince = new Date(Date.now() - REFERRAL_HOLD_HOURS * 3600_000);
+  const referral = await tx.ledgerEntry.aggregate({
+    where: { userId, type: 'REFERRAL_BONUS', createdAt: { gt: refSince } },
     _sum: { amount: true },
   });
+  heldAmt += Number(referral._sum.amount ?? 0);
 
-  const heldAmt = Number(held._sum.amount ?? 0);
+  /**
+   * ★★★ FIN-01 — অ্যাডমিনের ধনাত্মক সমন্বয় **কখনো নিজে থেকে** তোলার যোগ্য নয়।
+   *
+   *   ⚠️ এটি জমা দেওয়া টাকা নয় — অ্যাডমিনের হাতে তৈরি ব্যালেন্স। কেনাকাটায়
+   *   খরচ করা যায়, কিন্তু নগদে বের করা যায় না (সময়সীমা নেই, স্থায়ী)। বিশেষ
+   *   প্রয়োজনে প্রত্যাহার-অনুমোদনের বিদ্যমান অ্যাডমিন-নিয়ন্ত্রণই পথ।
+   *
+   *   ⚠️ **নিট** যোগফল (ক্রেডিট − ডেবিট), শূন্যের নিচে নয়: ভুল ক্রেডিট পরে
+   *   ডেবিটে শুধরে দিলে গ্রাহকের নিজের জমা টাকা স্থায়ীভাবে আটকে যাওয়া ঠিক
+   *   নয়। আর সর্বকালের যোগফল বলে টাকাটি অর্ডারে খরচ → রিফান্ড হয়ে এলেও
+   *   (REFUND, ৭২ ঘণ্টা পর মুক্ত) এই অংশটুকু আটকেই থাকে।
+   */
+  const adjust = await tx.ledgerEntry.aggregate({
+    where: { userId, type: 'ADMIN_ADJUST' },
+    _sum: { amount: true },
+  });
+  heldAmt += Math.max(0, Number(adjust._sum.amount ?? 0));
+
   return Math.max(0, round2(Number(balance) - heldAmt));
 }
 
 /** ★ আজকের অনুমোদিত + ঝুলন্ত অঙ্ক — দৈনিক সীমার জন্য */
 async function todaysTotal(tx: Prisma.TransactionClient, userId: string): Promise<number> {
-  const dayStart = new Date();
-  dayStart.setHours(0, 0, 0, 0);
+  // ★ দৈনিক সীমা ঢাকার মধ্যরাতে নতুন হয় (মালিকের সিদ্ধান্ত, ২০২৬-০৯-১৭)। আগে
+  //   `setHours` সার্ভারের ঘড়িতে — Vercel-এ (UTC) দিন বদলাত ঢাকার সকাল ৬টায়।
+  const dayStart = dhakaDayStart();
 
   const agg = await tx.withdrawal.aggregate({
     where: {
@@ -154,8 +198,23 @@ export type RequestInput = {
  *   অনুরোধ ক্রমিক হয়ে যায় — দ্বিতীয়টি প্রথমটির ফল দেখে, তাই
  *   "একটিই ঝুলন্ত" ও ব্যালেন্স-যাচাই দুটোই নির্ভরযোগ্য।
  */
-export async function requestWithdrawal(input: RequestInput) {
-  const cfg = await getWithdrawalConfig();
+/**
+ * ★★★ ডাটাবেস-নিরপেক্ষ যাচাই — চালু আছে কি না, অঙ্ক, মাধ্যম, নাম্বার।
+ *
+ *   আলাদা করা হলো কারণ রুটটি এগুলো **OTP খরচের আগে** ডাকে। আগে OTP
+ *   আগে খরচ হতো, তারপর এই যাচাই — অর্থাৎ ভুল অঙ্ক বা নাম্বার দিলে কোডটি
+ *   নষ্ট হয়ে যেত এবং গ্রাহককে নতুন কোড চাইতে হতো (যা রেট-লিমিটে বাঁধা)।
+ *   (চূড়ান্ত অডিট ২০২৬-০৯-১৭, মালিকের অনুমোদনে।)
+ *
+ *   ⚠️ লক-নির্ভর যাচাই (ব্যালেন্স, দৈনিক সীমা, ঝুলন্ত অনুরোধ) এখানে
+ *   **নেই** — সেগুলো লক করা রো দেখেই হতে হবে (CLAUDE.md §2.1-৩), তাই
+ *   `requestWithdrawal` এর ট্রানজেকশনেই থাকে। একই নিয়ম দুই জায়গায়
+ *   নয়: `requestWithdrawal` নিজেও এটিই ডাকে।
+ */
+export function assertWithdrawalInputs(
+  cfg: WithdrawalConfig,
+  input: { amount: number; method: string; accountNumber: string },
+): { amount: number; method: string; accountNumber: string } {
   if (!cfg.enabled) throw new ApiError('টাকা তোলার সুবিধা এখন বন্ধ আছে', 403);
 
   const amount = round2(Number(input.amount));
@@ -167,6 +226,13 @@ export async function requestWithdrawal(input: RequestInput) {
 
   const accountNumber = cleanText(input.accountNumber, 20);
   if (!/^01[3-9]\d{8}$/.test(accountNumber)) throw new ApiError('সঠিক মোবাইল নাম্বার দিন', 400);
+
+  return { amount, method, accountNumber };
+}
+
+export async function requestWithdrawal(input: RequestInput) {
+  const cfg = await getWithdrawalConfig();
+  const { amount, method, accountNumber } = assertWithdrawalInputs(cfg, input);
 
   return prisma.$transaction(async (tx) => {
     // ★★★ ১. ইউজার রো লক — সব যাচাইয়ের আগে
@@ -195,8 +261,9 @@ export async function requestWithdrawal(input: RequestInput) {
     const usable = await withdrawableAmount(tx, input.userId, me.balance, cfg.holdHours);
     if (amount > usable) {
       throw new ApiError(
+        // ★ FIN-01 — অ্যাডমিনের দেওয়া অংশ কখনো মুক্ত হয় না, তাই শুধু "অপেক্ষা করুন" বলা ভুল হতো
         usable <= 0
-          ? `সাম্প্রতিক জমা ${cfg.holdHours} ঘণ্টা পর তোলা যাবে`
+          ? `এখন তোলার যোগ্য টাকা নেই — সাম্প্রতিক জমা/ফেরত ${cfg.holdHours} ঘণ্টা ও রেফারেল বোনাস ${REFERRAL_HOLD_HOURS} ঘণ্টা পর তোলা যায়; অ্যাডমিনের দেওয়া ব্যালেন্স তোলা যায় না`
           : `এখন সর্বোচ্চ ৳${usable} তোলা যাবে`,
         400,
       );

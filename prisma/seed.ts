@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { DEFAULT_SEED_ADMIN_EMAIL, DEFAULT_SEED_ADMIN_PASSWORD } from '../src/lib/seedDefaults';
 
 const prisma = new PrismaClient();
 
@@ -53,8 +54,24 @@ async function main() {
   console.log('  ✓ settings');
 
   // ═══ Admin ═══
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@uidtopup.local';
-  const adminPass = process.env.ADMIN_PASSWORD || 'Admin@2026Secure';
+  // ★★★ ডিফল্ট পাসওয়ার্ড কেবল **লোকাল** ডাটাবেসে।
+  //   `Admin@2026Secure` রিপোতে লেখা (এখানে ও যাচাই-স্ক্রিপ্টে) — অর্থাৎ
+  //   রিপো যে দেখেছে সে-ই জানে। `npm run db:seed` / `db:setup` ডিফল্টে
+  //   `.env`, অর্থাৎ **লাইভ Neon**-এ চলে; সেখানে `ADMIN_PASSWORD` ভুলে
+  //   গেলে প্রোডাকশনের অ্যাডমিন অ্যাকাউন্ট সবার জানা পাসওয়ার্ডে তৈরি
+  //   হতো। এখন লোকাল নয় এমন DB-তে পাসওয়ার্ড না দিলে seed থেমে যায়।
+  const dbHost = (() => {
+    try { return new URL(process.env.DATABASE_URL || '').hostname; } catch { return ''; }
+  })();
+  const isLocalDb = ['localhost', '127.0.0.1', '::1', 'test-db'].includes(dbHost);
+  if (!process.env.ADMIN_PASSWORD && !isLocalDb) {
+    throw new Error(
+      'ADMIN_PASSWORD সেট করা নেই — লোকাল নয় এমন ডাটাবেসে ডিফল্ট (রিপোতে লেখা) ' +
+      'অ্যাডমিন পাসওয়ার্ড বসানো হবে না। একটি শক্ত পাসওয়ার্ড দিয়ে আবার চালান।',
+    );
+  }
+  const adminEmail = process.env.ADMIN_EMAIL || DEFAULT_SEED_ADMIN_EMAIL;
+  const adminPass = process.env.ADMIN_PASSWORD || DEFAULT_SEED_ADMIN_PASSWORD;
   await prisma.user.upsert({
     where: { email: adminEmail },
     update: {},
@@ -67,7 +84,8 @@ async function main() {
       referralCode: makeCode(),
     },
   });
-  console.log(`  ✓ admin: ${adminEmail} / ${adminPass}`);
+  // ★ আসল পাসওয়ার্ড কখনো কনসোলে নয় (CI/Vercel লগে থেকে যায়)
+  console.log(`  ✓ admin: ${adminEmail}${process.env.ADMIN_PASSWORD ? '' : ' / (লোকাল ডিফল্ট পাসওয়ার্ড)'}`);
 
   // ═══ Payment ═══
   if ((await prisma.paymentChannel.count()) === 0) {

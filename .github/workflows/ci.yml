@@ -21,6 +21,12 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:
 
+# ★ ন্যূনতম অধিকার — জবগুলো কেবল কোড পড়ে। রিপো-সেটিংয়ে ডিফল্ট
+#   টোকেন read-write থাকলেও এখানে কোনো লেখার অধিকার যাবে না
+#   (কোনো নির্ভরতা আপোস হলে রিপোতে push/রিলিজ করতে পারবে না)।
+permissions:
+  contents: read
+
 jobs:
   quality:
     name: Typecheck · Lint · Build
@@ -124,6 +130,8 @@ jobs:
 
     env:
       MIGRATE_CHECK_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      # ★ schema-র `directUrl` — Neon-এর non-pooler URL (ঐচ্ছিক; না থাকলে উপরেরটিই)
+      MIGRATE_CHECK_DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
       NEXTAUTH_SECRET: "ci-only-secret-at-least-24-characters-long"
 
     steps:

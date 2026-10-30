@@ -14,7 +14,8 @@
 
 | কী | কোথায় পাবেন | যাচাই |
 |---|---|---|
-| `DATABASE_URL` | Neon ড্যাশবোর্ড → Connection string | `postgresql://` দিয়ে শুরু হতে হবে |
+| `DATABASE_URL` | Neon ড্যাশবোর্ড → Connection string → **Pooled** (হোস্টে `-pooler`) | `postgresql://` দিয়ে শুরু; শেষে `?sslmode=require&pgbouncer=true&connection_limit=5&pool_timeout=10&connect_timeout=15` |
+| `DIRECT_URL` | একই পাতা → **Pooled বন্ধ** করে (হোস্টে `-pooler` নেই) | কেবল Prisma CLI (migrate/db push) পড়ে; না থাকলে `migrate deploy` **P1012**-এ থামে। Vercel-এ রাখলেও ক্ষতি নেই, রানটাইম পড়ে না |
 | `NEXTAUTH_SECRET` | নিজে বানান: `openssl rand -base64 32` | ≥ ২৪ অক্ষর |
 | `NEXTAUTH_URL` | সাইটের পূর্ণ https URL | production-এ না দিলে **লগইন ভাঙে** |
 
@@ -48,8 +49,10 @@
 আর এই অবস্থায় আগে কোথাও কোনো ত্রুটি দেখা যেত না।
 **২০২৬-০৮-৩১ থেকে দুটি জায়গায় ধরা পড়ে:**
 
-- `GET /api/health` → `subsystems[email].state = "down"`, বার্তায়
-  `resend.dev` উল্লেখ থাকে (`src/lib/health.ts`)
+- `GET /api/health` → `subsystems[email].state = "down"`
+  (বিস্তারিত বার্তা — যেমন `resend.dev` — ২০২৬-০৯-১৭ থেকে কেবল
+  অ্যাডমিনের `GET /api/admin/readiness` এ; পাবলিক হেলথ আর `detail` দেয় না,
+  কারণ DB ডাউন হলে সেখানে ডাটাবেস-হোস্টের নাম ফাঁস হতো)
 - `EMAIL_FROM` এখন `src/lib/env.ts` এর তালিকায় — অ্যাডমিন
   release-checklist এ "সেট করা নেই" দেখাবে
 
@@ -79,7 +82,7 @@
 
 | কী | কী চালু করে | না দিলে |
 |---|---|---|
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob — ছবি আপলোড | `STORAGE_DRIVER=local` → serverless-এ আপলোড **হারিয়ে যায়** |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob — ছবি আপলোড | টোকেন না থাকলে প্রোডাকশনে আপলোড **বন্ধ** থাকে (স্পষ্ট বার্তাসহ) — নিচের ⚠️ দেখুন |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google দিয়ে লগইন | বোতামটি কাজ করে না |
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | অ্যাডমিন সতর্কতা | ঝুঁকি-সতর্কতা কোথাও যায় না |
 | `TELEGRAM_ENC_KEY` | টেলিগ্রাম কনফিগ এনক্রিপশন | কনফিগ সেভ ব্যর্থ হয় |
@@ -88,7 +91,20 @@
 | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | দ্রুত রেট-লিমিট কাউন্টার | Postgres পথ চলে — আচরণ অভিন্ন |
 | `FF_LOOKUP_API_KEY` | Free Fire UID যাচাই | UID যাচাই নিষ্ক্রিয় |
 | `TRUSTED_PROXY` | Vercel নয় এমন হোস্টে সঠিক IP | ক্লায়েন্টের `x-forwarded-for` **উপেক্ষিত** (নিরাপদ ডিফল্ট) |
-| `STREAM_ENABLED` | SSE (পোলিং-এর বদলে) | ১২০s পোলিং fallback |
+| `STREAM_ENABLED` | `/api/stream` (SSE) endpoint চালু করে | কিছুই বদলায় না — নিচের ⚠️ দেখুন |
+
+⚠️ **`STREAM_ENABLED` এখন কার্যত নিষ্ক্রিয়।** endpoint (`/api/stream`) তৈরি আছে, কিন্তু
+ক্লায়েন্টের কোথাও `EventSource` নেই — Navbar ১২০s ও অর্ডার-পাতা ৩০s পোলিংই করে
+(স্বাধীন অডিটে যাচাই, ২০২৬-০৯-১৮)। সেট করলেও আচরণ বদলাবে না; বন্ধ থাকলে endpoint
+৫০৩ + `{enabled:false}` ফেরায়। SSE সত্যিই চালু করতে ক্লায়েন্ট-দিক লেখা বাকি।
+
+⚠️ **`STORAGE_DRIVER=local` প্রোডাকশনে ব্যবহার করবেন না।** Next প্রোডাকশন বিল্ড
+`public/`-এর তালিকা **বিল্ডের সময়** ধরে; পরে লেখা ফাইল আর পরিবেশন করে না —
+মাপা (চূড়ান্ত মাস্টার অডিট, ২০২৬-০৯-১৭): আপলোডের পরপরই `/uploads/…` = **404**,
+অথচ বিল্ডের আগে থাকা `/sw.js` = 200। অর্থাৎ পেমেন্ট-প্রমাণের ছবি অ্যাডমিন
+কখনোই দেখতে পাবেন না (ডেভ সার্ভারে কাজ করে বলে চোখে পড়ে না)। ছবি আপলোড
+লাগলে `BLOB_READ_WRITE_TOKEN` (বা `STORAGE_DRIVER=s3` + S3/R2) দিন; টোকেন না
+দিলে প্রোডাকশনে আপলোড নিজে থেকেই বন্ধ থাকে ও গ্রাহক স্পষ্ট বার্তা দেখেন।
 
 ---
 
@@ -112,9 +128,19 @@
 | সিক্রেট | কেন |
 |---|---|
 | `PRODUCTION_DATABASE_URL` | CI-র `migrate-guard` জব — এটি ছাড়া **ইচ্ছাকৃতভাবে লাল** থাকে |
+| `PRODUCTION_DIRECT_URL` | ঐচ্ছিক — `migrate-guard`-এর non-pooler URL (না থাকলে উপরেরটিই) |
+| `APP_BASE_URL` | `cron.yml` — কোন সাইটের cron-endpoint ডাকা হবে (যেমন `https://আপনার-ডোমেইন`) |
+| `CRON_SECRET` | `cron.yml` — Vercel env-এর **হুবহু একই মান**; না মিললে প্রতিটি জব ৪০১ |
 
 গার্ডটি ঠিক সেই বাগ ধরে যা ২০২৬-০৮-১১ তারিখে প্রতিটি প্রোডাক্ট পাতা
 ৫০০ করে দিয়েছিল (মাইগ্রেশন টেস্ট DB-তে গিয়েছিল, লাইভে নয়)।
+
+⚠️ **নির্ধারিত জব Vercel Cron-এ নয়, GitHub Actions-এ চলে** (`.github/workflows/cron.yml`,
+প্রতি ১০/১৫ মিনিট ও দিনে একবার)। `APP_BASE_URL` বা `CRON_SECRET` না থাকলে ওয়ার্কফ্লো
+প্রতিবার লাল হয় এবং **নির্ধারিত broadcast, SLA-লঙ্ঘন সতর্কতা ও রেট-লিমিট পরিষ্কার
+নীরবে বন্ধ থাকে**। deploy-এর পরে Actions ট্যাবে "Cron Jobs" → Run workflow → `all`
+চালিয়ে সবুজ দেখে নিন। (চূড়ান্ত মাস্টার অডিট, ২০২৬-০৯-১৭ — আগে এই দুটি কেবল
+`SECRET_ROTATION_CHECKLIST.md`-এ ছিল, এখানে নয়।)
 
 ---
 
@@ -142,6 +168,46 @@ GET /api/health
 | `subsystems[].email.state` | `"up"` — `"down"` হলে §২ পড়ুন |
 | `subsystems[].storage.state` | `"up"` (Blob টোকেন থাকলে) |
 
+কোনো অবস্থা `up` না হলে **কারণ** দেখুন অ্যাডমিন হিসেবে লগইন করে
+`GET /api/admin/readiness` এ — পাবলিক `/api/health` ইচ্ছাকৃতভাবে বিবরণ দেয় না।
+
+⚠️ **সিড সম্পর্কে:** `npm run db:seed` / `db:setup` ডিফল্টে `.env`-এর ডাটাবেস
+ছোঁয়। ২০২৬-০৯-১৭ থেকে লোকাল নয় এমন ডাটাবেসে `ADMIN_PASSWORD` না দিলে সিড
+থেমে যায়। আগে সেখানে রিপোতে লেখা ডিফল্ট পাসওয়ার্ড বসত — লাইভে কখনো সিড
+চালিয়ে থাকলে অ্যাডমিন পাসওয়ার্ড অবশ্যই বদলান।
+
 তারপর **হাতে একবার**: একটি নতুন ইমেইলে রেজিস্টার করে দেখুন OTP
 সত্যিই ইনবক্সে (স্প্যামে নয়) পৌঁছায় কি না। এটিই একমাত্র যাচাই যা
 স্থানীয়ভাবে করা যায় না।
+
+---
+
+## ৮. ডাটাবেস মাইগ্রেশন — deploy-এর ক্রম (আবশ্যক)
+
+⚠️ **কোনো স্বয়ংক্রিয় ধাপ নেই** (EXTREME অডিটে পাওয়া, ২০২৬-০৯-১৮): Vercel-এর
+build কমান্ড `prisma generate && next build` — এটি **মাইগ্রেশন চালায় না**।
+CI-র `migrate-guard` জব কেবল **ধরিয়ে দেয়** (বাকি মাইগ্রেশন থাকলে লাল হয়),
+প্রয়োগ করে না। অর্থাৎ নতুন কলাম/সীমা যোগ হলে আপনি নিজে না চালালে লাইভ
+ডাটাবেসে পৌঁছাবে না — আর কোড নতুন কলাম চাইলে পাতা ৫০০ দেবে।
+
+**সঠিক ক্রম (প্রতিবার schema বদলালে):**
+
+```bash
+# ১. লাইভ DB-তে মাইগ্রেশন (আপনার মেশিন থেকে, .env-এ লাইভ DATABASE_URL **ও DIRECT_URL** সহ)
+npm run db:migrate:deploy      # = prisma migrate deploy
+
+# ২. যাচাই — সব প্রয়োগ হয়েছে ও drift নেই
+npm run verify:migrate-status
+
+# ৩. তারপর অ্যাপ deploy (Vercel)
+```
+
+**পুরনো ডাটাবেসে প্রথমবার:** ডাটাবেসটি আগে `db push` দিয়ে তৈরি হলে একবার
+baseline করতে হয় (`prisma migrate resolve --applied <migration>`), নইলে
+`migrate deploy` আগের মাইগ্রেশনগুলো নতুন করে চালাতে গিয়ে ব্যর্থ হবে।
+
+**টাকার DB-গার্ড:** `balance >= 0`, `discount <= subtotal`, `amount > 0`,
+`stock >= -1` — এগুলো এখন মাইগ্রেশনেই আছে
+(`20260918120000_money_check_constraints`, idempotent)। আগে কেবল
+`npm run db:constraints` দিয়ে হাতে বসাতে হতো এবং নতুন/পুনর্গঠিত ডাটাবেসে
+নীরবে অনুপস্থিত থাকত (মাপা: নতুন DB-তে constraint ছিল **০**)।

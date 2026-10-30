@@ -38,7 +38,22 @@ const SAME_ANSWER = {
   ttlMinutes: OTP_TTL_MINUTES,
 };
 
+/**
+ * ★★★ AUTH-02 — সময়-ফাঁসের ঝুঁকি কমানো (সম্পূর্ণ constant-time **নয়**)।
+ *   নিবন্ধিত ইমেইলে আগে সাথে সাথে উত্তর যেত (মাপা ~৩ms), নতুন ইমেইলে কোড তৈরি
+ *   ও পাঠানোর সময় লাগত (মাপা ~৩৮ms, নকল চ্যানেলে; আসল প্রদানকারীর দেরি এর
+ *   উপরে — কয়েকশো ms, NV)। তাই দুই পথেই "পাঠানো হয়েছে" উত্তরটি অন্তত এতক্ষণ
+ *   পরে যায়। ⚠️ প্রদানকারী এর চেয়ে বেশি দেরি করলে পার্থক্য আবার দেখা দিতে পারে।
+ */
+const OTP_SEND_MIN_MS = 1500;
+const sameAnswerAfterFloor = async (t0: number) => {
+  const wait = OTP_SEND_MIN_MS - (Date.now() - t0);
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  return Response.json(SAME_ANSWER);
+};
+
 export async function POST(req: Request) {
+  const t0 = Date.now();
   try {
     const ip = getIp(req);
     const rl = await rateLimit(`otp:send:${ip}`, LIMITS.otpSend.limit, LIMITS.otpSend.window, {
@@ -69,12 +84,20 @@ export async function POST(req: Request) {
       where: { email },
       select: { id: true },
     });
-    if (exists) return Response.json(SAME_ANSWER);
+    if (exists) return await sameAnswerAfterFloor(t0);
 
     for (const ch of channels) {
       const destination =
         ch.id === 'EMAIL' ? ch.normalize(email) : phone ? ch.normalize(phone) : null;
       if (!destination) continue;
+
+      // ★★★ AUTH-07 — গন্তব্য-ভিত্তিক সীমা (IP বদলে কারও ইনবক্স/ফোন ভরানো ঠেকায়)।
+      //   পেরোলে নীরবে বাদ — উত্তর `SAME_ANSWER`-ই (কোনো সংকেত নয়)।
+      const destRl = await rateLimit(
+        `otp:dest:${ch.id}:${destination}`, LIMITS.otpDest.limit, LIMITS.otpDest.window, { failClosed: true },
+      );
+      if (destRl.failed) throw new ApiError(RATE_LIMIT_UNAVAILABLE_MSG, 503);
+      if (!destRl.ok) continue;
 
       const { code } = await issueOtp({
         channel: ch.id,
@@ -92,7 +115,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return Response.json(SAME_ANSWER);
+    return await sameAnswerAfterFloor(t0);
   } catch (e) {
     return apiError(e);
   }

@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getSettings } from '@/lib/settings';
 import BannerSlider from '@/components/BannerSlider';
-import StorefrontShell, { type HeroContent } from '@/components/home/StorefrontShell';
+import StorefrontShell, { type HeroContent, type StoreExtras } from '@/components/home/StorefrontShell';
 import StoreHowFaq from '@/components/home/StoreHowFaq';
 import { getHeroCampaign, getCampaigns, getPopups, getSlides, getNotices, getFloatingCards } from '@/lib/campaigns';
 import { getShowcase, type ShowcaseData } from '@/lib/showcase';
@@ -30,14 +30,16 @@ export const revalidate = 60;
  *   সব মার্কেটিং-কনটেন্ট অ্যাডমিন-নিয়ন্ত্রিত (Campaign + settings) —
  *   কিছুই হার্ডকোড বা বানানো নয়; ডেটা না থাকলে ঐ অংশ দেখায়ই না।
  *
- *   ─── পাতার গল্পরেখা ───
- *     অবস্থা → হুক (হিরো) → সংকেত → **কে কাজটা করে**
- *     → কী কিনবেন → ঝুঁকি কার → শেষ ধাক্কা
+ *   ─── পাতার ক্রম (২০২৬-০৯-২৫, `3_REFERENCE_COMBINED_BLUEPRINT.md`) ───
+ *     অবস্থা → নোটিশ → ব্যানার (স্লাইডার / ব্যানার / নাহলে হিরো)
+ *     → সাপোর্ট-চিপ → জনপ্রিয় → প্রতি ক্যাটাগরি একটি সেকশন
+ *     → সাম্প্রতিক অর্ডার → কীভাবে অর্ডার · FAQ
  *
- *   প্রতিটি সেকশনের জ্যামিতি আলাদা — পূর্ণ-পর্দা হিরো, কাত
- *   দ্বিমুখী টিকার, আঠালো টার্মিনাল + স্ক্রল-চালিত ধাপ, ট্যাব
- *   করা গ্রিড, ভাঙা বেন্টো, কেন্দ্রীভূত প্যানেল। একই কার্ড-সারি
- *   বারবার এলে পাতাটা টেমপ্লেটের মতো লাগত।
+ *   তিনটি রেফারেন্স-সাইটের (uidtopup.com · topupbuzz.com ·
+ *   fristtopup.com) সম্মিলিত কাঠামো — ক্যাটালগই হোমপেজ। প্রতিটি
+ *   সেকশন হয় কোনো রেফারেন্সে আছে, নয়তো আমাদের বিদ্যমান ফিচার।
+ *   (এই মন্তব্যে আগে যে "VOLT" সেকশনগুলোর — টিকার, টার্মিনাল,
+ *   বেন্টো — বর্ণনা ছিল, সেগুলো git-ইতিহাসের আগেই সরে গিয়েছিল।)
  * ═══════════════════════════════════════════════════════════
  */
 
@@ -56,18 +58,21 @@ export const revalidate = 60;
 const SEEDED_TITLE = 'ফ্রি ফায়ার ডায়মন্ড টপ আপ';
 const SEEDED_SUBTITLE = 'কম দামে ভালো সার্ভিস';
 
-// ★ ডিফল্ট — সৎ, প্রিমিয়াম, বাংলাদেশ-কেন্দ্রিক (কোনো অযাচাইযোগ্য দাবি নয়)
+/**
+ * ★ ডিফল্ট — কেবল বিদ্যমান প্রবাহের তথ্য, কোনো স্লোগান বা দাবি নয়।
+ *
+ *   ২০২৬-০৯-২৫ (তিন-রেফারেন্স ব্লুপ্রিন্ট): আগের ডিফল্ট ছিল বানানো স্লোগান
+ *   ("গেমে ফেরার দ্রুততম রাস্তা"), "সেকেন্ডেই" গতির দাবি, আর চারটি ডিফল্ট
+ *   হাইলাইট যার একটি "না পেলে ১০০% ফেরত" — মালিকের অনুমোদন ছাড়া একটি
+ *   আর্থিক প্রতিশ্রুতি। রেফারেন্সে টেক্সট-হিরোই নেই, তাই শিরোনাম এখন
+ *   সাইটের নিজস্ব পরিচয়-বাক্য (seed-এর hero_title-এর সমান), আর হাইলাইট
+ *   কেবল অ্যাডমিনের STRIP campaign থেকে — ডিফল্ট নেই।
+ */
 const DEFAULT_STATUS = 'অপারেটর অনলাইন — অর্ডার এলে এখনই যাচাই';
-const DEFAULT_TITLE = 'গেমে ফেরার\nদ্রুততম রাস্তা';
+const DEFAULT_TITLE = SEEDED_TITLE;
 const DEFAULT_SUBTITLE =
-  'bKash-এ টাকা পাঠান — একজন মানুষ নিজে মিলিয়ে দেখে সেকেন্ডেই আপনার UID-তে ইনভেন্টরি ভরে দেয়।';
-const DEFAULT_CTA = 'টপ-আপ শুরু করুন';
-const DEFAULT_HIGHLIGHTS = [
-  'মানুষ নিজে যাচাই করে',
-  'না পেলে ১০০% ফেরত',
-  'প্রতিটি ধাপ লাইভ',
-  'bKash · Nagad · Rocket',
-];
+  'Player ID/UID দিন, bKash · Nagad · Rocket-এ পেমেন্ট করুন — অর্ডারের অবস্থা অ্যাকাউন্টে দেখুন।';
+const DEFAULT_CTA = 'টপ-আপ করুন';
 
 function settingOrNull(v: string | undefined, seed: string): string | null {
   const t = (v || '').trim();
@@ -96,7 +101,7 @@ async function buildHero(settings: Record<string, string>): Promise<{ content: H
   //   মাপা পরিচালন-অবস্থা। অ্যাডমিনের কথা সবসময় জেতে।
   return {
     content,
-    highlights: highlights.length ? highlights : DEFAULT_HIGHLIGHTS,
+    highlights,
     adminBadge: Boolean(hc?.badge?.trim()),
   };
 }
@@ -109,9 +114,11 @@ export default async function HomePage() {
   //   প্রকৃত অর্ডার-উদ্ভূত জনপ্রিয়তা, শুরু-দাম, নতুন-চিহ্ন। read-only
   //   ও নিজে-গার্ডেড — DB সমস্যা হলে খালি ফেরে, throw নয়।
   let showcase: ShowcaseData = { products: [], collections: [], hasSales: false };
+  let payMethods: string[] = [];
 
   try {
-    [banners, settings, showcase] = await Promise.all([
+    let channels: { method: string }[] = [];
+    [banners, settings, showcase, channels] = await Promise.all([
       prisma.banner.findMany({
         where: { isActive: true },
         orderBy: { sortOrder: 'asc' },
@@ -119,7 +126,13 @@ export default async function HomePage() {
       }),
       getSettings(),
       getShowcase(),
+      prisma.paymentChannel.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+        select: { method: true },
+      }),
     ]);
+    payMethods = Array.from(new Set(channels.map((c) => c.method)));
   } catch (e) {
     // ★ DB না পেলেও পেজ ভাঙবে না — খালি দেখাবে
     console.error('[home] db unavailable:', e);
@@ -195,64 +208,57 @@ export default async function HomePage() {
     .sort((a, b) => b.orderCount - a.orderCount || Number(b.popular) - Number(a.popular))
     .slice(0, 8);
 
+  // Storefront extras — every link comes from admin settings; blank = hidden.
+  const communityUrl = settings.community_url ? safeUrl(settings.community_url) : null;
+  const extras: StoreExtras = {
+    payMethods,
+    community: communityUrl
+      ? { url: communityUrl, label: (settings.community_label || '').trim() || 'গ্রুপে যোগ দিন' }
+      : null,
+    tutorialUrl: settings.tutorial_video_url ? safeUrl(settings.tutorial_video_url) : null,
+    appUrl: settings.android_app_url ? safeUrl(settings.android_app_url) : null,
+  };
+
   return (
     <>
       {/* ★ প্রকৃত পরিচালন-অবস্থা — সবার আগে, কারণ এটি সিদ্ধান্তে
           প্রভাব ফেলে (এখন অর্ডার দেব, নাকি পরে?) (2.17) */}
       <OpsStatusBanner status={opsStatus} />
 
-      {/* ── নোটিশ (Phase 3) — অ্যাডমিন Campaign(NOTICE) থাকলে চলমান
-          বার/ব্রেকিং নিউজ; নাহলে বিদ্যমান site_notice স্ট্যাটিক বার
-          (দুটোই অ্যাডমিন-নিয়ন্ত্রিত, কিছু হার্ডকোড নয়) ── */}
-      {notices.length > 0 ? (
-        <NoticeBar notices={notices} />
-      ) : notice ? (
-        /**
-          * ⚠️ এখানে রঙ চারটি **হার্ডকোড হেক্স** ছিল (`#f2fbe6`,
-          *   `#dcefc4`, `#4d7c0f`, `#3f6212`) — হালকা থিমের জন্য বাছা।
-          *   ফলে ডার্ক থিমে কালো পাতার উপর একটি সাদাটে সবুজ ব্যান্ড
-          *   বসত, যেটি স্ক্রিনশটে সবচেয়ে আগে চোখে পড়ে।
-          *   CLAUDE.md §1: "রঙ কেবল টোকেনে, JSX-এ নয়"। নোটিশ একটি
-          *   **তথ্য**-সংকেত, তাই `--sem-info`।
-          */
-        <div
-          style={{
-            borderBottom: '1px solid color-mix(in srgb, var(--sem-info) 26%, transparent)',
-            background: 'color-mix(in srgb, var(--sem-info) 7%, transparent)',
-          }}
-        >
-          <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 sm:px-6">
-            <span className="hud shrink-0" style={{ color: 'var(--sem-info)' }}>নোটিশ</span>
-            <span className="hidden h-3 w-px shrink-0 sm:block" style={{ background: 'var(--v-edge2)' }} aria-hidden="true" />
-            <p className="text-xs leading-relaxed sm:text-[13px]" style={{ color: 'var(--v-ink)' }}>{notice}</p>
-          </div>
-        </div>
-      ) : null}
+      {/* ── নোটিশ (Phase 3) — অ্যাডমিন Campaign(NOTICE) থাকলে সেগুলো,
+          নাহলে site_notice; দুটোই একই এক-লাইন বারে (NoticeBar)।
+          কিছুই না থাকলে বার রেন্ডার হয় না — কোনো বানানো নোটিশ নয়। ── */}
+      <NoticeBar notices={notices} fallback={notice} />
 
-      {/* ═══ ব্যানার স্লাইডার (অ্যাডমিন Campaign SLIDER; নাহলে Banner) ═══ */}
+      {/* ═══ ব্যানার (তিন রেফারেন্সেরই প্রথম জিনিস) — অ্যাডমিন Campaign
+          SLIDER; নাহলে Banner; দুটোর একটিও না থাকলে নিচের শেলে হিরো
+          ব্যানারের জায়গা নেয় (`showHero`) — জায়গাটি কখনো ফাঁকা থাকে না ═══ */}
       {slides.length > 0 ? (
-        <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6">
+        <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
           <CampaignSlider slides={slides} />
         </div>
       ) : (banners?.length ?? 0) > 0 ? (
-        <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6">
+        <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
           <BannerSlider banners={banners} />
         </div>
       ) : null}
 
-      {/* ═══ মূল দোকান — reference-শৈলীর ৩-কলাম শেল
-          (সাইডবার + গ্রিড + লাইভ ফিড)। সব ডেটা উপরে fetch করা,
-          admin-নিয়ন্ত্রিত ও সৎ — shell নিজে কোনো DB call করে না। ═══ */}
+      {/* ═══ মূল দোকান — সাপোর্ট-চিপ → জনপ্রিয় → প্রতি ক্যাটাগরি একটি
+          সেকশন → সাম্প্রতিক অর্ডার। সব ডেটা উপরে fetch করা, অ্যাডমিন-
+          নিয়ন্ত্রিত ও সৎ — shell নিজে কোনো DB call করে না। ═══ */}
       <StorefrontShell
         hero={hero}
+        showHero={slides.length === 0 && (banners?.length ?? 0) === 0}
         opsLevel={opsStatus?.level ?? null}
         categories={showcaseCats}
         featured={featured}
         deliveries={deliveries}
         supportHours={settings.support_hours}
+        contact={contactType && contactUrl ? { type: contactType, url: contactUrl } : null}
+        extras={extras}
       />
 
-      {/* ═══ কিভাবে অর্ডার করবেন · নিয়ম · FAQ · CTA ═══ */}
+      {/* ═══ কিভাবে অর্ডার করবেন · নিয়ম · FAQ ═══ */}
       <StoreHowFaq />
 
       {/* ═══ অ্যাডমিন-নিয়ন্ত্রিত ওভারলে — Campaign না থাকলে কিছুই রেন্ডার হয় না ═══ */}

@@ -51,8 +51,10 @@ const go = async (page: Page, url: string) => {
 
 const settle = async (page: Page) => {
   await page.waitForLoadState('domcontentloaded').catch(() => {});
+  // ★ function-রূপ — string predicate অ্যাপের CSP (`unsafe-eval` নেই) আটকায়, তখন `.catch`
+  //   নীরবে গিলে ফেলত আর settle কার্যত অপেক্ষাই করত না (২০২৬-০৯-২৬-এ মাপা)
   await page.waitForFunction(
-    `!document.querySelector('.v-ovl') && !document.getElementById('v-boot')`, null, { timeout: 30_000 },
+    () => !document.querySelector('.v-ovl') && !document.getElementById('v-boot'), null, { timeout: 30_000 },
   ).catch(() => {});
   await page.waitForTimeout(300);
 };
@@ -185,7 +187,8 @@ async function login(page: Page, email: string, password: string, want: string) 
     console.log('\n── ৫. গ্রাহকের পাতায় ব্যালেন্স ──');
     await go(cp, `${BASE}/account`);
     await settle(cp);
-    const shown = await cp.evaluate(`document.body.innerText.includes('1000') || document.body.innerText.includes('১০০০')`);
+    // ★ পাতার নিজের কার্ড `bdt()` দিয়ে কমাসহ দেখায় (৳1,000.00); নেভবারের চিপ কমা ছাড়া
+    const shown = await cp.evaluate(`['1000', '1,000', '১০০০', '১,০০০'].some((v) => document.body.innerText.includes(v))`);
     check('ড্যাশবোর্ডে হালনাগাদ ব্যালেন্স দেখা যাচ্ছে', Boolean(shown));
 
     // ═══ ৬. প্রোডাক্ট বাছাই ও অর্ডার ═══

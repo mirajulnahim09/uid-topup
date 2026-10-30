@@ -4,15 +4,18 @@ import { prisma } from '@/lib/prisma';
 import { requireUser, apiError, ApiError, readJson } from '@/lib/guard';
 import { rateLimit, RATE_LIMIT_UNAVAILABLE_MSG } from '@/lib/rateLimit';
 import { notify } from '@/lib/notify';
-import { adminLog } from '@/lib/adminLog';
-import { getIp } from '@/lib/rateLimit';
+import { logActivity, requestMeta } from '@/lib/adminLog';
 import { BRAND } from '@/lib/brand';
 import { encryptSecret, decryptSecret } from '@/lib/secretbox';
 import QRCode from 'qrcode';
 import {
-  generateTotpSecret, verifyTotp, totpProvisioningUri,
+  generateTotpSecret, matchTotpStep, totpProvisioningUri,
   generateRecoveryCodes, hashRecoveryCode,
 } from '@/lib/totp';
+import { claimTotpStep } from '@/lib/totpReplay';
+
+/** ★ AUTH-06 — একই ৩০-সেকেন্ডের কোড দ্বিতীয়বার */
+const TOTP_USED_MSG = 'এই কোডটি ইতিমধ্যে ব্যবহার হয়েছে — Authenticator-এ পরের কোড আসা পর্যন্ত অপেক্ষা করে সেটি দিন';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,9 +103,12 @@ export async function POST(req: Request) {
       }
 
       // ★ প্রথম কোড অবশ্যই মিলতে হবে — নাহলে লক-আউট
-      if (!verifyTotp(secret, token)) {
+      const step = matchTotpStep(secret, token);
+      if (step === null) {
         throw new ApiError('কোড মেলেনি — Authenticator অ্যাপের ৬-অঙ্কের কোডটি আবার দিন', 400);
       }
+      // ★ AUTH-06 — গৃহীত প্রতিটি কোড খরচ হয় (একই কোডে পরে লগইন নয়)
+      if (!(await claimTotpStep(user.id, step))) throw new ApiError(TOTP_USED_MSG, 400);
 
       // recovery কোড তৈরি → হ্যাশ রাখি, plaintext একবারই ফেরত
       const recoveryCodes = generateRecoveryCodes(10);
@@ -117,9 +123,10 @@ export async function POST(req: Request) {
         },
       });
 
-      adminLog({
-        adminId: user.id, adminName: user.name, action: 'TWO_FACTOR_ENABLE',
-        detail: '2FA চালু হয়েছে', ip: getIp(req),
+      // ★ AUD-01 — গ্রাহকের নিজের কাজ; আগে `adminLog` সবসময় ADMIN লিখত
+      logActivity({
+        actorId: user.id, actorName: user.name, actorType: user.role === 'ADMIN' ? 'ADMIN' : 'CUSTOMER', role: user.role,
+        action: 'TWO_FACTOR_ENABLE', targetId: user.id, detail: '2FA চালু হয়েছে', ...requestMeta(req),
       }).catch(() => {});
 
       notify(
@@ -141,18 +148,22 @@ export async function POST(req: Request) {
       if (!token) throw new ApiError('বর্তমান কোড দিন', 400);
 
       const secret = decryptSecret(row.twoFactorSecret);
-      if (!verifyTotp(secret, token)) {
+      const step = matchTotpStep(secret, token);
+      if (step === null) {
         throw new ApiError('কোড মেলেনি', 400);
       }
+      // ★ AUTH-06 — দেখে-নেওয়া (replay) কোডে 2FA বন্ধ করা যাবে না
+      if (!(await claimTotpStep(user.id, step))) throw new ApiError(TOTP_USED_MSG, 400);
 
       await prisma.user.update({
         where: { id: user.id },
         data: { twoFactorSecret: null, twoFactorEnabled: false, twoFactorRecovery: null },
       });
 
-      adminLog({
-        adminId: user.id, adminName: user.name, action: 'TWO_FACTOR_DISABLE',
-        detail: '2FA বন্ধ হয়েছে', ip: getIp(req),
+      // ★ AUD-01 — গ্রাহকের নিজের কাজ; আগে `adminLog` সবসময় ADMIN লিখত
+      logActivity({
+        actorId: user.id, actorName: user.name, actorType: user.role === 'ADMIN' ? 'ADMIN' : 'CUSTOMER', role: user.role,
+        action: 'TWO_FACTOR_DISABLE', targetId: user.id, detail: '2FA বন্ধ হয়েছে', ...requestMeta(req),
       }).catch(() => {});
 
       notify(

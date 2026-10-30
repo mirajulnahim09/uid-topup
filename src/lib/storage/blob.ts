@@ -1,5 +1,6 @@
 import { put, del } from '@vercel/blob';
 import type { StorageDriver, PutInput, PutResult } from './types';
+import { ownBlobHost } from '../blobHost';
 
 /** ★ Vercel Blob ড্রাইভার — প্রোডাকশন ডিফল্ট (টোকেন থাকলে)। */
 export function blobDriver(): StorageDriver {
@@ -21,7 +22,14 @@ export function blobDriver(): StorageDriver {
       await del(url);
     },
     owns(url: string): boolean {
-      return url.includes('.public.blob.vercel-storage.com');
+      // ★ UPL-01 — কেবল আমাদের স্টোরের হুবহু হোস্ট (আগে যেকোনো স্টোরের URL-এ `includes`)
+      const host = ownBlobHost();
+      if (!host) return false;
+      try {
+        return new URL(url).hostname === host;
+      } catch {
+        return false;
+      }
     },
   };
 }

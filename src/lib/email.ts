@@ -237,7 +237,7 @@ export async function emailOrderCompleted(
 ) {
   await send(to, `অর্ডার #${orderNo} সম্পন্ন 🎉`, wrap(
     `অর্ডার #${orderNo} সম্পন্ন 🎉`,
-    `<p>${name}, আপনার অর্ডার সফলভাবে ডেলিভারি করা হয়েছে।</p>
+    `<p>${name}, আপনার অর্ডার ডেলিভারি হয়ে গেছে।</p>
      <p style="margin-top:10px"><strong style="color:#fff">${product}</strong> — ${variant}</p>
      <p style="margin-top:14px;font-size:13px">গেমে চেক করে দেখুন।</p>`,
     { label: 'আবার অর্ডার করুন', url: base() }

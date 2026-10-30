@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, apiError, ApiError } from '@/lib/guard';
+import { dhakaDayStart, dhakaRangeFrom, dhakaRangeTo } from '@/lib/date';
 
 // ★ সেশন/হেডার পড়ে — বিল্ডের সময় static render করার চেষ্টা করা যাবে না
 export const dynamic = 'force-dynamic';
@@ -66,11 +67,14 @@ export async function GET(req: Request) {
     const fromStr = url.searchParams.get('from');
     const toStr = url.searchParams.get('to');
 
-    const from = fromStr ? new Date(fromStr) : new Date(Date.now() - 30 * 864e5);
-    const to = toStr ? new Date(toStr) : new Date();
-    to.setHours(23, 59, 59, 999);
+    // ★ 'YYYY-MM-DD' = ঢাকার সেই দিনের শুরু/শেষ (`lib/date.ts`)। আগে
+    //   `new Date('2026-09-14')` UTC-মধ্যরাত (= ঢাকার সকাল ৬টা) ধরত, আর
+    //   `setHours(23,59)` সার্ভারের ঘড়িতে — রিপোর্টে দিনের প্রথম ৬ ঘণ্টা বাদ
+    //   পড়ত ও Vercel-এ পরের দিনের ৬ ঘণ্টা ঢুকত (মাপা: timezone-boundary.ts)।
+    const from = fromStr ? dhakaRangeFrom(fromStr) : new Date(Date.now() - 30 * 864e5);
+    const to = toStr ? dhakaRangeTo(toStr) : new Date(dhakaDayStart(new Date(), 1).getTime() - 1);
 
-    if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+    if (!from || !to) {
       throw new ApiError('সঠিক তারিখ দিন', 400);
     }
 

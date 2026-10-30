@@ -13,6 +13,7 @@ type V = {
 type P = {
   id: number; name: string; image: string | null; description: string | null;
   uidLabel: string; uidHint: string | null; isActive: boolean; variants: V[];
+  deliveryType?: string;
 };
 type C = { id: number; name: string; products: P[] };
 
@@ -23,6 +24,7 @@ type Edit = {
 const BLANK_PRODUCT = {
   categoryId: '', name: '', description: '',
   uidLabel: 'Player UID', uidHint: '', image: null as string | null,
+  deliveryType: 'TOPUP',
 };
 const BLANK_VARIANT = { label: '', price: '', costPrice: '', stock: '-1' };
 
@@ -156,6 +158,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
         uidLabel: newProd.uidLabel.trim() || 'Player UID',
         uidHint: newProd.uidHint.trim(),
         image: newProd.image,
+        deliveryType: newProd.deliveryType,
       },
       'প্রোডাক্ট তৈরি হয়েছে — এখন প্যাকেজ যোগ করুন',
       'np'
@@ -179,6 +182,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
         description: editProd.description ?? '',
         uidLabel: editProd.uidLabel.trim() || 'Player UID',
         uidHint: editProd.uidHint ?? '',
+        deliveryType: editProd.deliveryType ?? 'TOPUP',
       },
       'প্রোডাক্ট সেভ হয়েছে',
       editProd.id
@@ -265,6 +269,16 @@ export default function ProductManager({ categories }: { categories: C[] }) {
                     onChange={(e) => setNewProd({ ...newProd, uidLabel: e.target.value })}
                     placeholder="Player UID"
                   />
+                </div>
+
+                <div>
+                  <label className="label">ডেলিভারির ধরন</label>
+                  <select aria-label="ডেলিভারির ধরন" className="input"
+                    value={newProd.deliveryType}
+                    onChange={(e) => setNewProd({ ...newProd, deliveryType: e.target.value })}>
+                    <option value="TOPUP">টপ-আপ (গেম আইডিতে পাঠানো)</option>
+                    <option value="CODE">কোড (স্টক থেকে অটো-ডেলিভারি)</option>
+                  </select>
                 </div>
 
                 <div>
@@ -451,6 +465,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
                                     <td>
                                       {e ? (
                                         <input
+                                          aria-label={`${v.label} — প্যাকেজের নাম`}
                                           className="input w-32 py-1 text-xs"
                                           value={e.label}
                                           onChange={(x) =>
@@ -465,6 +480,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
                                     <td className="num">
                                       {e ? (
                                         <input
+                                          aria-label={`${v.label} — বিক্রয় দাম`}
                                           className="input w-24 py-1 text-right text-xs"
                                           type="number" step="0.01" value={e.price}
                                           autoFocus
@@ -486,6 +502,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
                                     <td className="num">
                                       {e ? (
                                         <input
+                                          aria-label={`${v.label} — ক্রয় দাম`}
                                           className="input w-24 py-1 text-right text-xs"
                                           type="number" step="0.01" value={e.costPrice}
                                           onChange={(x) =>
@@ -507,6 +524,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
                                     <td className="num">
                                       {e ? (
                                         <input
+                                          aria-label={`${v.label} — কাটা দাম`}
                                           className="input w-24 py-1 text-right text-xs"
                                           type="number" step="0.01" placeholder="—" value={e.oldPrice}
                                           onChange={(x) =>
@@ -537,6 +555,7 @@ export default function ProductManager({ categories }: { categories: C[] }) {
                                     <td className="num">
                                       {e ? (
                                         <input
+                                          aria-label={`${v.label} — স্টক`}
                                           className="input w-20 py-1 text-right text-xs"
                                           type="number" value={e.stock}
                                           onChange={(x) =>
@@ -757,6 +776,20 @@ export default function ProductManager({ categories }: { categories: C[] }) {
                 value={editProd.uidHint ?? ''}
                 onChange={(e) => setEditProd({ ...editProd, uidHint: e.target.value })}
               />
+            </div>
+            <div>
+              <label className="label">ডেলিভারির ধরন</label>
+              <select aria-label="ডেলিভারির ধরন" className="input"
+                value={editProd.deliveryType ?? 'TOPUP'}
+                onChange={(e) => setEditProd({ ...editProd, deliveryType: e.target.value })}>
+                <option value="TOPUP">টপ-আপ (গেম আইডিতে পাঠানো)</option>
+                <option value="CODE">কোড (স্টক থেকে অটো-ডেলিভারি)</option>
+              </select>
+              {editProd.deliveryType === 'CODE' && (
+                <p className="mt-1 text-xs" style={{ color: 'var(--v-mut)' }}>
+                  কোড যোগ করুন: অ্যাডমিন → কোড স্টক। স্টকে কোড থাকলে অর্ডার হওয়ামাত্র গ্রাহক কোড পাবেন।
+                </p>
+              )}
             </div>
           </div>
         )}

@@ -1,5 +1,8 @@
+import AnonymizeAccount from '@/components/admin/AnonymizeAccount';
+import { deletionBlockers } from '@/lib/services/accountDeletion';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { bdt } from '@/lib/money';
 import { fmtDate } from '@/lib/date';
@@ -8,17 +11,21 @@ import CustomerActions from '@/components/admin/CustomerActions';
 import CustomerTimeline from '@/components/admin/CustomerTimeline';
 import ResellerPanel from '@/components/admin/ResellerPanel';
 import { buildTimeline } from '@/lib/customerTimeline';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'কাস্টমার বিস্তারিত' };
 
 export default async function CustomerDetail({ params }: { params: { id: string } }) {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const user = await prisma.user.findUnique({
     where: { id: params.id },
     // ★ password hash ইচ্ছাকৃতভাবে বাদ — কখনো এই পেজে আসবে না
     select: {
       id: true, name: true, email: true, phone: true, role: true,
       balance: true, isBanned: true, status: true, referralCode: true, createdAt: true,
+      deletionRequestedAt: true, deletionReason: true,
       // ★ Group F — রিসেলার স্তর ও তার API কী।
       //   ⚠️ `hash` ইচ্ছাকৃতভাবে বাদ: এটি ক্লায়েন্ট কম্পোনেন্টে props
       //   হিসেবে যাবে, অর্থাৎ RSC পে-লোডে সিরিয়ালাইজ হয়ে ব্রাউজারে
@@ -59,12 +66,27 @@ export default async function CustomerDetail({ params }: { params: { id: string 
   });
 
   const isAdmin = user.role === 'ADMIN';
-  const spent = user.orders
-    .filter((o: (typeof user.orders)[number]) => o.status === 'COMPLETED')
-    .reduce((n: number, o: (typeof user.orders)[number]) => n + Number(o.price), 0);
-  const recharged = user.deposits
-    .filter((d: (typeof user.deposits)[number]) => d.status === 'APPROVED')
-    .reduce((n: number, d: (typeof user.deposits)[number]) => n + Number(d.amount), 0);
+  /**
+   * ★★★ COR-01 — "মোট খরচ" / "মোট রিচার্জ" **সম্পূর্ণ ইতিহাস** থেকে।
+   *   আগে যোগ হতো কেবল উপরের `take: 25`-এর অর্ডার/ডিপোজিট থেকে, আর আংশিক
+   *   রিফান্ড (`refundedAmount`) বাদ পড়ত না — ৮০ অর্ডারের গ্রাহকে অ্যাডমিন শেষ
+   *   ২৫টির যোগফল দেখতেন, বিরোধ/জালিয়াতির সিদ্ধান্ত ভুল অঙ্কে। এখন DB-র
+   *   aggregate: খরচ = সম্পন্ন অর্ডারের দাম − তাদের রিফান্ড; রিচার্জ = অনুমোদিত
+   *   ডিপোজিট। হিসাব Decimal-এ (JS number নয় — CLAUDE.md §1)।
+   */
+  const [spentAgg, rechargeAgg] = await Promise.all([
+    prisma.order.aggregate({
+      where: { userId: user.id, status: 'COMPLETED' },
+      _sum: { price: true, refundedAmount: true },
+    }),
+    prisma.deposit.aggregate({
+      where: { userId: user.id, status: 'APPROVED' },
+      _sum: { amount: true },
+    }),
+  ]);
+  const zero = new Prisma.Decimal(0);
+  const spent = (spentAgg._sum.price ?? zero).minus(spentAgg._sum.refundedAmount ?? zero);
+  const recharged = rechargeAgg._sum.amount ?? zero;
 
   return (
     <div className="space-y-6">
@@ -96,6 +118,15 @@ export default async function CustomerDetail({ params }: { params: { id: string 
         </div>
         <CustomerActions userId={user.id} name={user.name} balance={Number(user.balance)} isAdmin={isAdmin} status={user.status} />
       </div>
+
+      {user.deletionRequestedAt && user.status !== 'BLOCKED' && (
+        <AnonymizeAccount
+          userId={user.id}
+          requestedAt={user.deletionRequestedAt.toISOString()}
+          reason={user.deletionReason}
+          blockers={await deletionBlockers(user.id)}
+        />
+      )}
 
       {/* ── স্ট্যাট কার্ড ── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

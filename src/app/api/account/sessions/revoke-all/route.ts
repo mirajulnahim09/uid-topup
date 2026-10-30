@@ -1,8 +1,9 @@
 import { prisma } from '@/lib/prisma';
 import { requireUser, apiError } from '@/lib/guard';
-import { rateLimit, getIp } from '@/lib/rateLimit';
-import { adminLog } from '@/lib/adminLog';
+import { rateLimit } from '@/lib/rateLimit';
+import { logActivity, requestMeta } from '@/lib/adminLog';
 import { notify } from '@/lib/notify';
+import { revokeUserApiKeys } from '@/lib/apiKey';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,14 +26,23 @@ export async function POST(req: Request) {
     const rl = await rateLimit(`signout-all:${user.id}`, 5, 600);
     if (!rl.ok) return apiError(Object.assign(new Error('অনেক বেশি চেষ্টা'), { status: 429 }));
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { sessionEpoch: { increment: 1 } },
+    // ★★★ AUTH-01 — epoch-বৃদ্ধি ও সব সক্রিয় API কী-প্রত্যাহার একই transaction-এ।
+    //   "সব ডিভাইস থেকে সাইন-আউট" বলতে গ্রাহক বোঝেন **সব** প্রবেশপথ বন্ধ —
+    //   সেশন-নিরপেক্ষ কী খোলা থাকলে বেহাত স্ক্রিপ্ট ওয়ালেট থেকে অর্ডার দিতেই থাকত।
+    const revokedKeys = await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { sessionEpoch: { increment: 1 } },
+      });
+      return revokeUserApiKeys(tx, user.id);
     });
 
-    adminLog({
-      adminId: user.id, adminName: user.name, action: 'SESSION_REVOKE_ALL',
-      detail: 'সব ডিভাইস থেকে সাইন-আউট', ip: getIp(req),
+    // ★ AUD-01 — ব্যবহারকারীর নিজের কাজ; আগে `adminLog` সবসময় ADMIN লিখত
+    logActivity({
+      actorId: user.id, actorName: user.name, actorType: user.role === 'ADMIN' ? 'ADMIN' : 'CUSTOMER', role: user.role,
+      action: 'SESSION_REVOKE_ALL', targetId: user.id,
+      detail: 'সব ডিভাইস থেকে সাইন-আউট' + (revokedKeys > 0 ? ` · ${revokedKeys}টি API কী প্রত্যাহার` : ''),
+      ...requestMeta(req),
     }).catch(() => {});
 
     notify(

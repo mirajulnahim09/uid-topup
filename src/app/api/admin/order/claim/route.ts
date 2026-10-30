@@ -3,7 +3,9 @@ import { requireAdmin, apiError, ApiError, readJson } from '@/lib/guard';
 import { adminOrderClaimSchema } from '@/lib/validation';
 import { adminLog } from '@/lib/adminLog';
 import { getIp } from '@/lib/rateLimit';
-import { claimState, isBlockedByOther, claimBlockMessage } from '@/lib/orderClaim';
+import {
+  claimState, isBlockedByOther, claimBlockMessage, isAutoFulfillInFlight, AUTO_INFLIGHT_MESSAGE,
+} from '@/lib/orderClaim';
 
 /**
  * ★ অর্ডার ধরা / ছাড়া (3.7)
@@ -45,6 +47,13 @@ export async function POST(req: Request) {
         }
 
         const st = claimState(row, admin.id);
+
+        // ★★★ D1-1 — অটো-ডেলিভারির চলমান claim টেক-ওভার বা ছাড়ানো যায় না।
+        //   টেক-ওভার করলে claim অ্যাডমিনের হতো, তারপর তাঁর নিজের FAIL (`mine`)
+        //   প্রোভাইডার-কলের মাঝেই রিফান্ড চালাত — একক রুটের পাহারা এড়িয়ে।
+        if (isAutoFulfillInFlight(row)) {
+          throw new ApiError(AUTO_INFLIGHT_MESSAGE, 409, 'AUTO_IN_FLIGHT');
+        }
 
         if (action === 'RELEASE') {
           // ★ নিজের claim ছাড়া যায়; অন্যেরটা জোর করে ছাড়ানো যায় না —

@@ -1,9 +1,11 @@
 import { apiError } from '@/lib/guard';
 import { assertCronAuth } from '@/lib/cronAuth';
-import { runJob, getJobRun } from '@/lib/jobRuns';
+import { runJobExclusive, getJobRun } from '@/lib/jobRuns';
 import { prisma } from '@/lib/prisma';
 import { breachInfo, breachLabel, SLA_WARN_MIN } from '@/lib/slaBreach';
 import { notifyAdmins } from '@/lib/notify';
+import { sweepStuckAutoFulfill } from '@/lib/fulfillment/autoFulfill';
+import { expireDirectPayOrders } from '@/lib/directPayExpiry';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +13,8 @@ export const dynamic = 'force-dynamic';
 const FIRST_RUN_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 /** এক বার্তায় সর্বোচ্চ কয়টি অর্ডার নাম ধরে বলা হবে */
 const MAX_LISTED = 15;
+/** ★ OPS-02 — একসাথে একটিই রান; মাঝপথে প্রসেস মরলে এতক্ষণ পরে পরের রান চলে */
+const LEASE_TTL_MS = 5 * 60 * 1000;
 
 /**
  * ★★★ cron: SLA ভঙ্গের সতর্কতা (C2 · প্রতি ১৫ মিনিট)
@@ -34,47 +38,59 @@ async function handle(req: Request) {
   try {
     assertCronAuth(req, 'sla-breach');
 
-    const r = await runJob('sla-breach', async () => {
+    const r = await runJobExclusive('sla-breach', LEASE_TTL_MS, async () => {
       const now = new Date();
       const prev = await getJobRun('sla-breach');
-      // ★ শেষ **সফল** রানের সময় থেকে; না থাকলে ২৪ ঘণ্টা পিছন
+      // ★ শেষ **সফল** রানের **শুরুর** মুহূর্ত থেকে; না থাকলে ২৪ ঘণ্টা পিছন।
+      //   ⚠️ `prev.at` রান **শেষের** সময়, কিন্তু সেই রান ভঙ্গ মেপেছিল তার
+      //      শুরুর ঘড়িতে। তাই আগে `at` থেকে ধরলে আগের রান চলাকালীন যে
+      //      অর্ডারের ডেডলাইন পেরোত, সেটি কোনো রানেই জানানো হতো না
+      //      (EXTREME অডিট ২০২৬-০৯-১৯, রানটাইমে পুনরুৎপাদিত)। `at − ms` = শুরু।
       const since = prev?.ok
-        ? new Date(prev.at)
+        ? new Date(new Date(prev.at).getTime() - (prev.ms ?? 0))
         : new Date(now.getTime() - FIRST_RUN_LOOKBACK_MS);
 
-      const open = await prisma.order.findMany({
-        where: {
-          status: { in: ['PENDING', 'PROCESSING'] },
-          slaDueAt: { not: null },
-        },
-        select: { id: true, orderNo: true, slaDueAt: true, status: true },
-        orderBy: { slaDueAt: 'asc' },
-      });
+      /**
+       * ★★★ OPS-02 — আগে **সব** খোলা অর্ডার মেমরিতে তুলে গোনা হতো (৫০k+ ব্যাকলগে
+       *   প্রতি ১৫ মিনিটে ভারী)। এখন DB-তেই `count`, আর নাম ধরে বলার জন্য কেবল
+       *   প্রথম `MAX_LISTED`টি। সীমানা `breachInfo()`-এর হুবহু: সে মিনিট round করে,
+       *   তাই "দেরি" = due < now − ৩০s, "শীঘ্রই" = now − ৩০s ≤ due < now + ৩০.৫ মিনিট।
+       *   ("নতুন" = নির্ধারিত সময় শেষ রানের পরে পেরিয়েছে — আগের মতোই)
+       */
+      const OPEN = { in: ['PENDING', 'PROCESSING'] as ('PENDING' | 'PROCESSING')[] };
+      const breachedBefore = new Date(now.getTime() - 30_000);
+      const soonUntil = new Date(now.getTime() + (SLA_WARN_MIN + 0.5) * 60_000);
+      const freshWhere = { status: OPEN, slaDueAt: { gt: since, lt: breachedBefore } };
 
-      let breached = 0;
-      let soon = 0;
-      const fresh: { orderNo: number; label: string }[] = [];
+      const [breached, soon, freshCount, freshRows] = await Promise.all([
+        prisma.order.count({ where: { status: OPEN, slaDueAt: { lt: breachedBefore } } }),
+        prisma.order.count({ where: { status: OPEN, slaDueAt: { gte: breachedBefore, lt: soonUntil } } }),
+        prisma.order.count({ where: freshWhere }),
+        prisma.order.findMany({
+          where: freshWhere,
+          select: { orderNo: true, slaDueAt: true, status: true },
+          orderBy: { slaDueAt: 'asc' },
+          take: MAX_LISTED,
+        }),
+      ]);
+      const fresh = freshRows.map((o) => ({ orderNo: o.orderNo, label: breachLabel(breachInfo(o, now)) }));
 
-      for (const o of open) {
-        const info = breachInfo(o, now);
-        if (info.level === 'breached') {
-          breached++;
-          // ★ "নতুন" = নির্ধারিত সময় শেষ রানের পরে পেরিয়েছে
-          const due = o.slaDueAt as Date;
-          if (due > since) fresh.push({ orderNo: o.orderNo, label: breachLabel(info) });
-        } else if (info.level === 'soon') {
-          soon++;
-        }
-      }
+      // ★★★ F1 — মাঝপথে মরে যাওয়া অটো-ডেলিভারি ম্যানুয়াল কিউতে ফেরানো ("ফল অজানা"
+      //   নোট ও টেলিগ্রামসহ)। এই ক্রন-ই ১৫ মিনিট অন্তর খোলা অর্ডার দেখে, তাই আলাদা
+      //   জব নয় — একই lease-এর ভেতরে, দুটি রান একসাথে ঝাড়ু দেয় না।
+      const unstuck = await sweepStuckAutoFulfill();
+      // ★★★ F2 — যাচাই-না-হওয়া ডাইরেক্ট-পে অর্ডারের আটকে থাকা স্টক মুক্ত
+      //   (ডিপোজিট PENDING-ই থাকে; `lib/directPayExpiry.ts` দেখুন)
+      const expired = await expireDirectPayOrders();
 
-      if (fresh.length) {
-        const listed = fresh.slice(0, MAX_LISTED)
+      if (freshCount) {
+        const listed = fresh
           .map((f) => `• #${f.orderNo} — ${f.label}`).join('\n');
-        const more = fresh.length > MAX_LISTED
-          ? `\n…আরও ${fresh.length - MAX_LISTED} টি`
+        const more = freshCount > MAX_LISTED
+          ? `\n…আরও ${freshCount - MAX_LISTED} টি`
           : '';
         await notifyAdmins(
-          `⏰ SLA ভঙ্গ — ${fresh.length} টি নতুন`,
+          `⏰ SLA ভঙ্গ — ${freshCount} টি নতুন`,
           `${listed}${more}\n\nমোট দেরি: ${breached} টি · ${SLA_WARN_MIN} মিনিটের কম বাকি: ${soon} টি`,
           '/admin/orders',
           'sla_breach',
@@ -82,13 +98,16 @@ async function handle(req: Request) {
       }
 
       return {
-        result: { checked: open.length, breached, soon, notified: fresh.length },
-        detail: fresh.length
-          ? `${fresh.length} টি নতুন ভঙ্গ জানানো হয়েছে (মোট দেরি ${breached})`
-          : `নতুন ভঙ্গ নেই (মোট দেরি ${breached} · শীঘ্রই ${soon})`,
+        result: { checked: breached + soon, breached, soon, notified: freshCount, unstuck, expired },
+        detail: (freshCount
+          ? `${freshCount} টি নতুন ভঙ্গ জানানো হয়েছে (মোট দেরি ${breached})`
+          : `নতুন ভঙ্গ নেই (মোট দেরি ${breached} · শীঘ্রই ${soon})`) +
+          (unstuck ? ` · আটকে থাকা অটো-ডেলিভারি ${unstuck} টি কিউতে ফেরত` : '') +
+          (expired ? ` · মেয়াদোত্তীর্ণ ডাইরেক্ট-পে ${expired} টি বাতিল` : ''),
       };
     });
 
+    if (r.skipped) return Response.json({ success: true, skipped: true, reason: 'আগের রান এখনো চলছে' });
     if (!r.ok) return Response.json({ success: false, error: r.error, ms: r.ms }, { status: 500 });
     return Response.json({ success: true, ...r.result, ms: r.ms, at: new Date().toISOString() });
   } catch (e) {

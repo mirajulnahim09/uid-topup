@@ -5,6 +5,7 @@ import {
   type ReactNode,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { friendlyError } from '@/lib/friendlyError';
 
 type Kind = 'success' | 'error' | 'info' | 'warning';
 type T = { id: string; kind: Kind; message: string };
@@ -73,7 +74,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toast = useCallback(
-    (message: string, kind: Kind = 'info') => {
+    (raw: string, kind: Kind = 'info') => {
+      // ★ "Failed to fetch" / "…is not valid JSON" ধরনের ব্রাউজার-বার্তা গ্রাহকের ভাষায়
+      //   (সব ফর্ম এখান দিয়েই যায় — একটি জায়গায় সারানো; `lib/friendlyError.ts`)
+      const message = friendlyError(raw);
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       // ★ আগে ছিল `[...t.slice(-3), new]` — অর্থাৎ ৪টি জমত। এখন
       //   যোগ করে **তারপর** কাটি, তাই সীমা সত্যিই MAX_STACK।

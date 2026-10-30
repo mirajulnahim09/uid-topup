@@ -11,6 +11,7 @@ import { getIp } from '@/lib/rateLimit';
 import { recordOrderEvent } from '@/lib/orderEvents';
 import { creditWallet, debitWallet } from '@/lib/services/wallet';
 import { DEPOSIT_REJECT_COPY, buildRejectionMessage } from '@/lib/rejectReasons';
+import { deliverVoucherCode } from '@/lib/services/voucherCodes';
 
 export async function POST(req: Request) {
   try {
@@ -121,6 +122,7 @@ export async function POST(req: Request) {
             balance: 0,
             referral: null,
             linkedOrderNo: null as number | null,
+            linkedOrderId: null as string | null,
           };
         }
 
@@ -145,6 +147,7 @@ export async function POST(req: Request) {
         //     কখনো মাঝপথে আটকে থাকে না — হয় দুটোই হয়, নয় কিছুই হয় না।
         let settledBalance = Number(creditedBalance);
         let linkedOrderNo: number | null = null;
+        let linkedOrderId: string | null = null;
 
         if (linkedOrder && linkedOrder.status === 'AWAITING_PAYMENT') {
           const order = await tx.order.findUnique({ where: { id: linkedOrder.id } });
@@ -186,6 +189,7 @@ export async function POST(req: Request) {
             });
 
             linkedOrderNo = order.orderNo;
+            linkedOrderId = order.id;
           }
         }
 
@@ -201,6 +205,7 @@ export async function POST(req: Request) {
           reason: '',
           referral,
           linkedOrderNo,
+          linkedOrderId,
         };
       },
       { timeout: 15000 }
@@ -252,6 +257,10 @@ export async function POST(req: Request) {
         out.user.email, out.user.name,
         out.amount.toFixed(2), out.balance.toFixed(2)
       ).catch(() => {});
+
+      // Direct-pay order just became PENDING: voucher-code products are
+      // delivered from stock now (no money movement; never throws).
+      if (out.linkedOrderId) await deliverVoucherCode(out.linkedOrderId);
 
       if (out.referral) {
         notifyReferralBonus(out.referral.referrerId, out.user.name, out.referral.bonus).catch(

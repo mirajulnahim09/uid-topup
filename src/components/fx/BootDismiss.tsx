@@ -24,10 +24,10 @@ export default function BootDismiss() {
     el.style.animation = 'none';
     el.style.opacity = current;
     void el.offsetHeight; // reflow — নাহলে ব্রাউজার দুটি পরিবর্তন একসাথে করে ফেলে
-    el.style.transition = 'opacity .38s cubic-bezier(.2,.8,.2,1)';
+    el.style.transition = 'opacity .22s cubic-bezier(.2,.8,.2,1)';
     el.style.opacity = '0';
 
-    const t = setTimeout(() => el.remove(), 420);
+    const t = setTimeout(() => el.remove(), 260);
     return () => clearTimeout(t);
   }, []);
 

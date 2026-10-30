@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin, apiError } from '@/lib/guard';
 import { adminLog } from '@/lib/adminLog';
 import { getIp } from '@/lib/rateLimit';
-import { BACKUP_VERSION, BACKUP_DATA_KEYS } from '@/lib/backup';
+import { BACKUP_VERSION, BACKUP_DATA_KEYS, createBackupSigner } from '@/lib/backup';
 
 // ★ সেশন/হেডার পড়ে — বিল্ডের সময় static render করার চেষ্টা করা যাবে না
 export const dynamic = 'force-dynamic';
@@ -79,6 +79,10 @@ export async function GET(req: Request) {
 
     const enc = new TextEncoder();
     const hash = createHash('sha256');
+    // ★★★ BKP-01 — একই বাইটের HMAC (সার্ভারের গোপন চাবি)। চাবি না থাকলে
+    //   এখানেই ব্যর্থ হয় — স্বাক্ষরহীন ব্যাকআপ দেওয়ার চেয়ে না দেওয়াই ভালো,
+    //   কারণ সেটি পরে কোনোদিন restore করা যেত না।
+    const signer = createBackupSigner();
     let t = 0;                       // কোন টেবিল
     let after: string | null = null; // সেই টেবিলে শেষ id
     let rowsInTable = 0;
@@ -87,11 +91,12 @@ export async function GET(req: Request) {
     const body = new ReadableStream<Uint8Array>({
       async pull(ctrl) {
         // ★ ডেটা-অংশ: যা পাঠানো হয় হুবহু তাই হ্যাশ হয়
-        const emit = (s: string) => { hash.update(s); ctrl.enqueue(enc.encode(s)); };
+        const emit = (s: string) => { hash.update(s); signer.update(s); ctrl.enqueue(enc.encode(s)); };
 
         if (t >= BACKUP_DATA_KEYS.length) {
           // canonical অবজেক্টের শেষ `}` — হ্যাশে যায়, ফাইলে নয় (ফাইলে এরপর `_meta`)
           hash.update('}');
+          signer.update('}');
           const meta = {
             app: 'uid-topup',
             version: BACKUP_VERSION,
@@ -100,6 +105,8 @@ export async function GET(req: Request) {
             note: 'password hashes excluded (H3)',
             // ★ SHA-256(canonical data) — restore যাচাই করে
             checksum: hash.digest('hex'),
+            // ★ BKP-01 — HMAC-SHA256; restore এটি ছাড়া কিছুই গ্রহণ করে না
+            signature: signer.digest('hex'),
           };
           ctrl.enqueue(enc.encode(`,"_meta":${JSON.stringify(meta)}}`));
           ctrl.close();

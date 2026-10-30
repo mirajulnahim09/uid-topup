@@ -26,6 +26,9 @@ import { useEffect, useRef } from 'react';
  *   খরচ অপরিবর্তিত — একই তারা-সংখ্যা, একই O(n)/frame।
  * ═══════════════════════════════════════════════════════════
  */
+/** ★ spotlight-এর অর্ধেক মাপ (৬৪০px বৃত্ত) — কেন্দ্র মেলাতে transform-এ লাগে */
+const SPOT_HALF = 320;
+
 export default function SiteBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spotRef = useRef<HTMLDivElement>(null);
@@ -53,7 +56,7 @@ export default function SiteBackground() {
       t: Math.random() * 6.3,
     }));
 
-    const onResize = () => { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; };
+    const onResize = () => { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; if (touch) draw(); };
     const onMove = (e: MouseEvent) => {
       mx = e.clientX; my = e.clientY;
       px = e.clientX / window.innerWidth - 0.5;
@@ -63,7 +66,20 @@ export default function SiteBackground() {
     window.addEventListener('mousemove', onMove);
 
     let raf = 0;
-    const draw = () => {
+    let last = 0;
+    /**
+     * 2026-10-31 performance: the starfield used to repaint the whole
+     * screen at 60 fps forever. Now ~30 fps on desktop, and on touch
+     * devices (no mouse parallax, weakest GPUs) it is painted once and
+     * the loop stops — the stars stay, the battery drain goes.
+     */
+    const FRAME_MS = 1000 / 30;
+    const draw = (now: number = 0) => {
+      if (!touch && now - last < FRAME_MS) {
+        raf = requestAnimationFrame(draw);
+        return;
+      }
+      last = now;
       ctx.clearRect(0, 0, W, H);
       for (const s of stars) {
         s.t += 0.02;
@@ -77,10 +93,15 @@ export default function SiteBackground() {
       if (spot && !touch) {
         sx += (mx - sx) * 0.06;
         sy += (my - sy) * 0.06;
-        spot.style.left = sx + 'px';
-        spot.style.top = sy + 'px';
+        // ★★★ `transform`, `left/top` নয়। `left/top` বদল লেআউট বদলায়, আর
+        //   Chrome সেটিকে layout-shift গোনে — `mousemove` "input" হিসেবে ছাড়ও
+        //   পায় না। মাপা (চূড়ান্ত অডিট): ডেস্কটপে **প্রতিটি পাতায় CLS ≈ ০.২৪৫**
+        //   (Google-এর "poor" সীমা ০.২৫-এর গায়ে), উৎস একটাই — এই আলো।
+        //   মাউস নাড়ালেই আসল ব্যবহারকারীর CLS আরও জমত (সার্চ-র‍্যাংকিং)।
+        //   transform কম্পোজিটরে চলে — দেখতে হুবহু এক, CLS শূন্য।
+        spot.style.transform = `translate3d(${sx - SPOT_HALF}px, ${sy - SPOT_HALF}px, 0)`;
       }
-      raf = requestAnimationFrame(draw);
+      if (!touch) raf = requestAnimationFrame(draw);
     };
     draw();
 
@@ -140,9 +161,12 @@ export default function SiteBackground() {
       {/* ৫. spotlight — কেবল ডেস্কটপ (md+) */}
       <div
         ref={spotRef}
-        className="pointer-events-none fixed z-[1] hidden -translate-x-1/2 -translate-y-1/2 rounded-full md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[1] hidden rounded-full md:block"
         style={{
-          width: 640, height: 640,
+          width: SPOT_HALF * 2, height: SPOT_HALF * 2,
+          // ★ JS আসার আগেই পর্দার মাঝে — পরে rAF একই জায়গা থেকে শুরু করে, লাফ নেই
+          transform: `translate3d(calc(50vw - ${SPOT_HALF}px), calc(50vh - ${SPOT_HALF}px), 0)`,
+          willChange: 'transform',
           background: 'radial-gradient(circle,rgba(200,255,61,.07),rgba(123,44,255,.07) 42%,transparent 68%)',
         }}
       />

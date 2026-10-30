@@ -1,10 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import CouponManager from '@/components/admin/CouponManager';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'কুপন' };
 
 export default async function AdminCoupons() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const coupons = await prisma.coupon.findMany({
     orderBy: { createdAt: 'desc' },
     include: { _count: { select: { uses: true } } },

@@ -101,7 +101,8 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     await requireAdmin();
-    const { id } = (await req.json().catch(() => ({}))) as { id?: string };
+    // ★ `null` বডিও বৈধ JSON — `?? {}` ছাড়া destructuring TypeError দিয়ে ৫০০ হতো
+    const { id } = ((await req.json().catch(() => null)) ?? {}) as { id?: string };
     const provider = getProvider(String(id || ''));
     if (!provider) throw new ApiError('অজানা প্রোভাইডার', 400);
 

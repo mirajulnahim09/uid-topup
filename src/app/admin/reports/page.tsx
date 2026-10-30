@@ -1,20 +1,21 @@
 import { prisma } from '@/lib/prisma';
 import { bdt } from '@/lib/money';
 import { periodSummary } from '@/lib/analytics';
+import { dhakaDayStart } from '@/lib/date';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'রিপোর্ট' };
 
+/** ★ ঢাকার দিন ধরে — `setHours` Vercel-এ (UTC) ঢাকার সকাল ৬টা ছিল (`lib/date.ts`) */
 function rangeStart(days: number): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - days);
-  return d;
+  return dhakaDayStart(new Date(), -days);
 }
 
 export default async function ReportsPage() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
+  const today = dhakaDayStart();
   const d7 = rangeStart(7);
   const d30 = rangeStart(30);
 

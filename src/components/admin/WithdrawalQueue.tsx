@@ -109,6 +109,7 @@ export default function WithdrawalQueue({ initial }: { initial: Row[] }) {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <input
+                    aria-label="পরিশোধের TrxID"
                     className="input max-w-[200px] font-mono text-sm"
                     placeholder="পরিশোধের TrxID"
                     value={refs[w.id] ?? ''}
@@ -124,6 +125,7 @@ export default function WithdrawalQueue({ initial }: { initial: Row[] }) {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <input
+                    aria-label="প্রত্যাখ্যানের কারণ"
                     className="input max-w-[260px] text-sm"
                     placeholder="প্রত্যাখ্যানের কারণ"
                     value={reasons[w.id] ?? ''}

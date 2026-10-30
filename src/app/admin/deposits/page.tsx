@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import DepositTable from '@/components/admin/DepositTable';
 import DepositQueue from '@/components/admin/DepositQueue';
 import { assessDeposits } from '@/lib/riskSignals';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'ডিপোজিট' };
@@ -22,6 +23,8 @@ export default async function AdminDeposits({
 }: {
   searchParams: { status?: string };
 }) {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const s = searchParams.status;
   const status = s && (VALID as readonly string[]).includes(s) ? (s as S) : undefined;
 

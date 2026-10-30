@@ -24,7 +24,7 @@
  *     playwright ত্রুটি নয়।
  * ═══════════════════════════════════════════════════════════
  */
-import { chromium, type Browser } from 'playwright-core';
+import { chromium, firefox, webkit, type Browser } from 'playwright-core';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -42,6 +42,17 @@ const SYSTEM_CHROME = [
 ];
 
 export async function openBrowser(opts: { headless?: boolean } = {}): Promise<Browser> {
+  /**
+   * ★ ক্রস-ব্রাউজার (চূড়ান্ত মাস্টার অডিট, ২০২৬-০৯-১৭) — `VERIFY_BROWSER=firefox|webkit`
+   *   দিলে একই যাচাই-স্ক্রিপ্ট playwright-core-এর নিজস্ব ইঞ্জিনে চলে
+   *   (`npx playwright-core install firefox webkit` দিয়ে নামানো)। Safari-র ইঞ্জিন
+   *   WebKit — আইফোন-গ্রাহকের সবচেয়ে কাছের পরীক্ষা। ডিফল্ট আগের মতোই Chrome।
+   */
+  const engine = (process.env.VERIFY_BROWSER || 'chromium').trim().toLowerCase();
+  if (engine === 'firefox' || engine === 'webkit') {
+    return (engine === 'firefox' ? firefox : webkit).launch({ headless: opts.headless ?? true });
+  }
+
   const wsPath = path.join(process.cwd(), 'ws.txt');
 
   if (existsSync(wsPath)) {

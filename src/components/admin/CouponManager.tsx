@@ -144,6 +144,7 @@ export default function CouponManager({ coupons }: { coupons: C[] }) {
                 মান {form.type === 'PERCENT' ? '(%)' : '(৳)'}
               </label>
               <input
+                aria-label={form.type === 'PERCENT' ? 'মান (%)' : 'মান (৳)'}
                 className="input" type="number" step="0.01"
                 value={form.value} onChange={set('value')}
                 placeholder={form.type === 'PERCENT' ? '10' : '50'}

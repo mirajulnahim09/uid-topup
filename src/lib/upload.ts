@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import { getStorage, driverForUrl } from './storage';
 import { logger } from './logger';
 
@@ -114,7 +115,14 @@ export async function uploadImage(file: File, folder: string): Promise<UploadRes
   if (!real) throw new UploadError('শুধু JPG, PNG, WebP বা GIF ছবি চলবে। (SVG অনুমোদিত নয়)');
 
   const ext = ALLOWED[real][0];
-  const key = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+  /**
+   * ★★★ UPL-02 — ফাইলের নামই একমাত্র গোপনীয়তা (Blob `public`; ডিপোজিট-স্ক্রিনশটে
+   *   গ্রাহকের bKash নম্বর থাকে)। আগে `Math.random()`-এর ৮ অক্ষর — CSPRNG নয়,
+   *   V8-এর PRNG-অবস্থা নিজের আপলোডের নাম দেখে অনুমেয়। এখন ১২৮-বিট
+   *   `crypto.randomBytes` hex (৩২ অক্ষর, a-f0-9 — `UPLOAD_KEY_PATH`-এর বিদ্যমান
+   *   `[a-z0-9]*` নিয়মেই মেলে, তাই পুরনো ও নতুন দুই ধরনের URL-ই বৈধ থাকে)।
+   */
+  const key = `${folder}/${Date.now()}-${randomBytes(16).toString('hex')}.${ext}`;
   const dims = imageSize(bytes, real);
 
   const { url } = await store.put({ key, bytes, contentType: real });

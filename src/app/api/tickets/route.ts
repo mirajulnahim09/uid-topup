@@ -67,7 +67,10 @@ export async function POST(req: Request) {
       });
       return Response.json({ success: true, ticket });
     } catch (e) {
-      throw new ApiError(e instanceof Error ? e.message : 'টিকিট খোলা যায়নি', 400);
+      // ★ কাঁচা `e.message` আর ফরোয়ার্ড করা হয় না — Prisma-র ভেতরের বার্তা
+      //   ক্লায়েন্টে চলে যেত (ইনপুট-ফাজে মাপা, ২০২৬-০৯-১৮)। সার্ভিস এখন
+      //   নিজেই `ApiError` ছোড়ে, আর অজানা ত্রুটি `apiError()` সামলায়।
+      throw e;
     }
   } catch (e) {
     return apiError(e);

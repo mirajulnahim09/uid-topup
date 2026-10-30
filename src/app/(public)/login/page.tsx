@@ -9,6 +9,31 @@ import GoogleButton from '@/components/GoogleButton';
 import BrandLogo from '@/components/brand/BrandLogo';
 import { useLogo } from '@/components/brand/BrandProvider';
 
+/**
+ * ★★★ লগইনের পর ফেরার পথ — কেবল **নিজের origin**।
+ *
+ *   আগে শর্ত ছিল `startsWith('/') && !startsWith('//')`। এটি স্ট্রিং
+ *   দেখে, অথচ গন্তব্য ঠিক করে ব্রাউজারের URL-পার্সার — আর সেটি `\` কে
+ *   `/` ধরে এবং TAB/newline মুছে দেয়। ফলে `/\evil.com` ও `/<TAB>/evil.com`
+ *   দুটোই শর্ত পার হতো, কিন্তু ব্রাউজারে হয়ে যেত `//evil.com` — অন্য
+ *   সাইট। ব্রাউজারে মাপা: লগইনের পর সত্যিই `http://evil.example/x` এ
+ *   নামত (`scripts/verify/security-probes.ts`)। অর্থাৎ আসল লগইন-পাতার
+ *   লিংক দিয়ে ফিশিং-সাইটে পাঠানো যেত।
+ *
+ *   এখন পার্সারকেই জিজ্ঞেস করি: resolve করার পর origin কি নিজের? হলে
+ *   কেবল path+query+hash ফেরত যায় — যা ব্রাউজার ঠিক যেভাবে বুঝেছে।
+ */
+function safeCallbackPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null;
+  try {
+    const u = new URL(raw, window.location.origin);
+    if (u.origin !== window.location.origin) return null;
+    return u.pathname + u.search + u.hash;
+  } catch {
+    return null;
+  }
+}
+
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -35,6 +60,9 @@ function LoginForm() {
     //   পাতা বদলালে কম্পোনেন্টই unmount হয়, তাই আলাদা করে বন্ধ করার
     //   দরকার নেই।
     let ok = false;
+    // ★ AUTH-03 — প্রি-চেক নিজেই পাসওয়ার্ড ভুল পেলে (চেষ্টাটি তখনই গোনা হয়েছে)
+    //   `signIn` আর ডাকা হয় না — নাহলে একটি ভুল চেষ্টা দুবার গোনা হতো
+    let precheckRejected = false;
     try {
       // ★★★ 2FA প্রি-চেক — throw-এর উপর নির্ভর না করে deterministic ভাবে
       //   জানি 2FA লাগবে কিনা (NextAuth v4 throw-message নির্ভরযোগ্য নয়)।
@@ -47,7 +75,7 @@ function LoginForm() {
             body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
           });
           if (chk.ok) {
-            const { needsTotp: need } = await chk.json();
+            const { needsTotp: need, credentialsOk } = await chk.json();
             if (need) {
               setNeedsTotp(true);
               setErr('');
@@ -55,18 +83,23 @@ function LoginForm() {
               setLoading(false);
               return;
             }
+            if (credentialsOk === false) precheckRejected = true;
           }
         } catch {
           // প্রি-চেক ব্যর্থ হলেও থামি না — signIn নিজেই 2FA যাচাই করবে
         }
       }
 
-      const res = await signIn('credentials', {
-        email: email.trim().toLowerCase(),
-        password,
-        totp: totp.trim(),
-        redirect: false,
-      });
+      // ★ প্রি-চেক-প্রত্যাখ্যাত হলে ব্যর্থ `signIn`-এর মতোই নিচের বার্তা-পথে যাই
+      //   ("ভুল" বনাম "সাময়িক বন্ধ" — `login-status` দিয়ে, আগের মতোই)
+      const res = precheckRejected
+        ? { error: 'CredentialsSignin', ok: false, status: 401, url: null }
+        : await signIn('credentials', {
+          email: email.trim().toLowerCase(),
+          password,
+          totp: totp.trim(),
+          redirect: false,
+        });
 
       if (res?.error) {
         // ★ fallback: NextAuth যদি 2FA_REQUIRED পাঠায় (throw পৌঁছালে)
@@ -146,10 +179,8 @@ function LoginForm() {
        *   গ্রাহক এখানে যা-ই ঘটাক, `/admin` তার জন্য বন্ধই থাকে।
        */
       const back = params.get('callbackUrl');
-      // ★ Open redirect আটকানো — শুধু নিজের সাইটের relative path।
-      //   ⚠️ `//evil.com` ও `/` দিয়ে শুরু হয় কিন্তু সেটি protocol-relative
-      //   URL, অর্থাৎ ভিন্ন origin — তাই আলাদা করে বাদ দিতে হয়।
-      const safeBack = back && back.startsWith('/') && !back.startsWith('//') ? back : null;
+      // ★ Open redirect আটকানো — শুধু নিজের origin (বিস্তারিত `safeCallbackPath`)
+      const safeBack = safeCallbackPath(back);
 
       let dest = safeBack;
       if (!dest) {

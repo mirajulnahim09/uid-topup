@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { fmtDate } from '@/lib/date';
+import { requireUserPage } from '@/lib/pageGuard';
 import { getThread } from '@/lib/services/tickets';
 import TicketReply from '@/components/tickets/TicketReply';
 
@@ -20,10 +19,10 @@ export const metadata = {
  *   চাইলে `null` ফেরে ও ৪০৪। "নেই" আর "আপনার নয়" আলাদা করা হয় না।
  */
 export default async function TicketThreadPage({ params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)
+  const me = await requireUserPage();
 
-  const t = await getThread(params.id, session.user.id);
+  const t = await getThread(params.id, me.id);
   if (!t) notFound();
 
   const closed = t.status === 'CLOSED';

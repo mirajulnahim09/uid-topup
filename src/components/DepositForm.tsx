@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from './Toast';
 import ImageUploader from './ImageUploader';
@@ -8,6 +8,7 @@ import ImageUploader from './ImageUploader';
 type Channel = {
   id: number; method: string; accountNo: string;
   accountType: string; instruction: string;
+  qrImage?: string | null;
 };
 
 const QUICK = [50, 100, 200, 500, 1000, 2000];
@@ -21,6 +22,7 @@ const BRAND: Record<string, string> = {
   NAGAD: '#EE1C25',
   ROCKET: '#8C3494',
   UPAY: '#F58220',
+  BANGLA_QR: '#0E7C66',
 };
 
 export default function DepositForm({
@@ -44,6 +46,11 @@ export default function DepositForm({
   const [shot, setShot] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  // ★★★ D5-2 — সিঙ্ক্রোনাস গার্ড। `loading` state পরের রেন্ডারে বসে, তাই একই ফ্রেমে
+  //   আসা দুটি সাবমিট দুটোই পেরিয়ে যেত (আসল Chrome, ধীর 3G-তে মাপা: ২টি POST, আর
+  //   নিজের সফল জমার পরে গ্রাহক দেখতেন "TrxID আগে ব্যবহার করা হয়েছে")।
+  //   `OrderForm`-এর প্রমাণিত একই কৌশল।
+  const submittingRef = useRef(false);
   const [errs, setErrs] = useState<Record<string, string>>({});
 
   function copyNo() {
@@ -107,6 +114,8 @@ export default function DepositForm({
     e.preventDefault();
     if (!ch) return toast.error('পেমেন্ট মাধ্যম বেছে নিন');
     if (!validate()) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
 
     setLoading(true);
     try {
@@ -134,6 +143,7 @@ export default function DepositForm({
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'রিকোয়েস্ট পাঠানো যায়নি');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }
@@ -186,7 +196,7 @@ export default function DepositForm({
                 boxShadow: ch?.id === c.id ? 'inset 0 0 0 1px var(--violet)' : undefined,
               }}
             >
-              {c.method}
+              {c.method === 'BANGLA_QR' ? 'Bangla QR' : c.method}
             </button>
           ))}
         </div>
@@ -220,8 +230,12 @@ export default function DepositForm({
                 style={{ background: BRAND[ch.method] ?? 'var(--v-volt)' }}
               />
               <p className="label mb-0" style={{ color: 'var(--v-mut)' }}>
-                {ch.method} — {ch.accountType}
+                {ch.method === 'BANGLA_QR' ? 'Bangla QR — যেকোনো ব্যাংক/MFS অ্যাপে স্ক্যান করুন' : `${ch.method} — ${ch.accountType}`}
               </p>
+              {ch.qrImage && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={ch.qrImage} alt="Bangla QR" className="mx-auto mt-3 aspect-square w-full max-w-[240px] rounded-xl bg-white object-contain p-2.5" />
+              )}
               <p
                 className="my-3 select-all font-mono text-2xl font-extrabold tracking-[.12em] sm:text-3xl"
                 style={{ color: 'var(--v-ink)' }}

@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { prisma } from './prisma';
 import { logger } from './logger';
 
@@ -130,5 +131,52 @@ export async function runJob<T>(
     await recordJobRun(job, { at: new Date().toISOString(), ok: false, ms, detail: error });
     logger.error('cron', 'job ব্যর্থ', { job, err: e });
     return { ok: false, error, ms };
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════
+ * ★★★ OPS-02 — একসাথে একটিই রান (lease)
+ *
+ *   নির্ধারিত cron আর হাতে-চালানো dispatch (বা retry) একই সময়ে পড়লে দুটো রানই
+ *   একই "শেষ রান" পড়ে একই নতুন ভঙ্গের তালিকা বানাত → অ্যাডমিন **দুবার** সতর্কতা
+ *   পেতেন। এখন রান শুরুর আগে একটি lease নেওয়া হয়: `Setting`-এ শর্তসাপেক্ষ upsert —
+ *   আগের lease-এর মেয়াদ না ফুরোলে কেউ নিতে পারে না (atomic; Postgres সারি-লক
+ *   একজনকেই জেতায়)। প্রসেস মাঝপথে মরলেও মেয়াদ (`ttlMs`) পেরোলে পরের রান চলে।
+ *   `:` থাকায় সারিটি সাইট-settings-এ ঢোকে না।
+ *
+ *   যে রান lease পায় না সে **কিছুই করে না ও রেকর্ডও লেখে না** — নাহলে "শেষ রান"
+ *   এগিয়ে গিয়ে পরের রানের "নতুন ভঙ্গ"-এর জানালা ভুল হতো।
+ * ═══════════════════════════════════════════════════════════
+ */
+const leaseKey = (job: JobKey) => `job-lease:${job}`;
+
+export async function runJobExclusive<T>(
+  job: JobKey,
+  ttlMs: number,
+  fn: () => Promise<{ result: T; detail?: string }>,
+): Promise<
+  | { ok: true; result: T; ms: number; skipped?: false }
+  | { ok: false; error: string; ms: number; skipped?: false }
+  | { ok: true; skipped: true; ms: 0 }
+> {
+  const token = randomUUID();
+  const now = Date.now();
+  const got = await prisma.$queryRaw<Array<{ key: string }>>`
+    INSERT INTO "Setting" ("key", "value") VALUES (${leaseKey(job)}, ${`${token}|${now + ttlMs}`})
+    ON CONFLICT ("key") DO UPDATE SET "value" = EXCLUDED."value"
+    WHERE CAST(split_part("Setting"."value", '|', 2) AS BIGINT) < ${now}
+    RETURNING "key"`;
+  if (got.length !== 1) {
+    logger.warn('cron', 'আগের রান এখনো চলছে — এই রান বাদ', { job });
+    return { ok: true, skipped: true, ms: 0 };
+  }
+  try {
+    return await runJob(job, fn);
+  } finally {
+    // ★ কেবল নিজের lease ছাড়ি (মেয়াদ পেরিয়ে অন্য কেউ নিয়ে থাকলে তারটা নয়)
+    await prisma.$executeRaw`
+      DELETE FROM "Setting" WHERE "key" = ${leaseKey(job)} AND split_part("value", '|', 1) = ${token}`
+      .catch((e: unknown) => logger.error('cron', 'lease ছাড়া যায়নি', { job, err: e }));
   }
 }

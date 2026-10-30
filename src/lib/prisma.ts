@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { assertEnv } from './env';
+import { logger } from './logger';
 
 // ★ DB ছোঁয়ার আগেই env যাচাই — ভুল কনফিগ নীরবে পাশ কাটাতে পারবে না
 assertEnv();
@@ -28,6 +29,9 @@ const g = globalThis as unknown as { prisma?: PrismaClient };
  * ═══════════════════════════════════════════════════════════
  */
 const RETRYABLE = new Set(['P2024', 'P1001']);
+
+/** ★ এর বেশি সময় নিলে কোয়েরিটি লগ হয় (`SLOW_QUERY_MS` env দিয়ে বদলানো যায়) */
+const SLOW_QUERY_MS = Number(process.env.SLOW_QUERY_MS) > 0 ? Number(process.env.SLOW_QUERY_MS) : 100;
 export const MAX_ATTEMPTS = 3;
 const BASE_DELAY_MS = 150;
 
@@ -70,9 +74,41 @@ function createClient(): PrismaClient {
     log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   });
 
-  client.$use((params, next) => withDbRetry(() => next(params)));
+  client.$use(async (params, next) => {
+    const t0 = performance.now();
+    try {
+      return await withDbRetry(() => next(params));
+    } finally {
+      const ms = performance.now() - t0;
+      // ★ SRE — ধীর কোয়েরি রিয়েল-টাইমে Vercel লগে। শুধু model/action/সময় —
+      //   `params.args` কখনো নয়: তাতে ইমেইল, TrxID, টাকার অঙ্ক থাকে (PII)।
+      //   `warn`, `error` নয়: প্রতিটি ধীর কোয়েরি Sentry-তে গেলে কোটা শেষ হতো।
+      //   খরচ: প্রতি কোয়েরিতে দুটি performance.now() — নগণ্য।
+      if (ms >= SLOW_QUERY_MS) {
+        logger.warn('db', 'slow query', {
+          model: params.model ?? 'raw', action: params.action, ms: Math.round(ms),
+          inTx: Boolean(params.runInTransaction),
+        });
+      }
+    }
+  });
 
   return client;
+}
+
+/**
+ * ★★★ SCL-01 — রো-লকের অপেক্ষার সীমা (transaction-এর প্রথম কাজ হিসেবে ডাকুন)
+ *
+ *   মাপা হয়েছে (tests/tx-contention.test.ts): Prisma-র `timeout` চলমান
+ *   কোয়েরি **থামায় না** — অন্য কেউ variant-রো ধরে রাখলে অর্ডার-অনুরোধ
+ *   ১৫ সে.-এর timeout সত্ত্বেও ~৫৪ সে. ঝুলে ছিল, যতক্ষণ না লকটি ছাড়া হয়।
+ *   `SET LOCAL lock_timeout` Postgres-কে নিজেই অপেক্ষা থামাতে বলে (55P03) —
+ *   transaction rollback হয় আর `apiError` ৫০৩ + Retry-After দেয়।
+ *   `LOCAL` = শুধু এই transaction-এ; pooler-এ অন্য সংযোগে ছড়ায় না।
+ */
+export const TX_LOCK_TIMEOUT = '8s';
+export async function boundLockWait(tx: Prisma.TransactionClient): Promise<void> {
+  await tx.$executeRawUnsafe(`SET LOCAL lock_timeout = '${TX_LOCK_TIMEOUT}'`);
 }
 
 export const prisma = g.prisma ?? createClient();

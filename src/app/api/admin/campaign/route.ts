@@ -6,6 +6,7 @@ import { getIp } from '@/lib/rateLimit';
 import { cleanText, safeUrl } from '@/lib/sanitize';
 import { campaignCreateSchema, campaignPatchSchema } from '@/lib/validation';
 import { revalidatePath } from 'next/cache';
+import { parseDhakaDateTime } from '@/lib/date';
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -49,8 +50,10 @@ function clean(input: Record<string, unknown>) {
   if ('dismissible' in input) out.dismissible = Boolean(input.dismissible);
   if ('frequency' in input) out.frequency = input.frequency;
   if ('isActive' in input) out.isActive = Boolean(input.isActive);
-  if ('startsAt' in input) out.startsAt = input.startsAt ? new Date(String(input.startsAt)) : null;
-  if ('endsAt' in input) out.endsAt = input.endsAt ? new Date(String(input.endsAt)) : null;
+  // ★ অ্যাডমিনের `datetime-local` ('2026-09-17T20:00', অঞ্চল ছাড়া) = ঢাকার ঘড়ি-সময়।
+  //   আগে `new Date()` সার্ভারের ঘড়ি ধরত — Vercel-এ প্রচারণা ৬ ঘণ্টা দেরিতে শুরু/শেষ হতো।
+  if ('startsAt' in input) out.startsAt = input.startsAt ? parseDhakaDateTime(String(input.startsAt)) : null;
+  if ('endsAt' in input) out.endsAt = input.endsAt ? parseDhakaDateTime(String(input.endsAt)) : null;
   if ('sortOrder' in input && input.sortOrder !== undefined) out.sortOrder = Number(input.sortOrder);
   return out;
 }

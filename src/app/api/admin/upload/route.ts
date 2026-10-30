@@ -1,4 +1,4 @@
-import { requireAdmin, apiError, ApiError } from '@/lib/guard';
+import { requireAdmin, apiError, ApiError, readForm } from '@/lib/guard';
 import { rateLimit, LIMITS } from '@/lib/rateLimit';
 import { uploadImage, UploadError, storageReady, storageReason, storageName } from '@/lib/upload';
 import { prisma } from '@/lib/prisma';
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     if (!storageReady()) throw new ApiError(storageReason() || 'ছবি আপলোড চালু নেই।', 503);
 
-    const form = await req.formData();
+    const form = await readForm(req);
     const file = form.get('file');
     const folder = String(form.get('folder') || 'site');
 

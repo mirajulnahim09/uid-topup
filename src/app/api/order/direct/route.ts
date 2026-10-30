@@ -1,7 +1,8 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, boundLockWait } from '@/lib/prisma';
 import { directOrderSchema } from '@/lib/validation';
 import { requireUser, apiError, ApiError, readJson } from '@/lib/guard';
 import { rateLimit, LIMITS } from '@/lib/rateLimit';
+import { claimDepositSlot } from '@/lib/depositCap';
 import { validateCoupon, consumeCoupon } from '@/lib/coupon';
 import { notify, notifyAdmins, checkStockAlert } from '@/lib/notify';
 import { round2 } from '@/lib/money';
@@ -57,18 +58,16 @@ export async function POST(req: Request) {
     const dupe = await prisma.deposit.findUnique({ where: { trxId }, select: { id: true } });
     if (dupe) throw new ApiError('এই ট্রানজেকশন আইডি আগে ব্যবহার করা হয়েছে', 409);
 
-    // ★ Spam guard — অনেক অপেক্ষমান দাবি জমতে দেওয়া যাবে না
-    const pendingCount = await prisma.deposit.count({
-      where: { userId: user.id, status: 'PENDING' },
-    });
-    if (pendingCount >= 5) {
-      throw new ApiError('আপনার ৫টি রিকোয়েস্ট পেন্ডিং আছে। অনুমোদনের অপেক্ষা করুন।', 429);
-    }
-
     const slaDueAt = computeSlaDueAt(slaFromSettings(await getSettings()));
 
     const result = await prisma.$transaction(
       async (tx) => {
+        // ★ SCL-01 — ভিড়ে লকের অপেক্ষা সীমিত (placeOrder-এর মতোই)
+        await boundLockWait(tx);
+        // ★★★ F4 — ঝুলন্ত-দাবির সীমা লকের ভেতরে; আগে লক ছাড়া গোনা হতো আর
+        //   ১০টি সমান্তরাল অনুরোধে ১০টি অর্ডার ও ১০টি স্টক আটকে যেত (মাপা)।
+        //   ⚠️ প্রথম লক — Variant/Coupon-এর **আগে** (`lib/depositCap.ts`)।
+        await claimDepositSlot(tx, user.id);
         // ★★★ H1 — স্টক ও **টাকার সব মান** একই লক করা রো থেকে।
         //     ওয়ালেট-পথের (`/api/order`) মতোই; আগে এখানেও দাম আসত
         //     লক-বহির্ভূত `findUnique` থেকে।
@@ -201,7 +200,8 @@ export async function POST(req: Request) {
           couponLabel,
         };
       },
-      { timeout: 20000 }
+      // ★ SCL-01 — placeOrder-এর মতোই সংযোগ-অপেক্ষা ৫ সে.; তারপর ৫০৩ (apiError)
+      { timeout: 20000, maxWait: 5000 }
     );
 
     // ★ guarded (defense-in-depth) — notify নিজে throw করে না, তবু commit-

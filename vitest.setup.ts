@@ -16,8 +16,21 @@
  * ═══════════════════════════════════════════════════════════
  */
 import { beforeAll, afterAll, beforeEach } from 'vitest';
-import { PrismaClient } from '@prisma/client';
-import { TEST_DATABASE_URL, assertSafeTestUrl } from './tests/helpers/testEnv';
+import type { PrismaClient as PrismaClientType } from '@prisma/client';
+import {
+  TEST_DATABASE_URL, applyIsolatedEnv, assertNoLiveEnv, assertSafeTestUrl,
+} from './tests/helpers/testEnv';
+
+/**
+ * ★★★ টেস্টের গোপন-মান বিচ্ছিন্নতা — fail-closed (বিস্তারিত: helpers/testEnv.ts)
+ *
+ *   `@prisma/client` import হলে Prisma প্রকল্পের `.env` থেকে অনুপস্থিত কী বসায়।
+ *   তাই import-এর **আগে** গোপন কী টেস্ট-মানে বসাই ও কী-তালিকার ছবি রাখি, পরে
+ *   মিলিয়ে দেখি। না মিললে কোনো টেস্ট চলার আগেই থামে।
+ */
+const envBeforePrisma = applyIsolatedEnv();
+const { PrismaClient } = await import('@prisma/client');
+assertNoLiveEnv(envBeforePrisma);
 
 // ★ গার্ডটি এখন `tests/helpers/testEnv.ts`-এ — একটিই উৎস।
 //   আগে এখানে হাতে-লেখা একটি কপি ছিল; কপি থাকা মানে একদিন একটিতে
@@ -47,7 +60,7 @@ if (process.env.DATABASE_URL !== TEST_URL) {
   );
 }
 
-export const db = new PrismaClient({ datasources: { db: { url: TEST_URL } } });
+export const db: PrismaClientType = new PrismaClient({ datasources: { db: { url: TEST_URL } } });
 
 /**
  * ★ প্রতিটি টেস্টের আগে সব টেবিল খালি — টেস্ট পরস্পরকে দূষিত করবে না।

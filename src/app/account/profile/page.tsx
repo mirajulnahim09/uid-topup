@@ -1,20 +1,20 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireUserPage } from '@/lib/pageGuard';
 import ProfileEditor from '@/components/ProfileEditor';
 import TwoFactorSettings from '@/components/TwoFactorSettings';
 import SignOutAllButton from '@/components/SignOutAllButton';
+import DeleteAccountSection from '@/components/DeleteAccountSection';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'আমার তথ্য' };
 
 export default async function ProfilePage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)
+  const me = await requireUserPage();
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { name: true, phone: true, email: true },
+    where: { id: me.id },
+    select: { name: true, phone: true, email: true, role: true, deletionRequestedAt: true },
   });
   if (!user) return null;
 
@@ -30,6 +30,10 @@ export default async function ProfilePage() {
       <TwoFactorSettings />
 
       <SignOutAllButton />
+
+      {user.role !== 'ADMIN' && (
+        <DeleteAccountSection requestedAt={user.deletionRequestedAt?.toISOString() ?? null} />
+      )}
     </div>
   );
 }

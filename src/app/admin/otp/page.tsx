@@ -4,6 +4,7 @@ import OtpSettings, { type OtpSnapshot } from '@/components/admin/OtpSettings';
 import { getOtpConfig } from '@/lib/otp/settings';
 import { SMS_PROVIDERS, readSmsCredentials } from '@/lib/sms';
 import { isEmailConfigured } from '@/lib/email';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const metadata: Metadata = { title: 'যাচাই কোড (OTP)' };
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,8 @@ export const dynamic = 'force-dynamic';
  *   কি না"। এটি `/api/admin/otp` এর GET-এর হুবহু একই আকার।
  */
 export default async function AdminOtpPage() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const [cfg, creds] = await Promise.all([getOtpConfig(), readSmsCredentials()]);
   const meta = SMS_PROVIDERS.find((p) => p.id === cfg.smsProvider);
 

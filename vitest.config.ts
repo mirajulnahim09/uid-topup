@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
-import { TEST_DATABASE_URL } from './tests/helpers/testEnv';
+import { TEST_DATABASE_URL, TEST_ISOLATED_ENV } from './tests/helpers/testEnv';
 
 /**
  * ★ Vitest — money-পথের ইন্টিগ্রেশন টেস্ট (Group D)
@@ -38,6 +38,8 @@ export default defineConfig({
     env: {
       DATABASE_URL: TEST_DATABASE_URL,
       TEST_DATABASE_URL,
+      // ★ গোপন/ইন্টিগ্রেশন কী আগেই টেস্ট-মানে — Prisma `.env` থেকে লাইভ মান বসাতে পারে না
+      ...TEST_ISOLATED_ENV,
     },
     include: ['tests/**/*.test.ts'],
     setupFiles: ['./vitest.setup.ts'],

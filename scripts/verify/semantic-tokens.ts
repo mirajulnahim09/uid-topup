@@ -73,9 +73,16 @@ const RETIRED: Array<{ re: RegExp; was: string; hex: string; role: 'success' | '
    *   রংদুটি **বুলেট-গ্লিফ ও borderLeft**, অর্থাৎ সাজসজ্জা —
    *   পাশের লেখাই অর্থ বহন করে, তাই WCAG অনুসারে ছাড়প্রাপ্ত।
    */
-  { re: /#1a1408/gi, was: 'গোল্ড-চিপের near-black', hex: '#1a1408', role: 'success', exempt: ['src/app/globals.css'] },
-  { re: /#65a30d/gi, was: 'ব্যাজ "নতুন"', hex: '#65a30d', role: 'success', exempt: ['src/app/globals.css', 'src/components/home/StoreHowFaq.tsx'] },
-  { re: /#0284c7/gi, was: 'ব্যাজ "জনপ্রিয়"', hex: '#0284c7', role: 'info', exempt: ['src/app/globals.css', 'src/components/home/StoreHowFaq.tsx'] },
+  /*
+   * ⚠️ ২০২৬-০৯-২১ (EXTREME রেড-টিম): নিচের তিনটি regex-এ `\b`-এর জায়গায় **আসল
+   *   backspace বাইট (0x08)** বসে ছিল — ২০২৬-০৯-০১ থেকে তিনটিই কখনো কিছু মেলায়নি,
+   *   অর্থাৎ যাচাইটি ফাঁপা সবুজ ছিল। সারানোর পর একমাত্র আঘাত `StorefrontShell`-এর
+   *   ক্যাটাগরি-থাম্বনেইল গ্রেডিয়েন্ট-স্টপ (`g2`) — `#38bdf8`-এর মতোই সাজসজ্জার
+   *   প্যালেট, অবস্থা-বাহী নয়; তাই একই কারণে ছাড়।
+   */
+  { re: /#1a1408\b/gi, was: 'গোল্ড-চিপের near-black', hex: '#1a1408', role: 'success', exempt: ['src/app/globals.css'] },
+  { re: /#65a30d\b/gi, was: 'ব্যাজ "নতুন"', hex: '#65a30d', role: 'success', exempt: ['src/app/globals.css', 'src/components/home/StoreHowFaq.tsx'] },
+  { re: /#0284c7\b/gi, was: 'ব্যাজ "জনপ্রিয়"', hex: '#0284c7', role: 'info', exempt: ['src/app/globals.css', 'src/components/home/StoreHowFaq.tsx', 'src/components/home/StorefrontShell.tsx'] },
 ];
 
 /** কোড-লাইন থেকে মন্তব্য বাদ — ইতিহাস লেখা থাকা দোষ নয় */

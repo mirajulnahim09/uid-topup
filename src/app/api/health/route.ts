@@ -26,8 +26,14 @@ export async function GET() {
     db: db?.state === 'up' ? 'up' : 'down',
     uptimeMs: health.totalMs,
     time: health.checkedAt,
-    // ── নতুন: প্রতিটি সাবসিস্টেমের বিস্তারিত ──
-    subsystems: health.subsystems,
+    // ── প্রতিটি সাবসিস্টেমের **অবস্থা** — বিবরণ নয় ──
+    // ★ `detail` ইচ্ছাকৃতভাবে বাদ। এটি পাবলিক, লগইন ছাড়া পড়া যায়, অথচ
+    //   `detail` এ থাকে DB-র কাঁচা ত্রুটি-বার্তা (Prisma সেখানে ডাটাবেস-
+    //   হোস্টের নাম লেখে — এই রানেই টার্মিনালে দেখা গেছে) ও কনফিগের
+    //   ফাঁক ("SENTRY_DSN সেট নেই", "স্যান্ডবক্স প্রেরক") — আক্রমণকারীর
+    //   জন্য মানচিত্র। মালিক পুরো বিবরণ দেখেন `/api/admin/readiness` এ।
+    //   মনিটর যা পড়ে (`key`, `state`, `critical`) — অপরিবর্তিত।
+    subsystems: health.subsystems.map(({ detail: _detail, ...pub }) => pub),
   };
 
   return Response.json(body, {

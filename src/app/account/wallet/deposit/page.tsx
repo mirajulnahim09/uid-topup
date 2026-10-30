@@ -1,6 +1,5 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireUserPage } from '@/lib/pageGuard';
 import { getSettings } from '@/lib/settings';
 import { bdt } from '@/lib/money';
 import { fmtDate } from '@/lib/date';
@@ -10,11 +9,12 @@ import DataUnavailable from '@/components/DataUnavailable';
 import EmptyState from '@/components/EmptyState';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Add Money' };
+export const metadata = { title: 'টাকা যোগ করুন' };
 
 export default async function DepositPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) return null;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)।
+  //   ⚠️ নিচের try/catch-এর **বাইরে** — ভেতরে থাকলে catch `redirect()` গিলে ফেলত।
+  const me = await requireUserPage();
 
   // ★ এই পেজেই QA তে DB বিভ্রাটে ক্র্যাশ হয়েছিল (BUG-07)।
   //   এখানে ডিফল্ট মান দেখানো বিশেষভাবে বিপজ্জনক — ব্যালেন্স ৳0.00
@@ -31,13 +31,13 @@ export default async function DepositPage() {
         orderBy: { sortOrder: 'asc' },
       }),
       prisma.deposit.findMany({
-        where: { userId: session.user.id },
+        where: { userId: me.id },
         orderBy: { createdAt: 'desc' },
         take: 20,
       }),
       getSettings(),
       prisma.user.findUnique({
-        where: { id: session.user.id },
+        where: { id: me.id },
         select: { balance: true },
       }),
     ]);
@@ -64,7 +64,7 @@ export default async function DepositPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">Add Money</h1>
+        <h1 className="lux-text text-2xl font-medium sm:text-[27px]">টাকা যোগ করুন</h1>
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2">
           <span className="text-xs" style={{ color: 'var(--v-mut)' }}>বর্তমান ব্যালেন্স </span>
           <span className="font-bold text-emerald-700">{bdt(user?.balance ?? 0)}</span>
@@ -92,6 +92,7 @@ export default async function DepositPage() {
           accountNo: c.accountNo,
           accountType: c.accountType,
           instruction: c.instruction ?? '',
+          qrImage: c.qrImage ?? null,
         }))}
         min={Number(settings.min_deposit || 20)}
         max={Number(settings.max_deposit || 25000)}

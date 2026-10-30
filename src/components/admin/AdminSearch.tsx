@@ -186,7 +186,8 @@ export default function AdminSearch() {
               {res.orders.map((o) => (
                 <Link
                   key={o.id}
-                  href={`/admin/users/${o.userId}`}
+                  // ★ অর্ডারের ফল অর্ডার-টেবিলেই খোলে (অ্যাকশনসহ) — গ্রাহকের পাতায় কোনো বোতাম নেই
+                  href={`/admin/orders?order=${o.id}`}
                   onClick={() => setOpen(false)}
                   className="block rounded-lg px-3 py-2.5 transition hover:bg-white/5"
                 >

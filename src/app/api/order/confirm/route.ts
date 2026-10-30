@@ -53,10 +53,19 @@ export async function POST(req: Request) {
     const now = new Date();
 
     await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: order.id },
+      // ★★★ compare-and-set — উপরের যাচাই লক-বহির্ভূত, তাই একা যথেষ্ট নয়।
+      //   মাপা (EXTREME অডিট, ২০২৬-০৯-২১): "পেয়েছি" ও "পাইনি" একসাথে পাঠালে
+      //   ৬ বারের ৩ বারই দুটোই ২০০ পেত — অর্ডারে দুটো তারিখই বসত, ইভেন্ট দুটি
+      //   হতো, অর্থাৎ একই অর্ডার একসাথে "পৌঁছেছে" ও "পৌঁছায়নি"। এখন শর্তটি
+      //   লেখার ভেতরেই — দ্বিতীয়টি ০ সারি পায়, ৪০৯ হয় ও পুরোটা rollback।
+      const written = await tx.order.updateMany({
+        where: {
+          id: order.id, userId: user.id, status: 'COMPLETED',
+          deliveryConfirmedAt: null, deliveryDisputedAt: null,
+        },
         data: arrived ? { deliveryConfirmedAt: now } : { deliveryDisputedAt: now },
       });
+      if (written.count !== 1) throw new ApiError('আপনি ইতিমধ্যে উত্তর দিয়েছেন', 409);
 
       await recordOrderEvent(tx, {
         orderId: order.id,
@@ -83,7 +92,7 @@ export async function POST(req: Request) {
       success: true,
       arrived,
       message: arrived
-        ? 'ধন্যবাদ! জানানোর জন্য কৃতজ্ঞ।'
+        ? 'ধন্যবাদ! গেমে পেয়ে গেছেন জেনে ভালো লাগল।'
         : 'জানানোর জন্য ধন্যবাদ — আমরা এখনই দেখছি।',
     });
   } catch (e) {

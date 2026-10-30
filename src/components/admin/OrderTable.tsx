@@ -45,6 +45,10 @@ const CLAIM_STYLE: Record<ClaimState['state'], { bg: string; color: string } | n
 };
 
 const FILTERS = ['ALL', 'PENDING', 'PROCESSING', 'COMPLETED', 'REFUNDED'];
+// ★ ট্যাবের লেখা Badge-এর শব্দেই — সারির স্ট্যাটাস আর ফিল্টার একই ভাষায় (URL-এর মান ইংরেজিই থাকে)
+const FILTER_LABEL: Record<string, string> = {
+  ALL: 'সব', PENDING: 'পেন্ডিং', PROCESSING: 'প্রসেসিং', COMPLETED: 'সম্পন্ন', REFUNDED: 'ফেরত',
+};
 type Act = 'PROCESSING' | 'COMPLETE' | 'FAIL';
 
 export default function OrderTable({ orders, current }: { orders: O[]; current: string }) {
@@ -299,7 +303,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
               current === f ? 'bg-purple-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
-            {f}
+            {FILTER_LABEL[f] ?? f}
           </Link>
         ))}
       </div>

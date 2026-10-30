@@ -1,4 +1,6 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, boundLockWait } from '@/lib/prisma';
+import { lockDepositSlot, assertDepositCap } from '@/lib/depositCap';
+import { round2 } from '@/lib/money';
 import { depositSchema } from '@/lib/validation';
 import { requireUser, apiError, ApiError, readJson } from '@/lib/guard';
 import { rateLimit, LIMITS } from '@/lib/rateLimit';
@@ -34,39 +36,77 @@ export async function POST(req: Request) {
     if (amount < min) throw new ApiError(`সর্বনিম্ন ডিপোজিট ৳${min}`, 400);
     if (amount > max) throw new ApiError(`সর্বোচ্চ ডিপোজিট ৳${max}`, 400);
 
-    // ★ একই TrxID দিয়ে বারবার claim আটকানো
-    const dupe = await prisma.deposit.findUnique({
-      where: { trxId },
-      select: { id: true },
-    });
-    if (dupe) throw new ApiError('এই ট্রানজেকশন আইডি আগে ব্যবহার করা হয়েছে', 409);
-
-    // ★ Spam guard
-    const pending = await prisma.deposit.count({
-      where: { userId: user.id, status: 'PENDING' },
-    });
-    if (pending >= 5) {
-      throw new ApiError('আপনার ৫টি রিকোয়েস্ট পেন্ডিং আছে। অনুমোদনের অপেক্ষা করুন।', 429);
-    }
-
     let deposit;
     try {
-      deposit = await prisma.deposit.create({
-        data: {
-          userId: user.id,
-          method,
-          amount,
-          trxId,
-          senderNo,
-          screenshot: screenshot || null,
-          status: 'PENDING',
+      const out = await prisma.$transaction(
+        async (tx) => {
+          await boundLockWait(tx);
+          // ★★★ F4 — গ্রাহক-প্রতি ক্রমিক: একই গ্রাহকের সমান্তরাল অনুরোধগুলো এখান থেকে
+          //   একটি একটি করে এগোয়, তাই নিচের replay-পরীক্ষা পূর্ববর্তীটির সারি দেখতে পায়
+          await lockDepositSlot(tx, user.id);
+
+          // ★ একই TrxID দিয়ে বারবার claim আটকানো (আসল পাহারা UNIQUE ইনডেক্স; এটি পরিষ্কার বার্তা)।
+          //   সীমা-পরীক্ষার **আগে** — ডুপ্লিকেট TrxID কখনো ৪২৯ পায় না।
+          const dupe = await tx.deposit.findUnique({
+            where: { trxId },
+            select: { id: true, userId: true, amount: true, status: true, intent: true, depositNo: true },
+          });
+          if (dupe) {
+            /**
+             * ★★★ Replay (মালিকের সিদ্ধান্ত, ২০২৬-০৯-৩০) — একই গ্রাহক + একই TrxID + একই অঙ্ক +
+             *   এখনো PENDING ওয়ালেট-জমা ⇒ ২০০, নতুন সারি নয়, বিদ্যমানটির তথ্য ফেরত।
+             *   কেন: ৫০৪/নেট-বিচ্ছেদের পরে "এই পাতাতেই আবার চেষ্টা করুন" মানলে গ্রাহক নিজের
+             *   সফল জমার জন্যই "TrxID আগে ব্যবহার হয়েছে" দেখতেন (ব্রাউজারে মাপা)।
+             *   ⚠️ টাকা নড়ে না — ডিপোজিট অনুমোদন ছাড়া কখনো ক্রেডিট হয় না; এটি কেবল উত্তর।
+             *   ⚠️ বাকি সব ৪০৯-ই: অন্য গ্রাহক · ভিন্ন অঙ্ক · APPROVED/REJECTED (FIN-03) ·
+             *   ডাইরেক্ট-পে-র পেমেন্ট-দাবি (ORDER_PAYMENT — সেটি অর্ডারের, ওয়ালেট-জমা নয়)।
+             */
+            const isReplay =
+              dupe.userId === user.id &&
+              dupe.status === 'PENDING' &&
+              dupe.intent === 'WALLET_TOPUP' &&
+              round2(Number(dupe.amount)) === round2(amount);
+            if (isReplay) return { replay: true as const, depositNo: dupe.depositNo, status: dupe.status };
+            throw new ApiError('এই ট্রানজেকশন আইডি আগে ব্যবহার করা হয়েছে', 409);
+          }
+
+          // ★★★ F4 — সীমা-গণনা ও তৈরি একই লকের ভেতরে (`lib/depositCap.ts`)
+          await assertDepositCap(tx, user.id);
+
+          const created = await tx.deposit.create({
+            data: {
+              userId: user.id,
+              method,
+              amount,
+              trxId,
+              senderNo,
+              screenshot: screenshot || null,
+              status: 'PENDING',
+            },
+            // ★ ঝুঁকি-হিসাবের জন্য গ্রাহকের ফোন ও অ্যাকাউন্টের বয়স লাগে;
+            //   এখানেই নিয়ে নিলে আলাদা কোয়েরি বাঁচে (Neon-এ সংযোগ সীমিত)
+            include: { user: { select: { phone: true, createdAt: true } } },
+          });
+          return { replay: false as const, deposit: created };
         },
-        // ★ ঝুঁকি-হিসাবের জন্য গ্রাহকের ফোন ও অ্যাকাউন্টের বয়স লাগে;
-        //   এখানেই নিয়ে নিলে আলাদা কোয়েরি বাঁচে (Neon-এ সংযোগ সীমিত)
-        include: { user: { select: { phone: true, createdAt: true } } },
-      });
+        { timeout: 15000 },
+      );
+
+      // ★ Replay — নতুন কিছু ঘটেনি: ঝুঁকি-হিসাব, বিজ্ঞপ্তি, অ্যাডমিন-সতর্কতা, অডিট **কোনোটিই**
+      //   আবার নয় (নাহলে অ্যাডমিন একটি দাবিকে দুটি ভাবতেন)।
+      if (out.replay) {
+        return Response.json({
+          success: true,
+          duplicate: true,
+          depositNo: out.depositNo,
+          status: out.status,
+          message: `এই TrxID দিয়ে জমা ইতিমধ্যে পাঠানো হয়েছে — রিকোয়েস্ট #${out.depositNo}, যাচাইয়ের অপেক্ষায়।`,
+        });
+      }
+      deposit = out.deposit;
     } catch (e: unknown) {
-      // ★ Race — দুইজন একসাথে একই TrxID পাঠালে unique constraint ধরবে
+      // ★ Race — **দুই ভিন্ন** গ্রাহক একসাথে একই TrxID পাঠালে unique constraint ধরবে
+      //   (একই গ্রাহকের সমান্তরাল অনুরোধ উপরের লকে ক্রমিক, তাই সেটি replay পায়)
       if ((e as { code?: string })?.code === 'P2002') {
         throw new ApiError('এই ট্রানজেকশন আইডি আগে ব্যবহার করা হয়েছে', 409);
       }

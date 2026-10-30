@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from './Toast';
 
@@ -96,6 +97,9 @@ export default function ProfileEditor({
       setCurrent('');
       setNext('');
       setConfirm('');
+      // ★ AUTH-04 — অন্য সব সেশন বাতিল হয়েছে; এই ব্রাউজারের কুকি নতুন করে দেওয়া
+      //   না গেলে এটিও বাতিল — ভাঙা অবস্থায় না রেখে লগইনে পাঠাই
+      if (d.keptSignedIn === false) await signOut({ callbackUrl: '/login' });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'বদলানো যায়নি');
     } finally {

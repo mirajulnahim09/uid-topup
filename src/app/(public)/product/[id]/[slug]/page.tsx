@@ -137,8 +137,18 @@ export default async function ProductPage({
   //   খুলত, ফলে একই প্রোডাক্ট অসীম সংখ্যক URL-এ 200 দিত (duplicate
   //   content)। এখন ভুল slug স্থায়ীভাবে আসল ঠিকানায় পাঠায় —
   //   `/product/[id]` আগে থেকেই যা করত, তারই সাথে সঙ্গতিপূর্ণ।
-  if (params.slug !== product.slug) {
-    redirect(`/product/${id}/${product.slug}`);
+  //
+  // ★★★ বাংলা slug — তুলনার আগে decode, redirect-এ encode।
+  //   ব্রাউজারে ধরা (চূড়ান্ত অডিট): অ্যাডমিন বাংলা নামে প্রোডাক্ট বানালে
+  //   `slugify` বাংলা অক্ষর রাখে, অথচ Next 14 `params.slug` দেয় percent-
+  //   encoded। ফলে তুলনা **সবসময়** অমিল → `redirect()` কাঁচা বাংলা URL
+  //   `Location` হেডারে বসাত → Node `ERR_INVALID_CHAR` → **HTTP 500**।
+  //   অর্থাৎ বাংলা-নামের প্রোডাক্টের পাতা কখনোই খুলত না, কেনাও যেত না।
+  //   `decodeURIComponent` ইতিমধ্যে-decoded লেখায় no-op (slug-এ `%` থাকে না)।
+  let requested = params.slug;
+  try { requested = decodeURIComponent(params.slug); } catch { /* ভাঙা %-এনকোডিং → অমিলই ধরি */ }
+  if (requested !== product.slug) {
+    redirect(`/product/${id}/${encodeURIComponent(product.slug)}`);
   }
 
   const sla = slaFromSettings(settings);
@@ -218,6 +228,7 @@ export default async function ProductPage({
           accountNo: c.accountNo,
           accountType: c.accountType,
           instruction: c.instruction ?? '',
+          qrImage: c.qrImage ?? null,
         }))}
         variants={product.variants.map((v: (typeof product.variants)[number]) => ({
           id: v.id,

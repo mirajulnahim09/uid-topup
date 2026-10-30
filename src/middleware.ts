@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { THEME_INIT_SCRIPT } from '@/lib/themeScript';
 import { SESSION_COOKIE_NAME, USE_SECURE_AUTH_COOKIES } from '@/lib/authCookies';
+import { ownBlobHost } from '@/lib/blobHost';
 
 /**
  * ═══════════════════════════════════════════════════════
@@ -67,6 +68,9 @@ async function themeScriptHash(): Promise<string> {
 }
 
 function buildCsp(nonce: string, themeHash: string): string {
+  // ★ UPL-01 — কেবল আমাদের Blob স্টোর (আগে `*.public.blob…` = যেকোনো স্টোর)
+  const blobHost = ownBlobHost();
+  const blobSrc = blobHost ? ` https://${blobHost}` : '';
   return [
     "default-src 'self'",
 
@@ -78,9 +82,9 @@ function buildCsp(nonce: string, themeHash: string): string {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.tawk.to",
     "font-src 'self' https://fonts.gstatic.com https://*.tawk.to data:",
     // ★ বেয়ার `https:` সরানো — কেবল নিজের origin, data/blob, Blob স্টোরেজ ও Tawk
-    "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.tawk.to",
+    `img-src 'self' data: blob:${blobSrc} https://*.tawk.to`,
     // ★ Tawk.to — লাইভ চ্যাটের জন্য WebSocket + API
-    "connect-src 'self' https://*.public.blob.vercel-storage.com https://*.tawk.to wss://*.tawk.to",
+    `connect-src 'self'${blobSrc} https://*.tawk.to wss://*.tawk.to`,
     "media-src 'none'",
     "object-src 'none'",           // Flash/plugin — সম্পূর্ণ বন্ধ
     // ★ Tawk.to চ্যাট উইজেট iframe ব্যবহার করে
@@ -172,6 +176,16 @@ export async function middleware(req: NextRequest) {
 
   const withId = (res: NextResponse): NextResponse => {
     res.headers.set('x-request-id', requestId);
+    /**
+     * ★ API-র উত্তরে `Cache-Control` ছিলই না (স্বাধীন অডিটে মাপা, ২০২৬-০৯-১৮)।
+     *   পাতাগুলো Next নিজেই `no-store` দেয়, কিন্তু route handler-এর JSON কিছুই
+     *   দিত না — অর্থাৎ মাঝের কোনো প্রক্সি/CDN চাইলে **লগইন-করা গ্রাহকের JSON**
+     *   ক্যাশ করে অন্যকে দিতে পারত। Vercel ডিফল্টে ক্যাশ করে না, কিন্তু
+     *   হেডারটি স্পষ্ট করে দেওয়াই নিরাপদ (route চাইলে নিজে override করতে পারে)।
+     */
+    if (pathname.startsWith('/api/') && !res.headers.has('Cache-Control')) {
+      res.headers.set('Cache-Control', 'no-store, must-revalidate');
+    }
     return secure(res, csp);
   };
 
