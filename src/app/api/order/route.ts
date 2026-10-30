@@ -84,7 +84,9 @@ export async function POST(req: Request) {
       ...requestMeta(req),
     });
 
-    notifyAdmins(
+    // A clientRef replay returns the existing order; announcing it again made a
+    // retried request look like a second sale to the operator.
+    if (!result.duplicate) notifyAdmins(
       'নতুন অর্ডার',
       `${user.name} — #${result.orderNo} ${result.productName} (৳${result.price.toFixed(2)})`,
       '/admin/orders',
