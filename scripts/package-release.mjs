@@ -77,6 +77,8 @@ function isExcluded(rel) {
   if (base.endsWith('.tsbuildinfo')) return true;   // §2.6
   if (base === 'ws.txt') return true;               // মেশিন-নির্দিষ্ট
   if (base === '.DS_Store') return true;
+  // runtime uploads (customer deposit screenshots = PII), gitignored
+  if (rel === 'public/uploads' || rel.startsWith('public/uploads/')) return true;
   if (/\.(pem|key|p12|pfx)$/i.test(base)) return true; // key material, wherever it sits
   if (base.endsWith('.log')) return true;           // dev/server logs
 
