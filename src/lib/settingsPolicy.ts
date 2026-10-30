@@ -123,7 +123,9 @@ export function normalizeSettingValue(key: string, raw: unknown): string | null 
 
   if (NUM_KEYS.has(key)) {
     const n = Number(value);
-    if (isNaN(n) || n < 0) throw new ApiError(`${key} — সঠিক সংখ্যা দিন`, 400);
+    // Number.isFinite also refuses "Infinity"/"1e999": an infinite
+    // referral_bonus made every referred first-deposit approval throw.
+    if (!Number.isFinite(n) || n < 0) throw new ApiError(`${key} — সঠিক সংখ্যা দিন`, 400);
     value = String(n);
   } else if (URL_KEYS.has(key)) {
     if (value) {
