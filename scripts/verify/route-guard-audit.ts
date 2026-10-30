@@ -70,6 +70,9 @@ for (const file of files) {
   //   গার্ডই: হ্যাশ-যাচাই + ban + tier পরীক্ষা করে (`src/lib/apiKey.ts`)।
   //   "ইচ্ছাকৃত পাবলিক" তালিকায় রাখলে ভুল হতো — রুটটি পাবলিক নয়।
   if (/\brequireApiKey\s*\(/.test(src)) guards.push('requireApiKey');
+  // Reseller read endpoints: same key check, wrapped with its own rate limit
+  // (src/lib/reseller/readGuard.ts → requireApiKey).
+  if (/\brequireResellerRead\s*\(/.test(src)) guards.push('requireResellerRead');
   if (/\bassertCronAuth\s*\(/.test(src)) guards.push('assertCronAuth');
   if (/\bverifyCronSecret\s*\(/.test(src)) guards.push('verifyCronSecret');
   if (/verifyWebhookSignature|webhookSignature/.test(src)) guards.push('webhookSignature');
