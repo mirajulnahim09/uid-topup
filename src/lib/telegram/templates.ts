@@ -102,11 +102,17 @@ export function render(body: string, vars: Record<string, string | number>): str
   });
 }
 
+/** Telegram's attribute-free formatting tags — the only markup the preview keeps. */
+const PREVIEW_TAGS = /&lt;(\/?)(b|strong|i|em|u|ins|s|strike|del|code|pre)&gt;/gi;
+
 /** প্রিভিউ — নমুনা মান দিয়ে রেন্ডার */
 export function preview(body: string, key: string): string {
   const vars: Record<string, string> = {};
   for (const v of varsFor(key)) vars[v.key] = v.sample;
-  return render(body, vars);
+  // The admin panel injects this with dangerouslySetInnerHTML and the body is
+  // admin-written: escape it all, then re-allow only plain formatting tags,
+  // so a stored <img onerror> never reaches another admin's page.
+  return render(esc(body).replace(PREVIEW_TAGS, '<$1$2>'), vars);
 }
 
 export type StoredTemplate = { key: string; label: string; body: string; enabled: boolean; isDefault: boolean };
