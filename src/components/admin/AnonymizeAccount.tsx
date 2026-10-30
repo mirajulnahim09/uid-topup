@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast, ConfirmDialog } from '@/components/Toast';
+import { fmtDate } from '@/lib/date';
 
 /** Admin: complete a customer's deletion request (anonymise). */
 export default function AnonymizeAccount({
@@ -40,7 +41,7 @@ export default function AnonymizeAccount({
   return (
     <div className="card p-4 sm:p-5" style={{ borderColor: 'color-mix(in srgb, var(--sem-danger) 40%, var(--v-edge))' }}>
       <p className="text-sm font-bold" style={{ color: 'var(--sem-danger)' }}>
-        🗑️ গ্রাহক অ্যাকাউন্ট মোছার অনুরোধ করেছেন — {new Date(requestedAt).toLocaleString('bn-BD')}
+        🗑️ গ্রাহক অ্যাকাউন্ট মোছার অনুরোধ করেছেন — {fmtDate(requestedAt)}
       </p>
       {reason && <p className="mt-1 text-sm" style={{ color: 'var(--v-mut)' }}>কারণ: {reason}</p>}
       {blocked ? (

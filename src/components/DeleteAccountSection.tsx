@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from './Toast';
+import { fmtDay } from '@/lib/date';
 
 /** Profile section: request (or cancel) account deletion. */
 export default function DeleteAccountSection({ requestedAt }: { requestedAt: string | null }) {
@@ -41,7 +42,7 @@ export default function DeleteAccountSection({ requestedAt }: { requestedAt: str
       {requestedAt ? (
         <>
           <p className="mt-1 text-sm" style={{ color: 'var(--v-mut)' }}>
-            আপনার অনুরোধ পেয়েছি ({new Date(requestedAt).toLocaleDateString('bn-BD')})। যাচাই শেষে ৭ দিনের মধ্যে অ্যাকাউন্ট মুছে ফেলা হবে।
+            আপনার অনুরোধ পেয়েছি ({fmtDay(requestedAt)})। যাচাই শেষে ৭ দিনের মধ্যে অ্যাকাউন্ট মুছে ফেলা হবে।
           </p>
           <button type="button" onClick={() => send('DELETE')} disabled={busy} className="btn-secondary mt-3 w-full py-2.5">
             {busy ? '...' : 'অনুরোধ বাতিল করুন'}

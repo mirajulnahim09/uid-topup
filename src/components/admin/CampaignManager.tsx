@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast, ConfirmDialog } from '@/components/Toast';
+import { fmtDate } from '@/lib/date';
 import ImageUploader from '@/components/ImageUploader';
 
 /**
@@ -320,9 +321,9 @@ function CampaignItemRow({
             )}
             {(c.startsAt || c.endsAt) && (
               <p className="mt-0.5 font-mono text-[11px] text-slate-400">
-                {c.startsAt ? new Date(c.startsAt).toLocaleString('en-GB') : '—'}
+                {c.startsAt ? fmtDate(c.startsAt) : '—'}
                 {' → '}
-                {c.endsAt ? new Date(c.endsAt).toLocaleString('en-GB') : 'সীমাহীন'}
+                {c.endsAt ? fmtDate(c.endsAt) : 'সীমাহীন'}
               </p>
             )}
           </div>

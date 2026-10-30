@@ -11,6 +11,7 @@ import { getOtpConfig } from '@/lib/otp/settings';
 import { getStorage } from '@/lib/storage';
 import { lastClientIpMissingAt } from '@/lib/rateLimit';
 import { revokedSessionTableReady } from '@/lib/sessionRevocation';
+import { fmtDate } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,12 +116,12 @@ export async function GET() {
       // ★★★ OPS-03 — সময়মতো চলছে কিন্তু প্রতিবার **ব্যর্থ** হচ্ছে: আগে `stale`
       //   নয় বলে কোনো সতর্কতাই উঠত না (নীরব ব্যর্থতা)। এখন শেষ রান ব্যর্থ হলেও জানাই।
       if (j.ok === false && !j.stale) {
-        warnings.push(`${j.label} — শেষ রান ব্যর্থ (${new Date(j.lastRunAt!).toLocaleString('bn-BD')}): ${(j.detail || 'কারণ অজানা').slice(0, 160)}`);
+        warnings.push(`${j.label} — শেষ রান ব্যর্থ (${fmtDate(j.lastRunAt!)}): ${(j.detail || 'কারণ অজানা').slice(0, 160)}`);
       }
       if (!j.stale) continue;
       warnings.push(
         j.lastRunAt
-          ? `${j.label} — সর্বশেষ ${new Date(j.lastRunAt).toLocaleString('bn-BD')} (প্রতি ${j.expectedEveryMin} মিনিটে চলার কথা)`
+          ? `${j.label} — সর্বশেষ ${fmtDate(j.lastRunAt)} (প্রতি ${j.expectedEveryMin} মিনিটে চলার কথা)`
           : `${j.label} — কখনো চলেনি (GitHub Actions সিক্রেট/ওয়ার্কফ্লো দেখুন)`,
       );
     }

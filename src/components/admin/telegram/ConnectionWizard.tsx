@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { fmtShort } from '@/lib/date';
 
 /**
  * ★★★ টেলিগ্রাম Connection Wizard — ৬ ধাপ
@@ -432,7 +433,7 @@ export default function ConnectionWizard({
                 </div>
                 <dl className="grid gap-1.5 text-[12px] sm:grid-cols-2">
                   {[
-                    ['ডেলিভারি সময়', new Date(testResult.deliveredAt).toLocaleTimeString('bn-BD')],
+                    ['ডেলিভারি সময়', fmtShort(testResult.deliveredAt)],
                     ['রেসপন্স টাইম', `${testResult.responseMs} ms`],
                     ['মোট সময়', `${testResult.totalMs} ms`],
                     ['Telegram API', testResult.apiStatus],
