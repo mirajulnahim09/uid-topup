@@ -18,13 +18,15 @@ export async function GET(req: Request) {
     const orderNo = Number(url.searchParams.get('orderNo') || '');
     const ids = (url.searchParams.get('orderIds') || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 20);
 
-    if (!clientRef && !Number.isInteger(orderNo) && ids.length === 0) {
-      throw new ApiError('clientRef, orderNo বা orderIds দিন', 400);
-    }
     const or: Array<Record<string, unknown>> = [];
     if (clientRef) or.push({ clientRef });
     if (Number.isInteger(orderNo) && orderNo > 0) or.push({ orderNo });
     if (ids.length) or.push({ id: { in: ids } });
+    // Checked on the built filter: a missing orderNo is Number('') = 0, an
+    // integer, so the old pre-check never fired and returned an empty 200.
+    if (or.length === 0) {
+      throw new ApiError('clientRef, orderNo বা orderIds দিন', 400);
+    }
 
     const orders = await prisma.order.findMany({
       where: { userId: actor.user.id, OR: or },
