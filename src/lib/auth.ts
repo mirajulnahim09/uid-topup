@@ -380,6 +380,10 @@ export const authOptions: NextAuthOptions = {
         if (!email) return false;
         const dbUser = await findOrCreateGoogleUser(email, profile?.name || user?.name || '');
         if (dbUser.isBanned) return false; // ব্যান/সাসপেন্ড হলে ঢুকতে দেবে না
+        // Google proves inbox ownership, not the TOTP second factor. A 2FA
+        // account (admins above all) must sign in through credentials,
+        // where the code is demanded; otherwise Google bypasses 2FA.
+        if (dbUser.twoFactorEnabled) return false;
         return true;
       }
       return true;
