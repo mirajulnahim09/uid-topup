@@ -312,7 +312,7 @@ describe('ব্রাউজার smoke (CSP + hydration)', () => {
           }
 
           const m = (await page.evaluate(`(function(){
-            var card = document.getElementById('live-orders-h').closest('.card').getBoundingClientRect();
+            var card = document.getElementById('live-orders-h').closest('.sf-card, .card').getBoundingClientRect();
             var rows = Array.prototype.map.call(document.querySelectorAll('#live-orders li'), function (li) {
               return Math.round(li.getBoundingClientRect().right - card.right);
             });
@@ -402,7 +402,13 @@ describe('ব্রাউজার smoke (CSP + hydration)', () => {
         await ok.click({ timeout: 15_000 });
         await page.waitForTimeout(60);
         await ok.click({ force: true, timeout: 3000 }).catch(() => {});
-        await page.waitForTimeout(6000);
+        // Under full-suite load the first /api/order compile can exceed a fixed
+        // 6 s wait (measured: 0 orders counted, order landed later). Wait for
+        // the first order, then give a duplicate time to land before asserting.
+        for (let i = 0; i < 60 && (await db.order.count({ where: { userId: user.id } })) === 0; i++) {
+          await page.waitForTimeout(500);
+        }
+        await page.waitForTimeout(3000);
 
         const orders = await db.order.count({ where: { userId: user.id } });
         const entries = await db.ledgerEntry.count({ where: { userId: user.id } });
