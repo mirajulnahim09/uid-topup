@@ -120,7 +120,7 @@ const APP_DIR = path.resolve(process.env.SIM_APP_DIR || path.join('..', 'v2-simb
 function syncAppDir() {
   mkdirSync(APP_DIR, { recursive: true });
   const r = spawnSync('robocopy', [process.cwd(), APP_DIR, '/MIR', '/NFL', '/NDL', '/NJH', '/NJS', '/NP',
-    '/XD', 'node_modules', '.next', '.git', 'audit', '.sim', '.certs', 'test-results',
+    '/XD', 'node_modules', '.next', '.next-test', '.git', 'audit', '.sim', '.certs', 'test-results',
     '/XF', '.env', '.env.*', '*.tsbuildinfo', '*.log'], { stdio: 'inherit' });
   // robocopy: ০–৭ = সফল, ≥৮ = ব্যর্থ
   if (r.status === null || r.status >= 8) { console.error(`✗ robocopy ব্যর্থ (${r.status})`); process.exit(1); }

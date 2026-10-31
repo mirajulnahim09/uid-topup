@@ -39,6 +39,26 @@ async function enable(over: Record<string, string> = {}) {
   invalidateSettings();
 }
 
+/**
+ * For tests that hit the server over HTTP: save the same settings through the
+ * real admin route, which also invalidates the server process's 30 s settings
+ * cache (`enable()` alone only clears this process's cache). Under `next dev`
+ * every route had its own module copy, so a stale cache never surfaced; the
+ * production build shares one, as a real single instance does.
+ */
+async function enableOnServer(over: Record<string, string> = {}) {
+  await enable(over);
+  const { client: admin } = await signedInAdmin(db);
+  const res = await admin.post('/api/admin/settings', {
+    [WITHDRAWAL_KEYS.enabled]: '1',
+    [WITHDRAWAL_KEYS.min]: '100',
+    [WITHDRAWAL_KEYS.dailyCap]: '50000',
+    [WITHDRAWAL_KEYS.holdHours]: '0',
+    ...over,
+  });
+  expect(res.status).toBe(200);
+}
+
 /** ★ ব্যালেন্স বসানো — খতিয়ানসহ, যাতে invariant অর্থবহ থাকে */
 async function fund(
   userId: string,
@@ -626,7 +646,7 @@ describe('প্রত্যাহার — পাতা ও গার্ড', 
 
   /** ★★★ কোড ছাড়া টাকা বেরোতে পারবে না */
   it('OTP ছাড়া অনুরোধ প্রত্যাখ্যাত ও ব্যালেন্স অক্ষত', async () => {
-    await enable();
+    await enableOnServer();
     const { user, client: c } = await signedInUser(db, {});
     await fund(user.id, 2000);
 
@@ -644,7 +664,7 @@ describe('প্রত্যাহার — পাতা ও গার্ড', 
    *   নাম্বার যাচাই। ভুল অঙ্ক দিলেই কোড নষ্ট, গ্রাহককে নতুন কোড চাইতে হতো।
    */
   it('ভুল অঙ্ক বা নাম্বারে OTP খরচ হয় না — একই কোডে পরে সঠিক অনুরোধ চলে', async () => {
-    await enable();
+    await enableOnServer();
     const { user, client: c } = await signedInUser(db, {});
     await fund(user.id, 2000);
     const { code } = await issueOtp({ channel: 'EMAIL', purpose: 'WITHDRAW', destination: user.email });
@@ -668,6 +688,10 @@ describe('প্রত্যাহার — পাতা ও গার্ড', 
   });
 
   it('ফিচার বন্ধ থাকলে গ্রাহকের পাতা সেটিই বলে', async () => {
+    // the DB has no withdrawal row (truncated); drop whatever an earlier test left
+    // in the server's settings cache so the page reads that state
+    const { client: admin } = await signedInAdmin(db);
+    expect((await admin.post('/api/admin/settings', {})).status).toBe(200);
     const { client: c } = await signedInUser(db, {});
     const html = await (await c.raw('/account/wallet/withdraw')).text();
     expect(html).toContain('এখনো চালু হয়নি');

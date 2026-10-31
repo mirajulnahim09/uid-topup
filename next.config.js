@@ -15,10 +15,21 @@ function ownBlobHost() {
 }
 const BLOB_HOST = ownBlobHost();
 
+/**
+ * Build output folder. Default `.next`; the Vitest harness builds into
+ * `.next-test` so a `next dev`/`next build` running from this folder and the
+ * test server never write the same tree. Only `.next` / `.next-<name>`.
+ */
+const DIST_DIR = process.env.NEXT_DIST_DIR || '.next';
+if (!/^\.next(-[a-z0-9-]+)?$/.test(DIST_DIR)) {
+  throw new Error(`NEXT_DIST_DIR must be ".next" or ".next-<name>", got "${DIST_DIR}"`);
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  distDir: DIST_DIR,
   // ★ Phase 3 — প্রোডাকশন সোর্স-ম্যাপ বন্ধ: ক্লায়েন্ট বান্ডল ছোট ও
   //   সোর্স কোড কম উন্মুক্ত। ডিবাগ দরকার হলে সাময়িক true করা যায়।
   productionBrowserSourceMaps: false,

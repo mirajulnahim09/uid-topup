@@ -14,6 +14,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { decode } from 'next-auth/jwt';
 import { db } from '../vitest.setup';
 import { signedInAdmin, signedInUser } from './helpers/app';
+import { SESSION_COOKIE } from './helpers/http';
 import {
   TEST_DATABASE_URL, TEST_NEXTAUTH_SECRET, TEST_CRON_SECRET, TEST_ISOLATED_ENV, assertSafeTestUrl,
 } from './helpers/testEnv';
@@ -32,7 +33,7 @@ describe('১. NEXTAUTH_SECRET — কেবল টেস্ট-মান', () =
     const { user, client } = await signedInUser(db);
     const r = await client.raw('/api/auth/session');
     // ★ jar থেকে সেশন কুকি — Set-Cookie হেডারে নয়, তাই সরাসরি লগইন-পরের অবস্থা পড়ি
-    const token = (client as unknown as { jar: Map<string, string> }).jar.get('next-auth.session-token');
+    const token = (client as unknown as { jar: Map<string, string> }).jar.get(SESSION_COOKIE);
     expect(r.status).toBe(200);
     expect(token).toBeTruthy();
     const ok = await decode({ token: token!, secret: TEST_NEXTAUTH_SECRET });

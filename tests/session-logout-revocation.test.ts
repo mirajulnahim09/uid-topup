@@ -18,7 +18,7 @@ import { baseUrl, client, signedInAdmin, signedInUser } from './helpers/app';
 import { DEFAULT_PASSWORD } from './helpers/factories';
 import { TEST_CRON_SECRET, TEST_NEXTAUTH_SECRET } from './helpers/testEnv';
 import { encode } from 'next-auth/jwt';
-import type { Client } from './helpers/http';
+import { SESSION_COOKIE, type Client } from './helpers/http';
 
 const jarOf = (c: unknown) => (c as { jar: Map<string, string> }).jar;
 function copyOf(c: Client): Client {
@@ -101,7 +101,7 @@ describe('AUTH-05 — প্রতি-ডিভাইস লগআউট', () =>
       secret: TEST_NEXTAUTH_SECRET,
     });
     const c = client();
-    jarOf(c).set('next-auth.session-token', legacy);
+    jarOf(c).set(SESSION_COOKIE, legacy);
     const copy = copyOf(c);
     expect((await c.get('/api/me')).status).toBe(200);
 

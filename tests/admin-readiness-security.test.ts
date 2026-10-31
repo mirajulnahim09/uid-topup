@@ -6,7 +6,8 @@
  *   readiness আগে কিছুই বলত না। দাবি (আসল HTTP):
  *     · ডিফল্ট পাসওয়ার্ডের অ্যাডমিন → ব্লকার (ইমেইল মুখোশে; পাসওয়ার্ড/হ্যাশ কখনো নয়)
  *     · পাসওয়ার্ড বদলালে ব্লকার চলে যায়
- *     · 2FA বন্ধ → টেস্ট-পরিবেশে সতর্কতা (প্রোডাকশনে ব্লকার — কোডে শর্ত)
+ *     · 2FA বন্ধ → ব্লকার: the harness runs a production build (outside
+ *       production the same message is only a warning — a code branch)
  * ═══════════════════════════════════════════════════════════
  */
 import { describe, it, expect } from 'vitest';
@@ -39,13 +40,14 @@ describe('readiness — অ্যাডমিন নিরাপত্তা', (
     expect(r2.body.blockers.some((b) => b.includes('ডিফল্ট পাসওয়ার্ড'))).toBe(false);
   });
 
-  it('2FA-বিহীন অ্যাডমিন → (টেস্ট-পরিবেশে) সতর্কতা; 2FA চালু হলে নয়', async () => {
+  it('2FA-বিহীন অ্যাডমিন → (প্রোডাকশন বিল্ডে) ব্লকার; 2FA চালু হলে নয়', async () => {
     const { admin, client } = await signedInAdmin(db);
     const r1 = await client.get<Ready>('/api/admin/readiness');
-    expect(r1.body.warnings.some((w) => w.includes('2FA বন্ধ'))).toBe(true);
-    expect(r1.body.blockers.some((b) => b.includes('2FA বন্ধ'))).toBe(false);
+    expect(r1.body.blockers.some((b) => b.includes('2FA বন্ধ'))).toBe(true);
+    expect(r1.body.warnings.some((w) => w.includes('2FA বন্ধ'))).toBe(false);
     await db.user.update({ where: { id: admin.id }, data: { twoFactorEnabled: true, twoFactorSecret: 'x' } });
     const r2 = await client.get<Ready>('/api/admin/readiness');
+    expect(r2.body.blockers.some((b) => b.includes('2FA বন্ধ'))).toBe(false);
     expect(r2.body.warnings.some((w) => w.includes('2FA বন্ধ'))).toBe(false);
   });
 });

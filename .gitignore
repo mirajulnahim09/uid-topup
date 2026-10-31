@@ -1,5 +1,7 @@
 node_modules
 .next
+# Vitest harness production build (tests/globalSetup.ts, NEXT_DIST_DIR)
+/.next-test/
 out
 # ★★★ সিক্রেট — C1।
 #   আগে ছিল শুধু `.env` ও `.env*.local`। সেই দুটির কোনোটিই

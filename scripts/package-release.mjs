@@ -54,6 +54,7 @@ const has = (name) => process.argv.includes(`--${name}`);
 const DENY_DIRS = new Set([
   'node_modules',   // §2.6
   '.next',          // §2.6
+  '.next-test',     // Vitest harness build (tests/globalSetup.ts)
   '.git',           // recursion/ইতিহাস — zip-এ অর্থহীন
   'release',        // নিজের আউটপুট, নাহলে পুনরাবৃত্তি
   '.vercel',

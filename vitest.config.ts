@@ -43,7 +43,7 @@ export default defineConfig({
     },
     include: ['tests/**/*.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
-    // ★ একবারই `next dev` চালু হয় ও সব টেস্ট ফাইল সেটি ভাগ করে।
+    // ★ একবারই production build (`next build` + `next start`) চালু হয় ও সব টেস্ট ফাইল সেটি ভাগ করে।
     //   প্রতি ফাইলে সার্ভার চালু করলে রান কয়েক মিনিট দীর্ঘ হতো।
     globalSetup: ['./tests/globalSetup.ts'],
     pool: 'forks',
