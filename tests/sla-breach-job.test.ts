@@ -98,7 +98,12 @@ describe('OPS-02 — SLA cron', () => {
     expect(await slaNotes(admin.id)).toHaveLength(0);
     expect(await db.setting.findUnique({ where: { key: 'job_lastrun_sla-breach' } })).toBeNull();
 
-    await db.setting.update({ where: { key: 'job-lease:sla-breach' }, data: { value: `other|${Date.now() - 1}` } });
+    // Expired by a full minute, mirroring the +60 s active lease above. The lease
+    // is stamped with this process's clock and judged by the server process's
+    // clock; on this Windows host those disagreed by more than 1 ms often enough
+    // that `now - 1` read as still active (audit/runs/lease-probe.ts: 915/2000
+    // in one window at -1 ms, 0/3400 at -1000 ms).
+    await db.setting.update({ where: { key: 'job-lease:sla-breach' }, data: { value: `other|${Date.now() - 60_000}` } });
     const ran = await run();
     expect(ran.body.skipped).toBeUndefined();
     expect(await slaNotes(admin.id)).toHaveLength(1);
