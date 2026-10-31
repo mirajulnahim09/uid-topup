@@ -1,223 +1,18 @@
 {
  "hero:mobile:dark:lime": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 23.2,
-   "fontWeight": "800",
-   "worstRatio": 5.16,
-   "worstAt": {
-    "x": 306,
-    "y": 127,
-    "bg": "rgb(122,63,230)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.17,
-   "worstAt": {
-    "x": 158,
-    "y": 293,
-    "bg": "rgb(118,55,225)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 6.59,
-   "worstAt": {
-    "x": 27,
-    "y": 327,
-    "bg": "rgb(107,40,212)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 358,
-   "h": 355,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:mobile:dark:purple": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 23.2,
-   "fontWeight": "800",
-   "worstRatio": 5.16,
-   "worstAt": {
-    "x": 306,
-    "y": 127,
-    "bg": "rgb(122,63,230)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.17,
-   "worstAt": {
-    "x": 158,
-    "y": 293,
-    "bg": "rgb(118,55,225)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 6.59,
-   "worstAt": {
-    "x": 27,
-    "y": 327,
-    "bg": "rgb(107,40,212)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 358,
-   "h": 355,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:mobile:dark:blue": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 23.2,
-   "fontWeight": "800",
-   "worstRatio": 5.16,
-   "worstAt": {
-    "x": 306,
-    "y": 127,
-    "bg": "rgb(122,63,230)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.17,
-   "worstAt": {
-    "x": 158,
-    "y": 293,
-    "bg": "rgb(118,55,225)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 6.59,
-   "worstAt": {
-    "x": 27,
-    "y": 327,
-    "bg": "rgb(107,40,212)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 358,
-   "h": 355,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:mobile:dark:red": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 23.2,
-   "fontWeight": "800",
-   "worstRatio": 5.16,
-   "worstAt": {
-    "x": 306,
-    "y": 127,
-    "bg": "rgb(122,63,230)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.17,
-   "worstAt": {
-    "x": 158,
-    "y": 293,
-    "bg": "rgb(118,55,225)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 6.59,
-   "worstAt": {
-    "x": 27,
-    "y": 327,
-    "bg": "rgb(107,40,212)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 358,
-   "h": 355,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:mobile:dark:orange": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 23.2,
-   "fontWeight": "800",
-   "worstRatio": 5.16,
-   "worstAt": {
-    "x": 306,
-    "y": 127,
-    "bg": "rgb(122,63,230)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.17,
-   "worstAt": {
-    "x": 158,
-    "y": 293,
-    "bg": "rgb(118,55,225)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 6.59,
-   "worstAt": {
-    "x": 27,
-    "y": 327,
-    "bg": "rgb(107,40,212)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 358,
-   "h": 355,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "pairs:mobile:dark": {
   "সফল-ব্যাজের লেখা নিজের টিন্টে": {
@@ -277,229 +72,24 @@
    "text": "?"
   },
   "_feedDivider": {
-   "color": "rgba(255, 255, 255, 0.05)",
+   "color": "rgba(255, 255, 255, 0.09)",
    "width": "1px"
   }
  },
  "hero:mobile:light:lime": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 23.2,
-   "fontWeight": "800",
-   "worstRatio": 5.16,
-   "worstAt": {
-    "x": 306,
-    "y": 127,
-    "bg": "rgb(122,63,230)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.17,
-   "worstAt": {
-    "x": 158,
-    "y": 293,
-    "bg": "rgb(118,55,225)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 6.59,
-   "worstAt": {
-    "x": 27,
-    "y": 327,
-    "bg": "rgb(107,40,212)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 358,
-   "h": 355,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:mobile:light:purple": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 23.2,
-   "fontWeight": "800",
-   "worstRatio": 5.16,
-   "worstAt": {
-    "x": 306,
-    "y": 127,
-    "bg": "rgb(122,63,230)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.17,
-   "worstAt": {
-    "x": 158,
-    "y": 293,
-    "bg": "rgb(118,55,225)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 6.59,
-   "worstAt": {
-    "x": 27,
-    "y": 327,
-    "bg": "rgb(107,40,212)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 358,
-   "h": 355,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:mobile:light:blue": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 23.2,
-   "fontWeight": "800",
-   "worstRatio": 5.16,
-   "worstAt": {
-    "x": 306,
-    "y": 127,
-    "bg": "rgb(122,63,230)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.17,
-   "worstAt": {
-    "x": 158,
-    "y": 293,
-    "bg": "rgb(118,55,225)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 6.59,
-   "worstAt": {
-    "x": 27,
-    "y": 327,
-    "bg": "rgb(107,40,212)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 358,
-   "h": 355,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:mobile:light:red": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 23.2,
-   "fontWeight": "800",
-   "worstRatio": 5.16,
-   "worstAt": {
-    "x": 306,
-    "y": 127,
-    "bg": "rgb(122,63,230)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.17,
-   "worstAt": {
-    "x": 158,
-    "y": 293,
-    "bg": "rgb(118,55,225)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 6.59,
-   "worstAt": {
-    "x": 27,
-    "y": 327,
-    "bg": "rgb(107,40,212)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 358,
-   "h": 355,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:mobile:light:orange": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 23.2,
-   "fontWeight": "800",
-   "worstRatio": 5.16,
-   "worstAt": {
-    "x": 306,
-    "y": 127,
-    "bg": "rgb(122,63,230)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.17,
-   "worstAt": {
-    "x": 158,
-    "y": 293,
-    "bg": "rgb(118,55,225)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 6.59,
-   "worstAt": {
-    "x": 27,
-    "y": 327,
-    "bg": "rgb(107,40,212)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 358,
-   "h": 355,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "pairs:mobile:light": {
   "সফল-ব্যাজের লেখা নিজের টিন্টে": {
@@ -559,229 +149,24 @@
    "text": "?"
   },
   "_feedDivider": {
-   "color": "rgba(15, 23, 41, 0.06)",
+   "color": "rgba(15, 23, 41, 0.1)",
    "width": "1px"
   }
  },
  "hero:desktop:dark:lime": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 40,
-   "fontWeight": "800",
-   "worstRatio": 4.85,
-   "worstAt": {
-    "x": 550,
-    "y": 157,
-    "bg": "rgb(126,69,233)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.04,
-   "worstAt": {
-    "x": 361,
-    "y": 285,
-    "bg": "rgb(119,57,227)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 7.41,
-   "worstAt": {
-    "x": 41,
-    "y": 339,
-    "bg": "rgb(98,37,194)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 652,
-   "h": 376,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:desktop:dark:purple": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 40,
-   "fontWeight": "800",
-   "worstRatio": 4.85,
-   "worstAt": {
-    "x": 550,
-    "y": 157,
-    "bg": "rgb(126,69,233)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.04,
-   "worstAt": {
-    "x": 361,
-    "y": 285,
-    "bg": "rgb(119,57,227)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 7.41,
-   "worstAt": {
-    "x": 41,
-    "y": 339,
-    "bg": "rgb(98,37,194)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 652,
-   "h": 376,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:desktop:dark:blue": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 40,
-   "fontWeight": "800",
-   "worstRatio": 4.85,
-   "worstAt": {
-    "x": 550,
-    "y": 157,
-    "bg": "rgb(126,69,233)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.04,
-   "worstAt": {
-    "x": 361,
-    "y": 285,
-    "bg": "rgb(119,57,227)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 7.41,
-   "worstAt": {
-    "x": 41,
-    "y": 339,
-    "bg": "rgb(98,37,194)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 652,
-   "h": 376,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:desktop:dark:red": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 40,
-   "fontWeight": "800",
-   "worstRatio": 4.85,
-   "worstAt": {
-    "x": 550,
-    "y": 157,
-    "bg": "rgb(126,69,233)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.04,
-   "worstAt": {
-    "x": 361,
-    "y": 285,
-    "bg": "rgb(119,57,227)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 7.41,
-   "worstAt": {
-    "x": 41,
-    "y": 339,
-    "bg": "rgb(98,37,194)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 652,
-   "h": 376,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:desktop:dark:orange": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 40,
-   "fontWeight": "800",
-   "worstRatio": 4.85,
-   "worstAt": {
-    "x": 550,
-    "y": 157,
-    "bg": "rgb(126,69,233)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.04,
-   "worstAt": {
-    "x": 361,
-    "y": 285,
-    "bg": "rgb(119,57,227)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 7.41,
-   "worstAt": {
-    "x": 41,
-    "y": 339,
-    "bg": "rgb(98,37,194)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 652,
-   "h": 376,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "pairs:desktop:dark": {
   "সফল-ব্যাজের লেখা নিজের টিন্টে": {
@@ -841,229 +226,24 @@
    "text": "?"
   },
   "_feedDivider": {
-   "color": "rgba(255, 255, 255, 0.05)",
+   "color": "rgba(255, 255, 255, 0.09)",
    "width": "1px"
   }
  },
  "hero:desktop:light:lime": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 40,
-   "fontWeight": "800",
-   "worstRatio": 4.85,
-   "worstAt": {
-    "x": 550,
-    "y": 157,
-    "bg": "rgb(126,69,233)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.04,
-   "worstAt": {
-    "x": 361,
-    "y": 285,
-    "bg": "rgb(119,57,227)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 7.41,
-   "worstAt": {
-    "x": 41,
-    "y": 339,
-    "bg": "rgb(98,37,194)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 652,
-   "h": 376,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:desktop:light:purple": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 40,
-   "fontWeight": "800",
-   "worstRatio": 4.85,
-   "worstAt": {
-    "x": 550,
-    "y": 157,
-    "bg": "rgb(126,69,233)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.04,
-   "worstAt": {
-    "x": 361,
-    "y": 285,
-    "bg": "rgb(119,57,227)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 7.41,
-   "worstAt": {
-    "x": 41,
-    "y": 339,
-    "bg": "rgb(98,37,194)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 652,
-   "h": 376,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:desktop:light:blue": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 40,
-   "fontWeight": "800",
-   "worstRatio": 4.85,
-   "worstAt": {
-    "x": 550,
-    "y": 157,
-    "bg": "rgb(126,69,233)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.04,
-   "worstAt": {
-    "x": 361,
-    "y": 285,
-    "bg": "rgb(119,57,227)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 7.41,
-   "worstAt": {
-    "x": 41,
-    "y": 339,
-    "bg": "rgb(98,37,194)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 652,
-   "h": 376,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:desktop:light:red": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 40,
-   "fontWeight": "800",
-   "worstRatio": 4.85,
-   "worstAt": {
-    "x": 550,
-    "y": 157,
-    "bg": "rgb(126,69,233)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.04,
-   "worstAt": {
-    "x": 361,
-    "y": 285,
-    "bg": "rgb(119,57,227)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 7.41,
-   "worstAt": {
-    "x": 41,
-    "y": 339,
-    "bg": "rgb(98,37,194)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 652,
-   "h": 376,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "hero:desktop:light:orange": {
-  "heading": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 40,
-   "fontWeight": "800",
-   "worstRatio": 4.85,
-   "worstAt": {
-    "x": 550,
-    "y": 157,
-    "bg": "rgb(126,69,233)"
-   },
-   "text": "দ্রুততম রাস্তা"
-  },
-  "secondaryLink": {
-   "fg": "rgb(255, 255, 255)",
-   "fontSizePx": 13,
-   "fontWeight": "700",
-   "worstRatio": 6.04,
-   "worstAt": {
-    "x": 361,
-    "y": 285,
-    "bg": "rgb(119,57,227)"
-   },
-   "text": "কিভাবে অর্ডার করবেন"
-  },
-  "checkGlyph": {
-   "fg": "rgb(228, 255, 140)",
-   "fontSizePx": 12.5,
-   "fontWeight": "600",
-   "worstRatio": 7.41,
-   "worstAt": {
-    "x": 41,
-    "y": 339,
-    "bg": "rgb(98,37,194)"
-   },
-   "text": ""
-  },
-  "_hero": {
-   "w": 652,
-   "h": 376,
-   "deg": 120,
-   "stops": 3
-  }
+  "error": "হিরো-প্যানেল পাওয়া গেল না"
  },
  "pairs:desktop:light": {
   "সফল-ব্যাজের লেখা নিজের টিন্টে": {
@@ -1123,7 +303,7 @@
    "text": "?"
   },
   "_feedDivider": {
-   "color": "rgba(15, 23, 41, 0.06)",
+   "color": "rgba(15, 23, 41, 0.1)",
    "width": "1px"
   }
  }
