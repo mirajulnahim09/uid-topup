@@ -35,6 +35,10 @@ function check(name: string, ok: boolean, note = '') {
 const SCAN = `(() => {
   var visible = function (el) {
     var r = el.getBoundingClientRect(); var cs = getComputedStyle(el);
+    // content of a closed <details> (outside its <summary>) is not rendered: innerText is ""
+    // there although the box still reports a size, which read as an unnamed control
+    var closed = el.closest("details:not([open])");
+    if (closed && !el.closest("summary")) return false;
     return r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && cs.display !== "none";
   };
   var nameOf = function (el) {
