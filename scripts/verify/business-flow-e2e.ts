@@ -269,7 +269,9 @@ async function login(page: Page, email: string, password: string, want: string) 
 
     // ═══ ৭. অ্যাডমিন প্রক্রিয়াকরণ ═══
     console.log('\n── ৭. অ্যাডমিন প্রক্রিয়াকরণ ──');
-    await go(ap, `${BASE}/admin/orders`);
+    // ?order= pins the row: the default view lists the 100 oldest open orders,
+    // so on a DB with a large backlog the new order is not on page one.
+    await go(ap, order ? `${BASE}/admin/orders?order=${order.id}` : `${BASE}/admin/orders`);
     await settle(ap);
     /**
      * ⚠️ অর্ডার না থাকলে এই দাবিটি **ব্যর্থ হতে হবে**। আগে
