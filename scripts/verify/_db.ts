@@ -127,6 +127,27 @@ process.env.DATABASE_URL = URL_;
  */
 export const db = new PrismaClient({ datasources: { db: { url: URL_ } } });
 
+/**
+ * AdminLog is append-only in any DB that has migration 20261031130000 (a
+ * trigger refuses DELETE). Verify scripts clean up the rows they created, so
+ * their adminLog.deleteMany is re-run inside a transaction with the explicit
+ * purge switch the migration provides. Middleware (not $extends) keeps the
+ * plain PrismaClient type that scripts pass around as a TransactionClient.
+ */
+let purging = false;
+db.$use(async (params, next) => {
+  if (params.model !== 'AdminLog' || params.action !== 'deleteMany' || purging) return next(params);
+  purging = true;
+  try {
+    return await db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.allow_adminlog_purge', 'on', true)`;
+      return tx.adminLog.deleteMany(params.args);
+    });
+  } finally {
+    purging = false;
+  }
+});
+
 /** কোন ডাটাবেসে চলছে তা রানের মাথায় দেখানো (হোস্ট+নাম, শংসাপত্র নয়) */
 export function dbLabel(): string {
   try {

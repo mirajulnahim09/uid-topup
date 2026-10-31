@@ -198,7 +198,9 @@ async function main() {
     const bal1 = await balanceOf(cust.id);
     check('কাটা হয়েছে ৳৬৯.৩০', Math.abs(bal1 - (1000 - 69.3)) < 0.001, `৳${bal1}`);
     if (o1) {
-      await go(page, '/admin/orders');
+      // ?order= pins the row: the default view lists the 100 OLDEST open orders,
+      // so on a DB with a large backlog (sim) the new order is not on page one.
+      await go(page, `/admin/orders?order=${o1.id}`);
       const row = page.locator('tr').filter({ hasText: `#${o1.orderNo}` }).first();
       await row.getByRole('button', { name: /বাতিল/ }).click();
       await page.selectOption('#ord-reason', 'OUT_OF_STOCK');
@@ -228,7 +230,7 @@ async function main() {
       o2 = await db.order.findFirst({ where: { userId: cust.id, status: 'PENDING' }, orderBy: { createdAt: 'desc' } });
     }
     if (o2) {
-      await go(page, '/admin/orders');
+      await go(page, `/admin/orders?order=${o2.id}`);
       const row = page.locator('tr').filter({ hasText: `#${o2.orderNo}` }).first();
       await row.getByRole('button', { name: /সম্পন্ন/ }).click();
       const [cr2] = await Promise.all([waitApi(page, '/api/admin/order'), confirmDialog(page, 'নিশ্চিত')]);
