@@ -34,11 +34,10 @@ const LABEL: Record<string, { text: string; cls: string }> = {
 
 const ACTOR_LABEL: Record<string, string> = { ADMIN: 'অ্যাডমিন', CUSTOMER: 'গ্রাহক', SYSTEM: 'সিস্টেম' };
 
-export default async function AdminLogs({
-  searchParams,
-}: {
-  searchParams: { q?: string; actor?: string; action?: string; from?: string; to?: string };
+export default async function AdminLogs(props: {
+  searchParams: Promise<{ q?: string; actor?: string; action?: string; from?: string; to?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
   await requireAdminPage();
   const where = buildAuditWhere(searchParams);

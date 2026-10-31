@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/Toast';
 
@@ -27,9 +28,9 @@ export default function TicketReply({
     return (
       <p className="card p-4 text-sm" style={{ color: 'var(--v-mut)' }}>
         টিকিটটি বন্ধ। নতুন কিছু জানানোর থাকলে{' '}
-        <a href="/account/tickets" className="underline" style={{ color: 'var(--v-ice)' }}>
+        <Link href="/account/tickets" className="underline" style={{ color: 'var(--v-ice)' }}>
           নতুন টিকিট
-        </a>{' '}
+        </Link>{' '}
         খুলুন।
       </p>
     );

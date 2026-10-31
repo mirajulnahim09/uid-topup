@@ -51,11 +51,10 @@ export async function generateStaticParams() {
  *   সিদ্ধান্তটা এখনো স্ট্যাটাসে প্রভাব ফেলতে পারে। এতে ISR (revalidate
  *   = 60) বা পেজ ট্রানজিশনের কিছুই বদলাতে হয় না।
  */
-export async function generateMetadata({
-  params,
-}: {
-  params: { id: string };
+export async function generateMetadata(props: {
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
+  const params = await props.params;
   const id = Number(params.id);
   if (isNaN(id) || id < 1) notFound();
 
@@ -70,11 +69,10 @@ export async function generateMetadata({
   return { title: p.name, description: p.description ?? undefined };
 }
 
-export default async function ProductPage({
-  params,
-}: {
-  params: { id: string; slug: string };
+export default async function ProductPage(props: {
+  params: Promise<{ id: string; slug: string }>;
 }) {
+  const params = await props.params;
   const id = Number(params.id);
   if (isNaN(id) || id < 1) notFound();
 

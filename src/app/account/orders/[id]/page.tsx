@@ -18,13 +18,12 @@ import { slaFromSettings, slaExplanationForOrder } from '@/lib/sla';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'অর্ডার বিস্তারিত' };
 
-export default async function OrderDetail({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams: { placed?: string };
+export default async function OrderDetail(props: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ placed?: string }>;
 }) {
+  const params = await props.params;
+  const searchParams = await props.searchParams;
   // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)।
   //   নাম `viewer` — নিচে `me` নামটি রেফারেল-কোডের কোয়েরির জন্য আগেই ব্যবহৃত।
   const viewer = await requireUserPage();

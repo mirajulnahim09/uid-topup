@@ -45,7 +45,7 @@ export default async function Footer() {
   const siteName = brand.siteName;
 
   // ★ ফিচার ১০ — কুকি থেকে ভাষা (সার্ভার কম্পোনেন্ট, তাই translate() সরাসরি)
-  const locale = normalizeLocale(cookies().get(LOCALE_COOKIE)?.value);
+  const locale = normalizeLocale((await cookies()).get(LOCALE_COOKIE)?.value);
   const t = (k: string) => translate(locale, k);
 
   const COLS: { head: string; links: { href: string; label: string; prefetch?: boolean }[] }[] = [

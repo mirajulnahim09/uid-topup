@@ -74,7 +74,7 @@ export default function PWA() {
   const [show, setShow] = useState(false);
   // ★ একই সেশনে বন্ধ করার পর refired ইভেন্টে আর দেখাবে না
   const suppressedRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // ── সার্ভিস-ওয়ার্কার (শুধু প্রোডাকশন) ──
   useEffect(() => {

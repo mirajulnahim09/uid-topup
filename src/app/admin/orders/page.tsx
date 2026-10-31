@@ -13,11 +13,10 @@ const VALID = [
 ] as const;
 type S = (typeof VALID)[number];
 
-export default async function AdminOrders({
-  searchParams,
-}: {
-  searchParams: { status?: string; variant?: string; order?: string };
+export default async function AdminOrders(props: {
+  searchParams: Promise<{ status?: string; variant?: string; order?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   // ★ claim "আমার না অন্যের" — এটি বলতে হলে কে দেখছে জানা দরকার (3.7)
   // ★ SEC-01 — পাতার গার্ড: API-র `requireAdmin()` ব্যর্থতায় ApiError ছুড়ত
   //   (ত্রুটি-পর্দা); এটি একই DB-যাচাই (role + ban + epoch) করে লগইনে পাঠায়

@@ -26,11 +26,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: { q?: string };
+export default async function SearchPage(props: {
+  searchParams: Promise<{ q?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const raw = searchParams.q ?? '';
   const q = normalizeQuery(raw);
   const results = q ? await searchProducts(q) : [];

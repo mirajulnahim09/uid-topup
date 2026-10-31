@@ -32,11 +32,10 @@ const FILTERS: { key: string; label: string }[] = [
   { key: 'CLOSED', label: 'বন্ধ' },
 ];
 
-export default async function AdminTicketsPage({
-  searchParams,
-}: {
-  searchParams: { id?: string; status?: string };
+export default async function AdminTicketsPage(props: {
+  searchParams: Promise<{ id?: string; status?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড, থ্রেড ও সারি **দুই** শাখার আগে
   await requireAdminPage();
 

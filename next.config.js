@@ -22,15 +22,19 @@ const nextConfig = {
   // ★ Phase 3 — প্রোডাকশন সোর্স-ম্যাপ বন্ধ: ক্লায়েন্ট বান্ডল ছোট ও
   //   সোর্স কোড কম উন্মুক্ত। ডিবাগ দরকার হলে সাময়িক true করা যায়।
   productionBrowserSourceMaps: false,
+  // Pin the project root. Next 15 otherwise infers it from the nearest
+  // lockfile, and a stray lockfile in a parent directory moves it outside
+  // the project (wrong output file tracing).
+  outputFileTracingRoot: __dirname,
   experimental: {
     // ★ Phase 3 — বড় লাইব্রেরির শুধু ব্যবহৃত অংশ বান্ডলে ঢোকে
     //   (barrel-file tree-shaking)। framer-motion/lucide/date-fns এর
     //   মতো প্যাকেজে এটি উল্লেখযোগ্য বান্ডল-হ্রাস দেয়। সম্পূর্ণ নিরাপদ —
     //   শুধু import-রেজলিউশন বদলায়, আচরণ নয়।
     optimizePackageImports: ['framer-motion'],
-    // ★ SRE — `src/instrumentation.ts` চালু করে (Next 14-এ এখনো experimental)।
-    //   সার্ভার-প্রসেসে একবার: unhandled rejection/exception → errorReporter।
-    instrumentationHook: true,
+    // `src/instrumentation.ts` (unhandled rejection/exception → errorReporter)
+    // is loaded by default since Next 15; the old `instrumentationHook` flag
+    // was removed.
   },
   /**
    * ★★★ ব্যবহারকারীর আপলোড করা ফাইলে নিরাপত্তা-হেডার।

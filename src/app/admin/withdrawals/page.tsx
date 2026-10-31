@@ -23,11 +23,10 @@ const FILTERS = [
  *   তবুও দেখায়, কারণ বন্ধ করার আগে জমা পড়া অনুরোধগুলোর নিষ্পত্তি
  *   করতেই হবে (নাহলে গ্রাহকের টাকা কাটা অবস্থায় আটকে থাকত)।
  */
-export default async function AdminWithdrawalsPage({
-  searchParams,
-}: {
-  searchParams: { status?: string };
+export default async function AdminWithdrawalsPage(props: {
+  searchParams: Promise<{ status?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
   await requireAdminPage();
   const raw = searchParams.status;

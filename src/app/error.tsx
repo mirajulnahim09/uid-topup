@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { logger } from '@/lib/logger';
 
 /**
@@ -41,7 +42,7 @@ export default function ErrorPage({
         )}
         <div className="mt-6 flex flex-wrap justify-center gap-2.5">
           <button onClick={reset} className="btn-primary px-6">আবার চেষ্টা করুন</button>
-          <a href="/" className="btn-ghost px-6">হোমে যান</a>
+          <Link href="/" className="btn-ghost px-6">হোমে যান</Link>
         </div>
       </div>
     </div>

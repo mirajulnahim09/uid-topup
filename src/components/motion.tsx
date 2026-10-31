@@ -75,7 +75,7 @@ export function CountUp({
   className?: string;
 }) {
   const [display, setDisplay] = useState(value);
-  const raf = useRef<number>();
+  const raf = useRef<number | undefined>(undefined);
   const from = useRef(value);
 
   useEffect(() => {

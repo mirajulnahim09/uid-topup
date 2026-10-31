@@ -103,7 +103,7 @@ const FONT_VARS = `${fontHind.variable} ${fontAnek.variable} ${fontUnbounded.var
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // ★ ফিচার ১০ — কুকি থেকে ভাষা পড়ি (ডিফল্ট বাংলা)
-  const locale = normalizeLocale(cookies().get(LOCALE_COOKIE)?.value);
+  const locale = normalizeLocale((await cookies()).get(LOCALE_COOKIE)?.value);
 
 
   // ★ বুট-পর্দার লোগো — সার্ভারেই রেজলভ করা হয়, কারণ এই মার্কআপ

@@ -25,10 +25,11 @@ const replySchema = z.object({
   body: z.string().trim().min(1, 'বার্তা লিখুন').max(TICKET_BODY_MAX),
 });
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const user = await requireUser();
-    const thread = await getThread(params.id, user.id);
+    const thread = await getThread(id, user.id);
     if (!thread) throw new ApiError('টিকিট পাওয়া যায়নি', 404);
     return Response.json({ ticket: thread });
   } catch (e) {
@@ -36,8 +37,9 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   }
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const user = await requireUser();
 
     const rl = await rateLimit(`ticket:reply:${user.id}`, LIMITS.ticketReply.limit, LIMITS.ticketReply.window);
@@ -48,7 +50,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     try {
       const r = await replyToTicket({
-        ticketId: params.id,
+        ticketId: id,
         authorId: user.id,
         authorName: user.name,
         isStaff: false,
@@ -69,10 +71,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 }
 
-export async function PATCH(_req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const user = await requireUser();
-    const r = await closeTicket({ ticketId: params.id, byName: user.name, ownerId: user.id });
+    const r = await closeTicket({ ticketId: id, byName: user.name, ownerId: user.id });
     if (!r) throw new ApiError('টিকিট পাওয়া যায়নি', 404);
     return Response.json({ success: true });
   } catch (e) {

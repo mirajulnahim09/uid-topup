@@ -18,11 +18,10 @@ const TABS: Array<{ key: string; label: string; href: string }> = [
   { key: 'REJECTED', label: 'বাতিল', href: '/admin/deposits?status=REJECTED' },
 ];
 
-export default async function AdminDeposits({
-  searchParams,
-}: {
-  searchParams: { status?: string };
+export default async function AdminDeposits(props: {
+  searchParams: Promise<{ status?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
   await requireAdminPage();
   const s = searchParams.status;

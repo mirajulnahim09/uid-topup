@@ -16,7 +16,10 @@ import { requireAdminPage } from '@/lib/pageGuard';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'কাস্টমার বিস্তারিত' };
 
-export default async function CustomerDetail({ params }: { params: { id: string } }) {
+export default async function CustomerDetail(props: {
+  params: Promise<{ id: string }>;
+}) {
+  const params = await props.params;
   // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
   await requireAdminPage();
   const user = await prisma.user.findUnique({

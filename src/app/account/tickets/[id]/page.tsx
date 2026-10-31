@@ -18,7 +18,10 @@ export const metadata = {
  *   ⚠️ মালিকানা যাচাই `getThread(id, userId)` করে — অন্যের থ্রেড
  *   চাইলে `null` ফেরে ও ৪০৪। "নেই" আর "আপনার নয়" আলাদা করা হয় না।
  */
-export default async function TicketThreadPage({ params }: { params: { id: string } }) {
+export default async function TicketThreadPage(props: {
+  params: Promise<{ id: string }>;
+}) {
+  const params = await props.params;
   // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)
   const me = await requireUserPage();
 

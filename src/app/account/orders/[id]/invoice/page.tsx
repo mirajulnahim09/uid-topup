@@ -54,7 +54,10 @@ const STATUS_BN: Record<string, string> = {
   FAILED: 'সম্পন্ন হয়নি',
 };
 
-export default async function InvoicePage({ params }: { params: { id: string } }) {
+export default async function InvoicePage(props: {
+  params: Promise<{ id: string }>;
+}) {
+  const params = await props.params;
   // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)।
   //   নাম `viewer` — নিচে `me` নামটি ক্রেতার তথ্যের কোয়েরির জন্য আগেই ব্যবহৃত।
   const viewer = await requireUserPage();

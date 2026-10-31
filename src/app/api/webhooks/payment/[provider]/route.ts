@@ -30,9 +30,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(
   req: Request,
-  { params }: { params: { provider: string } }
+  { params }: { params: Promise<{ provider: string }> }
 ) {
-  const providerId = params.provider;
+  const providerId = (await params).provider;
 
   try {
     const provider = getProvider(providerId);

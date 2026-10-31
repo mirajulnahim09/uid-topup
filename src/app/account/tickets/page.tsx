@@ -21,11 +21,10 @@ const STATUS_BN: Record<string, string> = {
   CLOSED: 'বন্ধ',
 };
 
-export default async function TicketsPage({
-  searchParams,
-}: {
-  searchParams: { order?: string };
+export default async function TicketsPage(props: {
+  searchParams: Promise<{ order?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)
   const me = await requireUserPage();
 

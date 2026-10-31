@@ -86,7 +86,7 @@ export async function POST(req: Request) {
     let keptSignedIn = false;
     try {
       const secret = process.env.NEXTAUTH_SECRET!;
-      const jar = cookies();
+      const jar = await cookies();
       const raw = jar.get(SESSION_COOKIE_NAME)?.value;
       const token = raw ? await decode({ token: raw, secret }) : null;
       if (token && token.id === user.id) {

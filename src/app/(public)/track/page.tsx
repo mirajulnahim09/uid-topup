@@ -5,11 +5,10 @@ export const metadata = {
   description: 'অর্ডার নাম্বার ও ফোন নাম্বার দিয়ে অর্ডারের সর্বশেষ অবস্থা দেখুন।',
 };
 
-export default function TrackPage({
-  searchParams,
-}: {
-  searchParams: { t?: string };
+export default async function TrackPage(props: {
+  searchParams: Promise<{ t?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   return (
     <div className="mx-auto max-w-2xl page-x page-y">
       <div className="mb-8">
