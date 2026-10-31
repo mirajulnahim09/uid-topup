@@ -193,14 +193,20 @@ CI-র `migrate-guard` জব কেবল **ধরিয়ে দেয়** (
 **সঠিক ক্রম (প্রতিবার schema বদলালে):**
 
 ```bash
-# ১. লাইভ DB-তে মাইগ্রেশন (আপনার মেশিন থেকে, .env-এ লাইভ DATABASE_URL **ও DIRECT_URL** সহ)
-npm run db:migrate:deploy      # = prisma migrate deploy
+# ১. লাইভ DB-তে মাইগ্রেশন — কেবল GitHub Actions থেকে (O-15):
+#    Actions → "Production migration (manual)" → main → MIGRATE-PRODUCTION →
+#    production environment-এর reviewer অনুমোদন → status (বাকি নামগুলো) → migrate deploy → status
+#    ⚠️ আপনার মেশিন থেকে নয়: `.env`-এ লাইভ URL রাখা হয় না, আর `npm run db:migrate:deploy`
+#       localhost ছাড়া অন্য হোস্ট পেলে প্রিজমা চালুর আগেই থামে (scripts/assert-local-db.mjs)।
 
-# ২. যাচাই — সব প্রয়োগ হয়েছে ও drift নেই
-npm run verify:migrate-status
+# ২. যাচাই — সব প্রয়োগ হয়েছে ও drift নেই: CI-র `migrate-guard` জব (দৈনিক ও main-এ push-এ)
 
 # ৩. তারপর অ্যাপ deploy (Vercel)
 ```
+
+একবারের সেটআপ: GitHub → Settings → Environments → `production` → **Required reviewers**, আর environment
+secret `PRODUCTION_DATABASE_URL` (ঐচ্ছিক `PRODUCTION_DIRECT_URL`)। Workflow কেবল `prisma migrate deploy` চালায় —
+`migrate reset`/`migrate dev`/`db push` কখনো নয়; লগে ডাটাবেস হোস্ট ঢাকা থাকে।
 
 **পুরনো ডাটাবেসে প্রথমবার:** ডাটাবেসটি আগে `db push` দিয়ে তৈরি হলে একবার
 baseline করতে হয় (`prisma migrate resolve --applied <migration>`), নইলে

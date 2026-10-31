@@ -17,7 +17,7 @@ cp .env.example .env
 #    ন্যূনতম দরকার: DATABASE_URL, NEXTAUTH_SECRET
 
 # 3. ডাটাবেস প্রস্তুত (প্রথমবার)
-npm run db:migrate:deploy   # মাইগ্রেশন প্রয়োগ (নিচে "Database" দেখুন)
+npm run db:migrate:deploy   # লোকাল DB-তে মাইগ্রেশন প্রয়োগ (কেবল localhost — নিচে "Database" দেখুন)
 npm run db:seed             # প্রাথমিক ডেটা (অ্যাডমিন, ক্যাটাগরি, সেটিংস)
 
 # 4. ডেভ সার্ভার
@@ -51,10 +51,26 @@ npm run dev                 # http://localhost:3000
 এই প্রজেক্ট এখন **versioned migration** ব্যবহার করে (`prisma db push` নয়)।
 
 ```bash
-npm run db:migrate            # ডেভ: schema বদলে নতুন migration তৈরি + প্রয়োগ
-npm run db:migrate:deploy     # প্রোড: বিদ্যমান migration প্রয়োগ (নতুন তৈরি করে না)
-npm run db:migrate:status     # কোন migration বাকি আছে দেখুন
+npm run db:migrate            # ডেভ: schema বদলে নতুন migration তৈরি + প্রয়োগ (কেবল localhost)
+npm run db:migrate:deploy     # লোকাল DB-তে বিদ্যমান migration প্রয়োগ (কেবল localhost)
+npm run db:migrate:status     # লোকাল DB-তে কোন migration বাকি আছে দেখুন (কেবল localhost)
 ```
+
+### ⚠️ প্রোডাকশন মাইগ্রেশন — কেবল GitHub Actions (O-15, মালিকের সিদ্ধান্ত ২০২৬-১০-৩১)
+
+সব `db:*` স্ক্রিপ্ট আগে `scripts/assert-local-db.mjs` চালায়: shell বা কোনো `.env*`-এ localhost ছাড়া অন্য
+হোস্টের ডাটাবেস URL থাকলে প্রিজমা চালুর **আগেই** থামে। ফলে এই মেশিন থেকে প্রোডাকশনে মাইগ্রেশন চালানো যায় না,
+আর `.env`-এ প্রোডাকশন URL রাখা হয় না।
+
+প্রোডাকশনে মাইগ্রেশনের **একমাত্র** পথ: GitHub → Actions → **Production migration (manual)** (`.github/workflows/migrate-production.yml`)
+
+1. `main` বেছে "Run workflow", ঘরে লিখুন `MIGRATE-PRODUCTION`।
+2. `production` environment-এর reviewer অনুমোদন দিলে তবেই জব শুরু হয় ও গোপন মান পায়।
+3. জব আগে `prisma migrate status` চালিয়ে বাকি migration-এর নাম দেখায় (Summary-তেও), তারপর কেবল
+   `prisma migrate deploy`, শেষে আবার status — পরিষ্কার না হলে লাল। `migrate reset`/`migrate dev`/`db push` কখনো নয়।
+
+একবারের সেটআপ (GitHub → Settings → Environments → `production`): **Required reviewers** চালু করুন,
+আর environment secret হিসেবে `PRODUCTION_DATABASE_URL` (ও ঐচ্ছিক `PRODUCTION_DIRECT_URL` — Neon non-pooler) রাখুন।
 
 ### ⚠️ বিদ্যমান (production) DB-তে প্রথমবার — Baseline
 
@@ -67,9 +83,11 @@ npx prisma migrate resolve --applied 20260728034227_review_photo_url
 npx prisma migrate status    # যাচাই: "Database schema is up to date"
 ```
 
-এরপর থেকে স্বাভাবিক `db:migrate:deploy` কাজ করবে। বিস্তারিত: `MANUAL_PRO.md → Migration Baseline`।
+এরপর থেকে স্বাভাবিক `migrate deploy` কাজ করবে। বিস্তারিত: `MANUAL_PRO.md → Migration Baseline`।
+⚠️ প্রোডাকশনে baseline (`migrate resolve`) এই অনুমোদিত পথের অংশ নয় — দরকার হলে মালিকের আলাদা সিদ্ধান্ত লাগবে।
 
-নতুন খালি DB-তে (যেমন নতুন Neon branch) শুধু `db:migrate:deploy` চালালেই পুরো schema তৈরি হবে।
+নতুন খালি DB-তে (যেমন নতুন Neon branch) শুধু `migrate deploy` চালালেই পুরো schema তৈরি হবে
+(লোকালে `npm run db:migrate:deploy`; প্রোডাকশনে উপরের workflow)।
 
 ---
 
