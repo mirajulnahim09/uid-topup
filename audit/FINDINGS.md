@@ -58,7 +58,8 @@ marked otherwise.
 
 ## Open (not fixed) — see OPEN_RISKS.md
 - O-01 Next.js 14.2.35 critical advisories (major upgrade needed).
-- O-02 `@vercel/blob`/`undici`/`zod` advisories (minor bump / zod 4 major).
+- O-02 `@vercel/blob`/`undici`/`zod` advisories (minor bump / zod 4 major). Blob 2.8.2 + undici 6.29.1 applied; zod part still open.
+- O-14 Existing intermittent Postgres deadlock on the deposit-approve path (`src/lib/referral.ts:44` `FOR UPDATE` on the depositor row after `creditWallet` updated it vs. a concurrent FK insert holding `KEY SHARE` on the same user). Seen once in tests/deep-audit-d2-d4 D3 (deadlocksΔ=1, 0 × 5xx, ledger drift 0); 0 in 6 isolated re-runs and the next full run. Not caused by the Blob update; locking logic left unchanged.
 - O-03 Dev DB migration history behind (schema pushed; history missing 2 migrations).
 - O-04 Google sign-in refusal for 2FA accounts shows NextAuth's generic error page (no friendly message).
 - O-05 EXIF metadata kept on images uploaded straight to the API (UI path re-encodes and strips it).

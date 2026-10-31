@@ -22,7 +22,13 @@ in docker). Logs: `audit/baseline/` (before any change) and `audit/runs/` (after
 | `prisma validate` / drift | — | no drift between 18 migrations and schema.prisma (`migrate diff --exit-code`) |
 | Dead code | — | scripts/audit-deadcode.ts: 12 hits → 4 proved dead, 8 false positives (FINDINGS) |
 | Circular imports | **not run** (no madge/dpdm installed; adding one is a new dependency) | — |
-| `npm audit --omit=dev` | 1 critical (next), 6 high, 4 low | unchanged — needs owner decisions (OPEN_RISKS O-01/O-02) |
+| `npm audit --omit=dev` | 1 critical (next), 6 high, 4 low | after Blob 2.8.2 (owner-approved): 1 critical (next), 5 high (zod ×2 paths, @vercel/blob→oidc→cli-config chain via zod, source-map-js), 4 low — undici cleared |
+
+### Blob update (2026-10-31, owner-approved)
+Blob tests (blob-driver-mock, blob-host, upload-url, upload-key-entropy, local-storage-traversal, test-env-isolation): 39/39.
+generate / typecheck / lint / build: exit 0.
+Full suite run 1: 629/630 — tests/deep-audit-d2-d4 D3 deadlocksΔ=1 (existing defect O-14, not the update).
+D3 alone ×6: deadlocksΔ=0 every time. Full suite run 2: 630/630 (543 s), D3 deadlocksΔ=0.
 
 ## 2–9. Vitest (unit + integration over HTTP, real DB)
 | Run | Files | Tests | Result |
