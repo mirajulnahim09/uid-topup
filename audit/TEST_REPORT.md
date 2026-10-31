@@ -120,7 +120,29 @@ Covered by existing tests (backup-restore-security, backup-stream: signed backup
 ## 20. i18n — tests/i18n-parity.test.ts 3/3 (bn = en key set, no empty values, every `t('…')` key exists).
 
 ## Coverage
-Line/branch coverage was **not measured** (needs `@vitest/coverage-v8`, a new devDependency, plus server-side instrumentation because routes run in `next dev`). Decision requested in OPEN_RISKS §2.
+`@vitest/coverage-v8@2.1.9` (owner-approved, pinned to the installed Vitest). `npm run test:coverage` writes text + HTML (`coverage/index.html`) + `coverage-summary.json`; `npm test` is unchanged (coverage off by default).
+
+Run 2026-10-31: 83 files, **630/630 passed** (577 s).
+
+| Metric | Covered |
+|---|---|
+| Statements | 7.42% (3730/50205) |
+| Branches | 50.55% (683/1351) |
+| Functions | 28.85% (215/745) |
+| Lines | 7.42% (3730/50205) |
+
+**How to read this.** V8 coverage sees only code executed inside the Vitest process. Route handlers, pages and the services they call run in the separate `next dev` process that tests reach over HTTP, so they count as 0% even when many tests drive them (e.g. `src/lib/services/order.ts` 0%, yet 25 test files call `/api/order`). Branch % is computed only over files that were loaded, so it overstates the whole. The numbers are a floor, not a measure of how well the money paths are tested.
+
+In-process coverage of critical modules (line %):
+- 100: services/wallet.ts, authCookies.ts, totpReplay.ts
+- 80–99: directPayExpiry.ts 96, payments/providers/stripe.ts 94, services/withdrawal.ts 88, payments/providers/sslcommerz.ts 82
+- 50–79: guard.ts 64, payments/config.ts 61, totp.ts 59, referral.ts 50 (branches 14%)
+- below 50: auth.ts 34 (branches 35%), otp/core.ts 40, payments/registry.ts 41, payments/webhookSignature.ts 38, money.ts 36, otp/channels.ts 33, sessionRevocation.ts 3
+- 0 in-process (exercised only over HTTP): services/order.ts, services/voucherCodes.ts, coupon.ts, depositCap.ts, pageGuard.ts, cronAuth.ts, reseller/readGuard.ts, every `src/app/api/**` route, all deposit/withdraw/2FA UI components
+
+HTTP reach of critical routes (test files that call the route): /api/order 25, nextauth 16, /api/deposit 9, /api/admin/deposit 9, /api/admin/order 8, /api/order/direct 5, /api/admin/order/refund 5, /api/register 4, /api/auth/reset 4, /api/reseller/orders 4, webhooks/payment 3, /api/account/2fa 3, /api/order/confirm 3, /api/cron/sla-breach 3, /api/auth/otp/send 3, /api/account/withdraw 2, /api/admin/withdrawals 2, /api/account/password 2, admin/order/bulk 1, admin/order/claim 1, /api/upload 1, /api/auth/2fa-check 1, /api/auth/forgot 1, /api/deposit/check-trx 1. **Not called by any Vitest file:** /api/admin/upload (covered by scripts/verify/upload-security on the rig), /api/auth/login-status, /api/cron/telegram-scheduler (scheduler lease logic tested in-process).
+
+Gaps worth a test (not written in this change): referral.ts branches (14%: bonus paid / too small / banned referrer / no referrer), auth.ts authorize/signIn branches beyond the 2FA and ban cases, sessionRevocation.ts, the three routes above. Real server-side coverage would need `NODE_V8_COVERAGE` on the `next dev` process plus source-map remapping of webpack output — not done.
 
 ## Suites not usable on the sim rig (and why)
 - order-price-lock, ban-revocation, isr-no-user-leak, security-probes (reset step): mint sessions/tokens with `.env`'s NEXTAUTH_SECRET; the sim rig uses its own random secret → 401. All four passed on the dev rig earlier in this session.
