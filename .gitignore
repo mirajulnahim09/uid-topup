@@ -47,6 +47,9 @@ ws.txt
 #   test-flaky.mjs বহু রানের ফল জড়ো করতে এটি পড়ে। প্রতি রানে নতুন।
 .vitest-results.json
 
+# coverage reports from `npm run test:coverage` (regenerated each run)
+/coverage/
+
 # ★ scripts/package-release.mjs এর আউটপুট zip — বিতরণের জিনিস, সোর্স নয়
 release/
 

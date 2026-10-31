@@ -60,6 +60,7 @@ const DENY_DIRS = new Set([
   '.turbo',
   '.certs',         // local TLS cert + private key (prod-https.mjs)
   '.sim',           // simulation scratch output
+  'coverage',       // generated coverage reports
 ]);
 
 /** একটি ফাইল/ফোল্ডার বাদ যাবে কিনা (রুট-সাপেক্ষ পথ, `/` বিভাজক) */

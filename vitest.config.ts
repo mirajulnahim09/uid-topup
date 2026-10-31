@@ -54,6 +54,20 @@ export default defineConfig({
     testTimeout: 60_000,
     hookTimeout: 120_000,
     reporters: 'verbose',
+    /**
+     * Coverage is off unless `--coverage` is passed (`npm run test:coverage`).
+     * It measures only code that runs inside the Vitest process. Route
+     * handlers reached over HTTP run in the separate `next dev` process and
+     * are not instrumented, so their coverage reads as 0 here.
+     */
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'json-summary'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.d.ts'],
+      all: true,
+    },
   },
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
