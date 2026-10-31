@@ -86,6 +86,7 @@ async function call(ctx: APIRequestContext, method: string, p: string): Promise<
 }
 
 const ADMIN_PREFIX = '/api/admin/';
+const SESSION_KILLER = '/api/account/sessions/revoke-all';
 const CRON_PREFIX = '/api/cron/';
 const PUBLIC = new Set([
   '/api/health', '/api/search', '/api/track', '/api/register',
@@ -99,7 +100,7 @@ async function main() {
   console.log(`  রুট: ${list.length} · মেথড-সমন্বয়: ${list.reduce((n, r) => n + r.methods.length, 0)}`);
 
   const anon = await ctxFor(null);
-  const cust = await ctxFor(CUSTOMER);
+  let cust = await ctxFor(CUSTOMER);
   const admin = await ctxFor(ADMIN);
   const rows: Array<{ path: string; method: string; anon: number; customer: number; admin: number }> = [];
 
@@ -107,6 +108,13 @@ async function main() {
     for (const m of r.methods) {
       const a = await call(anon, m, r.path);
       const c = await call(cust, m, r.path);
+      // revoke-all bumps the customer's sessionEpoch (200 even with an empty body),
+      // which silently turned every later customer probe into an anonymous one.
+      // Log in again so the customer column keeps measuring a live session.
+      if (r.path === SESSION_KILLER && c === 200) {
+        await cust.dispose();
+        cust = await ctxFor(CUSTOMER);
+      }
       // ⚠️ অ্যাডমিন-কল কেবল নিরাপদ মেথডে (GET) — নাহলে খালি বডিতেও কিছু বদলাতে পারে
       const ad = m === 'GET' && !r.path.startsWith(CRON_PREFIX) ? await call(admin, m, r.path) : -1;
       rows.push({ path: r.path, method: m, anon: a, customer: c, admin: ad });
@@ -114,7 +122,10 @@ async function main() {
       const label = `${m} ${r.path}`;
       if (r.path.startsWith(ADMIN_PREFIX)) {
         check(`${label} — অতিথি আটকায়`, a >= 401 && a < 500, `HTTP ${a}`);
-        check(`${label} — গ্রাহক আটকায়`, c >= 401 && c < 500, `HTTP ${c}`);
+        // 403, not 401: proves the customer session was live and the role was refused
+        // tick GET answers 405 to every non-cron caller (admin too): still a refusal
+        const refused = c === 403 || (r.path.endsWith('/scheduler/tick') && m === 'GET' && c === 405);
+        check(`${label} — গ্রাহক আটকায় (403, সেশন জীবিত)`, refused, `HTTP ${c}`);
       } else if (r.path.startsWith(CRON_PREFIX)) {
         check(`${label} — সিক্রেট ছাড়া ৪০১`, a === 401, `HTTP ${a}`);
         check(`${label} — অ্যাডমিন সেশনেও ৪০১`, c === 401, `HTTP ${c}`);
@@ -124,6 +135,7 @@ async function main() {
         check(`${label} — পাবলিক, ৫xx নয়`, a > 0 && a < 500, `HTTP ${a}`);
       } else {
         check(`${label} — অতিথি আটকায়`, a >= 401 && a < 500, `HTTP ${a}`);
+        if (r.path !== SESSION_KILLER) check(`${label} — গ্রাহকের সেশন জীবিত (৪০১ নয়)`, c !== 401, `HTTP ${c}`);
       }
       /**
        * ★ `/api/stream` ফিচার-বন্ধ অবস্থায় ইচ্ছাকৃতভাবে **৫০৩ + `{enabled:false}`**
@@ -131,7 +143,9 @@ async function main() {
        *   বন্ধ" সংকেত; তাই কেবল এই পথটিতে ৫০৩ ছাড় পায় (অন্য কোনো ৫xx নয়)।
        */
       const streamOff = r.path === '/api/stream' && c === 503;
-      if (a >= 500 || (c >= 500 && !streamOff)) check(`${label} — ৫xx নেই`, false, `অতিথি ${a} · গ্রাহক ${c}`);
+      // withdraw OTP request fails closed with 503 when no OTP channel is configured (isolated rigs)
+      const otpOff = r.path === '/api/account/withdraw' && m === 'PUT' && c === 503;
+      if (a >= 500 || (c >= 500 && !streamOff && !otpOff)) check(`${label} — ৫xx নেই`, false, `অতিথি ${a} · গ্রাহক ${c}`);
     }
   }
 
