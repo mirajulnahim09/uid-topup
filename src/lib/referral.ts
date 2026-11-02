@@ -41,7 +41,14 @@ export async function payReferralBonus(
   //   UPDATE-lock এর উপর (§8 এর "সুস্পষ্ট FOR UPDATE" রীতির নিঃশব্দ ব্যতিক্রম);
   //   এখন সুস্পষ্ট — Variant/User/Coupon এর মতোই। রো ইতিমধ্যে লক থাকলেও
   //   পুনরায় লক নিরাপদ, আর lock-ক্রম অপরিবর্তিত (depositor → referrer)।
-  await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+  // ★ O-14 — `FOR NO KEY UPDATE`, `FOR UPDATE` নয়। দুটি NO KEY UPDATE
+  //   পরস্পরকে আটকায়, তাই flag পড়া→লেখা আগের মতোই সিরিয়াল; কিন্তু এটি
+  //   সমান্তরাল FK-ইনসার্টের (Notification/Order/LedgerEntry → User)
+  //   `FOR KEY SHARE`-এর সাথে সংঘাত করে না — FOR UPDATE করত, আর তাতে
+  //   deposit APPROVE বনাম notification-ইনসার্টে deadlock হতো।
+  //   flag-আপডেট নিজেও non-key কলাম, তাই এর চেয়ে শক্ত লক লাগে না।
+  //   টেস্ট: tests/referral-lock-o14.test.ts
+  await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR NO KEY UPDATE`;
 
   const user = await tx.user.findUnique({
     where: { id: userId },
