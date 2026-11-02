@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/assert-local-db.mjs dev && next dev",
-    "build": "node scripts/assert-local-db.mjs build && prisma generate && next build",
+    "build": "node scripts/assert-local-db.mjs build && node scripts/assert-preview-db.mjs && prisma generate && next build",
     "start": "node scripts/assert-local-db.mjs start && next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",

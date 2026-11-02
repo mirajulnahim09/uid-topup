@@ -121,40 +121,53 @@ jobs:
   #   ⚠️ গোপন মান অনুপস্থিত থাকলে job **ব্যর্থ হয়**, skip নয় —
   #   নীরব skip মানেই সেই ধারণা ("নিশ্চয়ই প্রয়োগ হয়েছে") যা প্রথমবার
   #   বাগটি তৈরি করেছিল।
+  #
+  #   ★ O-15 — ক্রেডেনশিয়াল-সীমা (GitHub নিজে প্রয়োগ করে, YAML নয়):
+  #   · কেবল `main` — job-এর `if` ছাড়াও `production-db-readonly`
+  #     environment-এর deployment-branch policy = main। অন্য ব্রাঞ্চে
+  #     (workflow_dispatch বা push) এই YAML বদলালেও environment-এর
+  #     secret মেলে না।
+  #   · **read-only** রোল: `PRODUCTION_DATABASE_URL_READONLY` (+ ঐচ্ছিক
+  #     `PRODUCTION_DIRECT_URL_READONLY`)। `migrate status` ও `migrate diff`
+  #     কেবল পড়ে; এই job কখনো মাইগ্রেট করে না — সেটি কেবল
+  #     migrate-production.yml (`production-db`, reviewer-অনুমোদন)।
+  #   · secret কেবল শেষ ধাপের `env`-এ — `npm ci` (`--ignore-scripts`)
+  #     ও `prisma generate` কোনো ক্রেডেনশিয়াল দেখে না।
   # ═══════════════════════════════════════════════════════════
   migrate-guard:
     name: Deployed DB matches schema
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    environment: production-db-readonly
 
     env:
-      MIGRATE_CHECK_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-      # ★ schema-র `directUrl` — Neon-এর non-pooler URL (ঐচ্ছিক; না থাকলে উপরেরটিই)
-      MIGRATE_CHECK_DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
       NEXTAUTH_SECRET: "ci-only-secret-at-least-24-characters-long"
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npx prisma generate
 
-      - name: Secret present?
+      - name: Assert every migration is applied and no drift (read-only role)
+        env:
+          MIGRATE_CHECK_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL_READONLY }}
+          # ★ schema-র `directUrl` — Neon-এর non-pooler URL (ঐচ্ছিক; না থাকলে উপরেরটিই)
+          MIGRATE_CHECK_DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL_READONLY }}
         run: |
           if [ -z "$MIGRATE_CHECK_DATABASE_URL" ]; then
-            echo "::error::PRODUCTION_DATABASE_URL secret is not set."
-            echo "Add it under Settings → Secrets and variables → Actions."
+            echo "::error::PRODUCTION_DATABASE_URL_READONLY is not set in the production-db-readonly environment."
             echo "Without it this guard cannot check the deployed database,"
             echo "and a schema/code mismatch will surface as a 500 in the browser."
             exit 1
           fi
-
-      - name: Assert every migration is applied and no drift
-        run: npx tsx scripts/verify/migrate-status.ts
+          npx tsx scripts/verify/migrate-status.ts
 
   # ★ নিরাপত্তা — নির্ভরতার পরিচিত দুর্বলতা স্ক্যান (high+ হলে fail নয়,
   #   শুধু রিপোর্ট — false positive যেন deploy না আটকায়)

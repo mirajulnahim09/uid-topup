@@ -1,5 +1,6 @@
 import type { Delivery, FulfillmentJob, FulfillmentProvider } from '../integrations/types';
 import { logger } from '../logger';
+import { isPreviewDeployment, PREVIEW_OUTBOUND_BLOCKED } from '../deploymentEnv';
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -67,6 +68,8 @@ export const httpFulfillment: FulfillmentProvider = {
   isConfigured: () => Boolean(process.env.GAME_API_URL && process.env.GAME_API_KEY),
 
   async deliver(job: FulfillmentJob): Promise<Delivery> {
+    // ★ O-15 — Preview কখনো আসল টপ-আপ পাঠায় না; অর্ডার ম্যানুয়াল কিউতে
+    if (isPreviewDeployment()) return { status: 'MANUAL', reason: PREVIEW_OUTBOUND_BLOCKED };
     const url = process.env.GAME_API_URL;
     const key = process.env.GAME_API_KEY;
     if (!url || !key) return { status: 'MANUAL', reason: 'প্রোভাইডার কনফিগার করা নেই' };

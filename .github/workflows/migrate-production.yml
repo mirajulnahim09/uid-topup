@@ -3,10 +3,15 @@
 # (owner decision 2026-10-31, O-15).
 #
 #   · Manual only (workflow_dispatch), from `main`, with the confirm phrase.
-#   · The `migrate` job uses the `production` GitHub environment. Configure
-#     it with required reviewers: the job does not start (and gets no
-#     secrets) until a reviewer approves.
-#   · Credentials come only from that environment's secrets:
+#   · The `migrate` job uses the `production-db` GitHub environment
+#     (O-15): required reviewer = repository owner, deployment branches =
+#     `main` only, administrator bypass disabled. GitHub enforces those
+#     rules itself, so a copy of this file edited on another branch still
+#     gets no secrets and cannot skip the approval.
+#     (Not `production`: that name is Vercel's deployment environment.)
+#   · Credentials come only from that environment's secrets, and only in
+#     the steps that call Prisma — never in `npm ci` (run with
+#     --ignore-scripts) or any other step:
 #       PRODUCTION_DATABASE_URL  (required)
 #       PRODUCTION_DIRECT_URL    (optional, non-pooler URL for `directUrl`)
 #   · Runs `prisma migrate status`, lists the pending migration names, then
@@ -57,21 +62,24 @@ jobs:
   migrate:
     name: prisma migrate deploy (production)
     needs: precheck
+    # ★ belt and braces: the environment's branch policy already limits this to main
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: production
-    env:
-      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-      DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL || secrets.PRODUCTION_DATABASE_URL }}
+    environment: production-db
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
 
       - name: Secret present?
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "::error::PRODUCTION_DATABASE_URL is not set in the production environment."
@@ -79,6 +87,9 @@ jobs:
           fi
 
       - name: Migration status and pending migrations
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL || secrets.PRODUCTION_DATABASE_URL }}
         run: |
           set +e
           npx prisma migrate status > status.txt 2>&1
@@ -105,6 +116,9 @@ jobs:
 
       - name: prisma migrate deploy
         if: env.pending == '1'
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL || secrets.PRODUCTION_DATABASE_URL }}
         # pipefail: a failed deploy must fail the step, not the sed after it
         shell: bash
         run: |
@@ -113,6 +127,9 @@ jobs:
 
       - name: Status after deploy must be clean
         if: env.pending == '1'
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL || secrets.PRODUCTION_DATABASE_URL }}
         shell: bash
         run: |
           set -o pipefail

@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { logger } from './logger';
 import { BRAND } from './brand';
 import { getBranding, absoluteUrl } from './branding';
+import { isPreviewDeployment } from './deploymentEnv';
 
 /**
  * ★ Email fail করলে কখনো main flow ভাঙবে না।
@@ -93,6 +94,11 @@ let lastNoopWarnAt = 0;
 const NOOP_WARN_THROTTLE_MS = 10 * 60 * 1000;
 
 async function send(to: string, subject: string, html: string) {
+  // ★ O-15 — Preview কখনো আসল ইমেইল পাঠায় না (deploymentEnv.ts)
+  if (isPreviewDeployment()) {
+    logger.info('email', 'preview: email suppressed', { subject: subject.slice(0, 60) });
+    return;
+  }
   if (!resend) {
     const now = Date.now();
     if (now - lastNoopWarnAt >= NOOP_WARN_THROTTLE_MS) {
@@ -144,6 +150,11 @@ export async function emailOtpCode(
   code: string,
   ttlMinutes: number,
 ): Promise<boolean> {
+  // ★ O-15 — Preview-তে OTP যায় না; সত্যি বলি: পাঠানো হয়নি
+  if (isPreviewDeployment()) {
+    logger.warn('email', 'preview: OTP email suppressed');
+    return false;
+  }
   if (!resend) {
     logger.error('email', 'OTP পাঠানো যায়নি — RESEND_API_KEY সেট নেই');
     return false;

@@ -6,6 +6,7 @@
  *   থাকে URL-এর ভেতরে আর কিছু fetch ত্রুটি পুরো URL জুড়ে দেয়।
  * ═══════════════════════════════════════════════════════════
  */
+import { isPreviewDeployment, PREVIEW_OUTBOUND_BLOCKED } from '../deploymentEnv';
 
 export const TELEGRAM_TIMEOUT_MS = 8000;
 const MAX_ATTEMPTS = 3;
@@ -48,6 +49,13 @@ export async function callTelegram<T = unknown>(
   method: string,
   body?: Record<string, unknown>,
 ): Promise<ApiCall<T>> {
+  // ★ O-15 — Preview কখনো Telegram ডাকে না (deploymentEnv.ts)
+  if (isPreviewDeployment()) {
+    return {
+      ok: false, status: 0, latencyMs: 0, unreachable: false, attempts: 0,
+      description: PREVIEW_OUTBOUND_BLOCKED,
+    };
+  }
   const started = Date.now();
   let last: ApiCall<T> = {
     ok: false, status: 0, latencyMs: 0, unreachable: true, attempts: 0,
