@@ -18,10 +18,15 @@
  * ═══════════════════════════════════════════════════════════
  */
 import { loadEnvConfig } from '@next/env';
-loadEnvConfig(process.cwd());
+// Load env exactly like the server under test: the local production rig
+// (scripts/prod-rig.mjs, ports 3100/3443) runs with `.env.development` layered
+// on `.env`, so the expected Blob host must come from the same files.
+const RIG = process.argv.some((a) => a === '--port=3100' || a === '--port=3443');
+loadEnvConfig(process.cwd(), RIG);
 
-import { chromium } from 'playwright-core';
-import { readFileSync, existsSync } from 'node:fs';
+import { openBrowser } from './_browser';
+import { ownBlobHost } from '../../src/lib/blobHost';
+
 import path from 'node:path';
 
 const PORT = process.argv.find((a) => a.startsWith('--port='))?.slice(7) || '3000';
@@ -65,7 +70,12 @@ const HYDRATED = `(function () {
   check("script-src এ 'unsafe-inline' নেই", !scriptSrc.includes("'unsafe-inline'"), scriptSrc.slice(0, 90));
   check("script-src এ 'strict-dynamic' আছে", scriptSrc.includes("'strict-dynamic'"));
   check('img-src এ বেয়ার https: নেই', !/\bhttps:(?=\s|$)/.test(imgSrc), imgSrc);
-  check('img-src এ Blob হোস্ট আছে', imgSrc.includes('blob.vercel-storage.com'));
+  // The Blob host is derived from BLOB_READ_WRITE_TOKEN (src/lib/blobHost.ts).
+  // Without a token (local/test DB runs) the CSP correctly lists no Blob host,
+  // so the check only applies when a store is configured.
+  const expectedBlob = ownBlobHost(process.env);
+  if (expectedBlob) check('img-src এ Blob হোস্ট আছে', imgSrc.includes(expectedBlob), expectedBlob);
+  else console.log('  SKIP  img-src এ Blob হোস্ট — BLOB_READ_WRITE_TOKEN নেই, তাই কোনো হোস্ট প্রত্যাশিত নয়');
 
   // ★ ইনলাইন থিম-স্ক্রিপ্ট hash দিয়ে অনুমোদিত (nonce নয় — hydration
   //   mismatch এড়াতে; বিস্তারিত middleware.ts এর মন্তব্যে)
@@ -90,10 +100,7 @@ const HYDRATED = `(function () {
 
   // ── ৪-৬. প্রকৃত ব্রাউজার ──
   console.log('\n── ব্রাউজার (hydration ও CSP লঙ্ঘন) ──');
-  const ws = path.join(process.cwd(), 'ws.txt');
-  const browser = existsSync(ws)
-    ? await chromium.connect(readFileSync(ws, 'utf8').trim())
-    : await chromium.launch({ headless: true });
+  const browser = await openBrowser();
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await ctx.newPage();
 
@@ -120,16 +127,32 @@ const HYDRATED = `(function () {
     const hydrated = await page.evaluate(HYDRATED) as boolean;
     check('★ React hydrate করেছে (fiber পাওয়া গেছে)', hydrated);
 
-    // ★ প্রকৃত ইন্টারঅ্যাকশন — hydration না হলে হ্যান্ডলার চলবে না
-    const before = await page.evaluate(`document.documentElement.dataset.theme`) as string;
+    /**
+     * ★ প্রকৃত ইন্টারঅ্যাকশন — hydration না হলে হ্যান্ডলার চলবে না।
+     *
+     * ⚠️ **যা মাপা হয় তা `data-theme` নয়, বোতামের `data-theme-choice`।**
+     *   P0-তে থিম-টগল তিনটি বোতাম থেকে একটিতে নামানো হয়েছে, যা
+     *   `light → dark → system` ক্রমে ঘোরে। টাটকা ব্রাউজারে পছন্দ থাকে
+     *   `system`, আর হেডলেস Chrome-এর সিস্টেম-থিম `light` — তাই প্রথম
+     *   ক্লিকে পছন্দ `system → light` হলেও **resolved** থিম `light`-ই
+     *   থাকে, `data-theme` এক চুলও নড়ে না।
+     *
+     *   পুরনো চেকটি ঠিক ওখানেই মিথ্যা FAIL দিত ("light → light"), অথচ
+     *   মেপে দেখা গেছে হ্যান্ডলার চলেছে: `data-theme-choice` ও
+     *   localStorage দুটোই বদলেছে (২০২৬-০৮-২৩)। পছন্দ প্রতি ক্লিকে
+     *   **সবসময়** বদলায়, তাই hydration-এর সঠিক সূচক সেটিই।
+     */
     const toggle = page.locator('button[aria-label*="থিম"], button[title*="থিম"], [data-theme-toggle] button').first();
     const hasToggle = await toggle.count() > 0;
     if (hasToggle) {
+      const before = await toggle.getAttribute('data-theme-choice');
+      const beforeAttr = await page.evaluate(`document.documentElement.dataset.theme`) as string;
       await toggle.click();
       await page.waitForTimeout(600);
-      const after = await page.evaluate(`document.documentElement.dataset.theme`) as string;
-      check('★ ক্লিকে React হ্যান্ডলার সাড়া দেয় (প্রকৃত hydration)', before !== after,
-        `${before} → ${after}`);
+      const after = await toggle.getAttribute('data-theme-choice');
+      const afterAttr = await page.evaluate(`document.documentElement.dataset.theme`) as string;
+      check('★ ক্লিকে React হ্যান্ডলার সাড়া দেয় (প্রকৃত hydration)', Boolean(before) && before !== after,
+        `পছন্দ ${before} → ${after} (data-theme ${beforeAttr} → ${afterAttr})`);
     } else {
       // fallback: যেকোনো লিংকে ক্লায়েন্ট-সাইড নেভিগেশন
       await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });

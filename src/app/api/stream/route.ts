@@ -1,6 +1,9 @@
-import { requireUser, apiError } from '@/lib/guard';
+import { getServerSession } from 'next-auth';
+import { requireUser, apiError, ApiError } from '@/lib/guard';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { isSessionRevoked } from '@/lib/sessionRevocation';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,9 +44,19 @@ const MAX_LIFETIME_MS = 60_000;
 /** ক্লায়েন্ট কত পরে পুনঃসংযোগ করবে */
 const RETRY_MS = 15_000;
 
+/**
+ * ★★★ RT-01 — প্রতি ব্যবহারকারীর খোলা স্ট্রিমের সীমা।
+ *   ⚠️ সৎভাবে: এটি **এই প্রসেস/ইনস্ট্যান্সের** গণনা — serverless-এ একাধিক
+ *   ইনস্ট্যান্স থাকলে সীমাটি প্রতি-ইনস্ট্যান্স, বিশ্বব্যাপী নয়।
+ */
+const MAX_STREAMS_PER_USER = 3;
+const openStreams = new Map<string, number>();
+
 export async function GET() {
   try {
     const user = await requireUser();
+    // ★ RT-01 — এই সেশনের id (লগআউট-যাচাইয়ের জন্য), অনুরোধের প্রসঙ্গেই পড়া
+    const sid = (await getServerSession(authOptions))?.user?.sid;
 
     // ★ বন্ধ থাকলে ৫০৩ — ক্লায়েন্ট এটি দেখে পোলিং-এ ফিরে যায়
     if (!ENABLED) {
@@ -53,7 +66,20 @@ export async function GET() {
       );
     }
 
+    if ((openStreams.get(user.id) ?? 0) >= MAX_STREAMS_PER_USER) {
+      throw new ApiError('অনেকগুলো লাইভ সংযোগ খোলা — কিছু ট্যাব বন্ধ করুন', 429);
+    }
+    openStreams.set(user.id, (openStreams.get(user.id) ?? 0) + 1);
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      const n = (openStreams.get(user.id) ?? 1) - 1;
+      if (n <= 0) openStreams.delete(user.id); else openStreams.set(user.id, n);
+    };
+
     const encoder = new TextEncoder();
+    let epochAtConnect: number | null = null;
     let timer: ReturnType<typeof setInterval> | null = null;
     let closeTimer: ReturnType<typeof setTimeout> | null = null;
     let lastPayload = '';
@@ -66,6 +92,7 @@ export async function GET() {
         const cleanup = () => {
           if (timer) { clearInterval(timer); timer = null; }
           if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+          release();
         };
 
         // ক্লায়েন্টকে পুনঃসংযোগের ব্যবধান জানাই
@@ -73,15 +100,28 @@ export async function GET() {
 
         const tick = async (initial = false) => {
           try {
-            const [me, unread] = await Promise.all([
+            const [me, unread, revoked] = await Promise.all([
               prisma.user.findUnique({
                 where: { id: user.id },
-                select: { balance: true },
+                select: { balance: true, isBanned: true, sessionEpoch: true },
               }),
               prisma.notification.count({
                 where: { userId: user.id, isRead: false },
               }),
+              isSessionRevoked(sid),
             ]);
+            /**
+             * ★★★ RT-01 — আগে প্রমাণীকরণ কেবল সংযোগের শুরুতে: ব্যান/সব-ডিভাইস-
+             *   সাইন-আউট/লগআউটের পরেও খোলা স্ট্রিম ব্যালেন্স পাঠাতে থাকত (আয়ু পর্যন্ত)।
+             *   এখন প্রতি টিকে একই শর্ত; ভাঙলে `revoked` জানিয়ে বন্ধ।
+             */
+            if (epochAtConnect === null && me) epochAtConnect = me.sessionEpoch;
+            if (!me || me.isBanned || revoked || me.sessionEpoch !== epochAtConnect) {
+              send('revoked', { reason: 'session' });
+              cleanup();
+              try { controller.close(); } catch { /* ইতিমধ্যে বন্ধ */ }
+              return;
+            }
             const payload = JSON.stringify({ balance: String(me?.balance ?? '0'), unread });
 
             // ★ বদলালে তবেই পাঠাই — নাহলে শুধু heartbeat
@@ -98,6 +138,7 @@ export async function GET() {
         };
 
         await tick(true);
+        if (released) return; // ★ প্রথম টিকেই বাতিল — টাইমার চালু করার দরকার নেই
         timer = setInterval(tick, POLL_MS);
 
         closeTimer = setTimeout(() => {
@@ -111,6 +152,7 @@ export async function GET() {
         //   নাহলে সার্ভারে অনাথ কোয়েরি চলতেই থাকত
         if (timer) { clearInterval(timer); timer = null; }
         if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+        release();
       },
     });
 

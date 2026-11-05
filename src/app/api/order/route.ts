@@ -9,6 +9,14 @@ import { placeOrder, afterOrderPlaced } from '@/lib/services/order';
 import { requestMeta } from '@/lib/adminLog';
 
 /**
+ * ★★★ F1 — ফাংশনের সময়সীমা স্পষ্ট করে বাঁধা। অর্ডারের পরেই অটো-ডেলিভারি await হয়
+ *   (প্রোভাইডার-চেষ্টার সর্বোচ্চ যোগফল ≈ ৪৬s)। প্ল্যানের ডিফল্টের উপর ছেড়ে দিলে
+ *   Hobby-র ১০s-এ মাঝপথে কেটে যেত। কাটলেও টাকা নিরাপদ (অর্ডার আগেই commit),
+ *   আর অর্ডারটি `sweepStuckAutoFulfill()` "ফল অজানা" হিসেবে কিউতে ফেরায়।
+ */
+export const maxDuration = 60;
+
+/**
  * ═══════════════════════════════════════════════════════════
  * ★ ওয়েব অর্ডার — গ্রাহকের ব্রাউজার থেকে, একটি করে।
  *
@@ -64,6 +72,8 @@ export async function POST(req: Request) {
        *   পুরনো ক্লায়েন্ট বা তৃতীয় পক্ষের কল ভাঙে না।
        */
       clientRef: parsed.data.clientRef ?? null,
+      // ★ বাসি-দাম সীমা — গ্রাহক যা দেখেছেন তার বেশি কাটা নয় (৪০৯ PRICE_CHANGED)
+      expectedPrice: parsed.data.expectedPrice ?? null,
     });
 
     // ── Transaction এর বাইরে: notify + email (fail করলেও অর্ডার সফল) ──
@@ -74,7 +84,9 @@ export async function POST(req: Request) {
       ...requestMeta(req),
     });
 
-    notifyAdmins(
+    // A clientRef replay returns the existing order; announcing it again made a
+    // retried request look like a second sale to the operator.
+    if (!result.duplicate) notifyAdmins(
       'নতুন অর্ডার',
       `${user.name} — #${result.orderNo} ${result.productName} (৳${result.price.toFixed(2)})`,
       '/admin/orders',

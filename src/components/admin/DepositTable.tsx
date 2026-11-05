@@ -219,7 +219,7 @@ export default function DepositTable({ deposits, current }: { deposits: D[]; cur
               ))}
             </select>
             <p className="mb-3 rounded-lg border border-[var(--hair)] p-2.5 text-[11px] leading-relaxed"
-              style={{ background: 'rgba(230,197,132,.06)', color: 'var(--mut)' }}>
+              style={{ background: 'var(--v-steel)', color: 'var(--mut)' }}>
               গ্রাহক যা দেখবে:{' '}
               <span style={{ color: 'var(--ink)' }}>
                 {DEPOSIT_REJECT_COPY[reason as keyof typeof DEPOSIT_REJECT_COPY]?.customerMessage

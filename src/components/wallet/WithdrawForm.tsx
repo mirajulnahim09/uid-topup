@@ -21,11 +21,14 @@ export default function WithdrawForm({
   min,
   methods,
   holdHours,
+  referralHoldHours,
 }: {
   withdrawable: number;
   min: number;
   methods: string[];
   holdHours: number;
+  /** ★ FIN-01 — সার্ভারের `REFERRAL_HOLD_HOURS` থেকে আসে; এখানে হাতে লেখা সংখ্যা নয় */
+  referralHoldHours: number;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -83,7 +86,8 @@ export default function WithdrawForm({
       <div className="card p-5 text-sm" style={{ color: 'var(--v-mut)' }}>
         এখন তোলার মতো টাকা নেই।
         <br />
-        ⚠️ সাম্প্রতিক জমা ও ফেরত <b>{holdHours} ঘণ্টা</b> পর তোলা যায় — এটি
+        ⚠️ সাম্প্রতিক জমা ও ফেরত <b>{holdHours} ঘণ্টা</b> পর, রেফারেল বোনাস <b>{referralHoldHours} ঘণ্টা</b> পর
+        তোলা যায়; অ্যাডমিনের দেওয়া ব্যালেন্স কেনাকাটায় খরচ করা যায়, তোলা যায় না — এটি
         নিরাপত্তার নিয়ম, সবার জন্য এক।
       </div>
     );
@@ -135,8 +139,15 @@ export default function WithdrawForm({
             {sent ? 'আবার পাঠান' : 'কোড পাঠান'}
           </button>
         </div>
+        {/**
+          * ⚠️ `placeholder:tracking-normal` — চওড়া ট্র্যাকিং টাইপ-করা ৬ অঙ্কের
+          *   জন্য (ল্যাটিন সংখ্যা, ফাঁক থাকলে পড়তে সুবিধা), কিন্তু সেটি
+          *   **প্লেসহোল্ডারেও** বসত আর "৬ অঙ্ক" এর যুক্তাক্ষর ঙ্ক (ঙ + ্ + ক)
+          *   ভেঙে "৬ অ ঙ্ক" দেখাত। ব্রাউজারে মেপে ধরা (২০২৬-০৮-২৭ এর
+          *   স্ক্রিনশট)। একই ত্রুটি register পাতার OTP ঘরেও ছিল।
+          */}
         <input
-          id="wcode" className="input mt-1.5 font-mono tracking-[0.4em]"
+          id="wcode" className="input mt-1.5 font-mono tracking-[0.4em] placeholder:tracking-normal"
           inputMode="numeric" maxLength={6}
           value={f.code}
           onChange={(e) => setF({ ...f, code: e.target.value.replace(/\D/g, '').slice(0, 6) })}

@@ -3,11 +3,14 @@ import MaintenanceToggle from '@/components/admin/MaintenanceToggle';
 import AnnouncementForm from '@/components/admin/AnnouncementForm';
 import RestoreForm from '@/components/admin/RestoreForm';
 import ReadinessPanel from '@/components/admin/ReadinessPanel';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'টুলস' };
 
 export default async function ToolsPage() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const settings = await getSettings();
   const on = settings.maintenance_mode === '1';
   const msg = settings.maintenance_message || '';

@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import AutoRefresh from '@/components/AutoRefresh';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { orderFingerprint } from '@/lib/orderFingerprint';
 import { prisma } from '@/lib/prisma';
+import { requireUserPage } from '@/lib/pageGuard';
 import { bdt } from '@/lib/money';
 import { fmtDate } from '@/lib/date';
 import Badge from '@/components/Badge';
@@ -27,11 +27,14 @@ function reorderHref(o: {
 }
 
 export default async function OrdersPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) return null;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)
+  const me = await requireUserPage();
+
+  // ★ SCL-02 — শুরুর ছাপ ডেটা পড়ার **আগে**: মাঝে কিছু বদলালে বড়জোর একটি বাড়তি রিফ্রেশ, বদল হারায় না
+  const fp = await orderFingerprint(me.id, { kind: 'recent' });
 
   const orders = await prisma.order.findMany({
-    where: { userId: session.user.id },
+    where: { userId: me.id },
     orderBy: { createdAt: 'desc' },
     take: 50,
     // ★ এক-ট্যাপে আবার অর্ডারের লিংক বানাতে প্রোডাক্টের তথ্য দরকার (2.13)
@@ -48,7 +51,7 @@ export default async function OrdersPage() {
 
   return (
     <div className="space-y-5">
-      <AutoRefresh seconds={30} />
+      <AutoRefresh seconds={30} scope="recent" initial={fp} />
       <h1 className="lux-text text-2xl font-medium sm:text-[27px]">আমার অর্ডার</h1>
 
       {orders.length === 0 ? (

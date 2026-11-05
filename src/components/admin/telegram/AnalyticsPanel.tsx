@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useToast } from '@/components/Toast';
+import LoadFailedCard from '@/components/admin/LoadFailedCard';
 
 /** ★ ডেলিভারি লগ ও ব্যবহার-বিশ্লেষণ — সব সংখ্যা লগ থেকে হিসাব করা। */
 
@@ -40,18 +41,20 @@ function Tile({ label, b }: { label: string; b: Bucket }) {
 export default function AnalyticsPanel() {
   const toast = useToast();
   const [d, setD] = useState<Data | null>(null);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
+    setFailed(false);
     try {
       const r = await fetch('/api/admin/telegram/analytics');
       if (!r.ok) throw new Error();
       setD(await r.json());
-    } catch { toast.error('বিশ্লেষণ আনা যায়নি'); }
+    } catch { setFailed(true); toast.error('বিশ্লেষণ আনা যায়নি'); }
   }, [toast]);
 
   useEffect(() => { void load(); }, [load]);
 
-  if (!d) return <div className="card p-5 text-[13px]" style={{ color: 'var(--v-mut)' }}>লোড হচ্ছে…</div>;
+  if (!d) return failed ? <LoadFailedCard what="বিশ্লেষণ" onRetry={() => void load()} /> : <div className="card p-5 text-[13px]" style={{ color: 'var(--v-mut)' }}>লোড হচ্ছে…</div>;
 
   const maxDay = Math.max(1, ...d.daily.map((x) => x.sent + x.failed));
 

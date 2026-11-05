@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 import { logger } from './logger';
 import { formatDuration } from './sla';
+import { toBengaliDigits } from './money';
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -37,11 +38,9 @@ export type TrustStat = { value: string; label: string };
 
 const CACHE_KEY = 'homepage_stats_v1';
 
-/** বাংলা সংখ্যায় রূপান্তর — বাকি সাইটের সাথে মিল রাখতে */
-function toBn(n: number | string): string {
-  const bn = '০১২৩৪৫৬৭৮৯';
-  return String(n).replace(/\d/g, (d) => bn[Number(d)]);
-}
+/** বাংলা সংখ্যায় রূপান্তর — এখন একটিই উৎস (`money.ts`), কারণ
+ *  `sla.ts`-এরও একই জিনিস দরকার হলো। */
+const toBn = toBengaliDigits;
 
 /** ★ প্রকৃত ডেটা থেকে হিসাব — খরচসাপেক্ষ, তাই ক্যাশ করা হয় */
 async function computeStats(supportHours: string | undefined): Promise<TrustStat[]> {

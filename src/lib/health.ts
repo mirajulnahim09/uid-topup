@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { isEmailConfigured } from './email';
+import { isEmailConfigured, isSandboxSender } from './email';
 import { getStorage } from './storage';
 import { isErrorReportingConfigured } from './errorReporter';
 
@@ -57,11 +57,26 @@ async function checkDatabase(): Promise<SubsystemHealth> {
 
 /** ইমেইল (Resend) — কনফিগার করা আছে কিনা (আসল পাঠানো টেস্ট করি না, কোটা নষ্ট হবে) */
 function checkEmail(): SubsystemHealth {
-  return {
-    key: 'email', label: 'Email (Resend)', critical: false,
-    state: isEmailConfigured() ? 'up' : 'not_configured',
-    detail: isEmailConfigured() ? undefined : 'RESEND_API_KEY সেট নেই — পাসওয়ার্ড রিসেট/ইমেইল বন্ধ',
-  };
+  const base = { key: 'email', label: 'Email (Resend)', critical: false } as const;
+
+  if (!isEmailConfigured()) {
+    return { ...base, state: 'not_configured',
+      detail: 'RESEND_API_KEY সেট নেই — পাসওয়ার্ড রিসেট/ইমেইল বন্ধ' };
+  }
+
+  /**
+   * ⚠️⚠️ কী থাকলেই ইমেইল কাজ করে না। `EMAIL_FROM` ডিফল্টে Resend-এর
+   *   স্যান্ডবক্স প্রেরক, যা দিয়ে কেবল অ্যাকাউন্টের নিজের ঠিকানায় মেইল
+   *   যায় — অর্থাৎ **নতুন কোনো গ্রাহক OTP পাবেন না**, রেজিস্ট্রেশনই
+   *   অসম্ভব। আগে এই অবস্থাতেও এখানে `up` দেখাত, তাই ভাঙা ফানেলটি
+   *   কোনো ড্যাশবোর্ডে ধরা পড়ত না। এখন পড়ে।
+   */
+  if (isSandboxSender()) {
+    return { ...base, state: 'down',
+      detail: 'EMAIL_FROM এখনো Resend স্যান্ডবক্স (@resend.dev) — মালিক ছাড়া কেউ OTP বা রিসেট মেইল পাবেন না। ডোমেইন verify করে EMAIL_FROM বদলান।' };
+  }
+
+  return { ...base, state: 'up' };
 }
 
 /** স্টোরেজ ড্রাইভার — কোন ড্রাইভার সক্রিয় ও কনফিগার করা কিনা */

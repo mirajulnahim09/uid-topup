@@ -51,8 +51,10 @@ const go = async (page: Page, url: string) => {
 
 const settle = async (page: Page) => {
   await page.waitForLoadState('domcontentloaded').catch(() => {});
+  // ★ function-রূপ — string predicate অ্যাপের CSP (`unsafe-eval` নেই) আটকায়, তখন `.catch`
+  //   নীরবে গিলে ফেলত আর settle কার্যত অপেক্ষাই করত না (২০২৬-০৯-২৬-এ মাপা)
   await page.waitForFunction(
-    `!document.querySelector('.v-ovl') && !document.getElementById('v-boot')`, null, { timeout: 30_000 },
+    () => !document.querySelector('.v-ovl') && !document.getElementById('v-boot'), null, { timeout: 30_000 },
   ).catch(() => {});
   await page.waitForTimeout(300);
 };
@@ -185,7 +187,8 @@ async function login(page: Page, email: string, password: string, want: string) 
     console.log('\n── ৫. গ্রাহকের পাতায় ব্যালেন্স ──');
     await go(cp, `${BASE}/account`);
     await settle(cp);
-    const shown = await cp.evaluate(`document.body.innerText.includes('1000') || document.body.innerText.includes('১০০০')`);
+    // ★ পাতার নিজের কার্ড `bdt()` দিয়ে কমাসহ দেখায় (৳1,000.00); নেভবারের চিপ কমা ছাড়া
+    const shown = await cp.evaluate(`['1000', '1,000', '১০০০', '১,০০০'].some((v) => document.body.innerText.includes(v))`);
     check('ড্যাশবোর্ডে হালনাগাদ ব্যালেন্স দেখা যাচ্ছে', Boolean(shown));
 
     // ═══ ৬. প্রোডাক্ট বাছাই ও অর্ডার ═══
@@ -266,7 +269,9 @@ async function login(page: Page, email: string, password: string, want: string) 
 
     // ═══ ৭. অ্যাডমিন প্রক্রিয়াকরণ ═══
     console.log('\n── ৭. অ্যাডমিন প্রক্রিয়াকরণ ──');
-    await go(ap, `${BASE}/admin/orders`);
+    // ?order= pins the row: the default view lists the 100 oldest open orders,
+    // so on a DB with a large backlog the new order is not on page one.
+    await go(ap, order ? `${BASE}/admin/orders?order=${order.id}` : `${BASE}/admin/orders`);
     await settle(ap);
     /**
      * ⚠️ অর্ডার না থাকলে এই দাবিটি **ব্যর্থ হতে হবে**। আগে
@@ -327,13 +332,23 @@ async function login(page: Page, email: string, password: string, want: string) 
      * ⚠️ পুরো পাতায় "সম্পন্ন" খোঁজা **যথেষ্ট নয়** — ফিল্টার-চিপেও ঐ
      *   শব্দ থাকে, তাই অর্ডার PENDING থাকা অবস্থাতেও PASS আসত। দাবিটি
      *   এখন নির্দিষ্ট: **ঐ অর্ডারের সারিতেই** সম্পন্ন-অবস্থা লেখা আছে।
+     *
+     * ⚠️⚠️ আগের সংস্করণটি **মিথ্যা লাল** দিত। দুটি কারণ, দুটোই মাপা:
+     *   ১. খোঁজা হতো কাঁচা সংখ্যা (`"5"`), `#` ছাড়া — তাই "25 Diamond"
+     *      বা ফুটারের "01700000000"-ও মিলে যেত। এক-অঙ্কের orderNo-তে
+     *      (নতুন সিড DB-তে যা স্বাভাবিক) প্রায় সবকিছুই মিলত।
+     *   ২. `.pop()` **শেষ** মিলটি নিত, অর্থাৎ নথি-ক্রমে সবচেয়ে গভীর
+     *      উপাদান — সারি নয়, সারির ভেতরের একটি লেবেল।
+     *   মাপা প্রমাণ: orderNo=5-এ বাছত `DIV "25 Diamond"` (স্ট্যাটাস নেই),
+     *   অথচ একই পাতায় `TR`-এ "সম্পন্ন" ঠিকই ছিল। এখন `#<no>` anchored
+     *   আর কেবল প্রকৃত সারি-কন্টেইনার (`tr` · `.card` · `article`)।
      */
     const delivered = order
       ? await cp.evaluate(`(function(){
-          var no = ${JSON.stringify(String(order.orderNo))};
-          var els = Array.from(document.querySelectorAll('article, li, tr, div'));
-          var row = els.filter(function(e){ return e.innerText && e.innerText.includes(no) && e.innerText.length < 600; }).pop();
-          return row ? /সম্পন্ন|ডেলিভার|Delivered|Completed/i.test(row.innerText) : false;
+          var no = ${JSON.stringify('#' + String(order.orderNo))};
+          var rows = Array.from(document.querySelectorAll('tr, .card, article'))
+            .filter(function(e){ return e.innerText && e.innerText.indexOf(no) >= 0; });
+          return rows.length ? /সম্পন্ন|ডেলিভার|Delivered|Completed/i.test(rows[0].innerText) : false;
         })()`)
       : false;
     check('গ্রাহকের ঐ অর্ডারের সারিতেই সম্পন্ন-অবস্থা দেখা যায়', Boolean(delivered));

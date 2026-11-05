@@ -23,7 +23,7 @@ const API_ROOT = path.join(process.cwd(), 'src', 'app', 'api');
  */
 const INTENTIONALLY_PUBLIC: Record<string, string> = {
   'auth/[...nextauth]': 'NextAuth নিজেই — লগইন/সেশন handshake',
-  'auth/2fa-check': 'লগইনের আগে চলে; নিজস্ব rate-limit + fail-closed (C4)',
+  'auth/2fa-check': 'লগইনের আগে চলে; লগইনের একই login:ip/login:email বাজেট + fail-closed (C4, AUTH-03)',
   'auth/login-status': 'লগইন ব্যর্থতার কারণ; কেবল বাকেট পড়ে, কিছু ফাঁস করে না',
   'auth/forgot': 'লগ-আউট অবস্থায় দরকার; IP rate-limit + enumeration-প্রতিরোধী',
   'auth/reset': 'রিসেট-টোকেনই প্রমাণ; IP rate-limit',
@@ -70,6 +70,9 @@ for (const file of files) {
   //   গার্ডই: হ্যাশ-যাচাই + ban + tier পরীক্ষা করে (`src/lib/apiKey.ts`)।
   //   "ইচ্ছাকৃত পাবলিক" তালিকায় রাখলে ভুল হতো — রুটটি পাবলিক নয়।
   if (/\brequireApiKey\s*\(/.test(src)) guards.push('requireApiKey');
+  // Reseller read endpoints: same key check, wrapped with its own rate limit
+  // (src/lib/reseller/readGuard.ts → requireApiKey).
+  if (/\brequireResellerRead\s*\(/.test(src)) guards.push('requireResellerRead');
   if (/\bassertCronAuth\s*\(/.test(src)) guards.push('assertCronAuth');
   if (/\bverifyCronSecret\s*\(/.test(src)) guards.push('verifyCronSecret');
   if (/verifyWebhookSignature|webhookSignature/.test(src)) guards.push('webhookSignature');

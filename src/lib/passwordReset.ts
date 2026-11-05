@@ -16,7 +16,14 @@ import { prisma } from './prisma';
  * ═══════════════════════════════════════════════════════════════
  */
 
-const TTL_MS = 30 * 60 * 1000; // ৩০ মিনিট
+export const RESET_TTL_MINUTES = 30;
+const TTL_MS = RESET_TTL_MINUTES * 60 * 1000; // ৩০ মিনিট
+
+/**
+ * ★ টোকেন কোন পথে তৈরি — কেবল অডিট-লগের জন্য (অনুমতিতে কোনো পার্থক্য নেই)।
+ *   `admin` = অ্যাডমিনের জরুরি রিকভারি-লিংক (`/api/admin/user/recovery`)।
+ */
+export type ResetSource = 'email' | 'admin';
 
 function secret(): string {
   const s = process.env.NEXTAUTH_SECRET;
@@ -35,8 +42,11 @@ function sign(payloadB64: string, pwHash: string): string {
 }
 
 /** ★ রিসেট টোকেন তৈরি — শুধু userId ও বর্তমান হ্যাশ লাগে */
-export function makeResetToken(userId: string, pwHash: string): string {
-  const payload = { uid: userId, exp: Date.now() + TTL_MS };
+export function makeResetToken(userId: string, pwHash: string, source: ResetSource = 'email'): string {
+  // ★ `n` — ক্রিপ্টোগ্রাফিক র‍্যান্ডম nonce। স্বাক্ষর আগেই অনুমান-অযোগ্য ছিল,
+  //   কিন্তু একই মিলিসেকেন্ডে একই ইউজারের দুটি টোকেন হুবহু এক হতো; এখন
+  //   প্রতিটি টোকেন অনন্য (চূড়ান্ত অডিট — জরুরি রিকভারির শর্ত)।
+  const payload = { uid: userId, exp: Date.now() + TTL_MS, n: crypto.randomBytes(16).toString('base64url'), src: source };
   const payloadB64 = b64url(JSON.stringify(payload));
   const sig = sign(payloadB64, pwHash);
   return `${payloadB64}.${sig}`;
@@ -80,5 +90,19 @@ export async function verifyResetToken(token: string): Promise<string | null> {
     return user.id;
   } catch {
     return null;
+  }
+}
+
+/**
+ * ★ টোকেনের উৎস — **কেবল `verifyResetToken` সফল হওয়ার পরে** ডাকতে হবে
+ *   (এখানে স্বাক্ষর যাচাই হয় না)। অনুমতির সিদ্ধান্তে ব্যবহার নিষিদ্ধ;
+ *   শুধু অডিট-লগে "কোন পথে রিসেট হলো" লেখার জন্য।
+ */
+export function resetTokenSource(token: string): ResetSource {
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString('utf8')) as { src?: string };
+    return payload.src === 'admin' ? 'admin' : 'email';
+  } catch {
+    return 'email';
   }
 }

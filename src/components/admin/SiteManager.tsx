@@ -1,5 +1,6 @@
 'use client';
 
+import ImageUploader from '@/components/ImageUploader';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast, ConfirmDialog } from '@/components/Toast';
@@ -22,7 +23,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 const PLATFORMS = Object.keys(SOCIAL_META);
-const METHODS = ['BKASH', 'NAGAD', 'ROCKET', 'UPAY'];
+const METHODS = ['BKASH', 'NAGAD', 'ROCKET', 'UPAY', 'BANGLA_QR'];
 
 export default function SiteManager({
   settings, socials, payments,
@@ -55,6 +56,13 @@ export default function SiteManager({
     tawk_widget_id: settings.tawk_widget_id || '',
     // ★ টেলিগ্রাম টোকেন/chat_id এখানে নেই — `/admin/telegram` দেখুন
     site_url: settings.site_url || '',
+    tutorial_video_url: settings.tutorial_video_url || '',
+    community_url: settings.community_url || '',
+    community_label: settings.community_label || '',
+    android_app_url: settings.android_app_url || '',
+    twa_package: settings.twa_package || '',
+    twa_sha256: settings.twa_sha256 || '',
+    about_text: settings.about_text || '',
   });
 
   // ── Social ──
@@ -63,7 +71,7 @@ export default function SiteManager({
 
   // ── Payment ──
   const [newPay, setNewPay] = useState({
-    method: 'BKASH', accountNo: '', accountType: 'Personal', instruction: '',
+    method: 'BKASH', accountNo: '', accountType: 'Personal', instruction: '', qrImage: null as string | null,
   });
   const [delPay, setDelPay] = useState<Payment | null>(null);
 
@@ -217,6 +225,50 @@ export default function SiteManager({
                 onChange={(e) => setS({ ...s, support_hours: e.target.value })}
                 placeholder="সকাল ৯টা – রাত ১১টা"
               />
+            </div>
+
+            {/* storefront extras */}
+            <div className="sm:col-span-2">
+              <p className="mt-2 text-[13px] font-bold" style={{ color: 'var(--v-ink)' }}>টিউটোরিয়াল, কমিউনিটি ও অ্যাপ</p>
+              <p className="mt-0.5 text-[11.5px]" style={{ color: 'var(--v-mut)' }}>
+                খালি রাখলে সংশ্লিষ্ট অংশ সাইটে দেখাবে না।
+              </p>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">টিউটোরিয়াল ভিডিও (YouTube লিংক)</label>
+              <input aria-label="টিউটোরিয়াল ভিডিও" className="input" value={s.tutorial_video_url}
+                onChange={(e) => setS({ ...s, tutorial_video_url: e.target.value })} placeholder="https://youtu.be/…" />
+            </div>
+            <div>
+              <label className="label">কমিউনিটি লিংক (টেলিগ্রাম/হোয়াটসঅ্যাপ গ্রুপ)</label>
+              <input aria-label="কমিউনিটি লিংক" className="input" value={s.community_url}
+                onChange={(e) => setS({ ...s, community_url: e.target.value })} placeholder="https://t.me/…" />
+            </div>
+            <div>
+              <label className="label">কমিউনিটি বোতামের লেখা</label>
+              <input aria-label="কমিউনিটি বোতামের লেখা" className="input" value={s.community_label}
+                onChange={(e) => setS({ ...s, community_label: e.target.value })} placeholder="টেলিগ্রাম গ্রুপে যোগ দিন" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">Android অ্যাপ (Play Store লিংক)</label>
+              <input aria-label="Android অ্যাপ লিংক" className="input" value={s.android_app_url}
+                onChange={(e) => setS({ ...s, android_app_url: e.target.value })} placeholder="https://play.google.com/store/apps/details?id=…" />
+            </div>
+            <div>
+              <label className="label">অ্যাপ প্যাকেজ নাম (TWA)</label>
+              <input aria-label="অ্যাপ প্যাকেজ নাম" className="input font-mono" value={s.twa_package}
+                onChange={(e) => setS({ ...s, twa_package: e.target.value })} placeholder="com.uidtopup.app" />
+            </div>
+            <div>
+              <label className="label">সাইনিং SHA-256 (কমা দিয়ে একাধিক)</label>
+              <input aria-label="সাইনিং SHA-256" className="input font-mono" value={s.twa_sha256}
+                onChange={(e) => setS({ ...s, twa_sha256: e.target.value })} placeholder="AB:CD:…" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">আমাদের সম্পর্কে (About পাতার লেখা)</label>
+              <textarea aria-label="আমাদের সম্পর্কে" className="input min-h-[120px]" value={s.about_text}
+                onChange={(e) => setS({ ...s, about_text: e.target.value })}
+                placeholder="আপনার ব্যবসার পরিচয় — খালি লাইন দিয়ে অনুচ্ছেদ আলাদা করুন" />
             </div>
 
             {/* ★ লাইভ চ্যাট (Tawk.to) — খালি রাখলে উইজেট দেখাবে না */}
@@ -416,17 +468,17 @@ export default function SiteManager({
                   onChange={(e) => setNewPay({ ...newPay, method: e.target.value })}
                 >
                   {METHODS.map((m: (typeof METHODS)[number]) => (
-                    <option key={m} value={m}>{m}</option>
+                    <option key={m} value={m}>{m === 'BANGLA_QR' ? 'Bangla QR' : m}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="label">নাম্বার</label>
+                <label className="label">{newPay.method === 'BANGLA_QR' ? 'মার্চেন্টের নাম/আইডি' : 'নাম্বার'}</label>
                 <input aria-label="নাম্বার"
                   className="input font-mono"
                   value={newPay.accountNo}
                   onChange={(e) => setNewPay({ ...newPay, accountNo: e.target.value })}
-                  placeholder="01712345678"
+                  placeholder={newPay.method === 'BANGLA_QR' ? 'UID TopUp Store' : '01712345678'}
                 />
               </div>
               <div>
@@ -452,14 +504,30 @@ export default function SiteManager({
               </div>
             </div>
 
+            {newPay.method === 'BANGLA_QR' && (
+              <div className="max-w-xs">
+                <ImageUploader
+                  value={newPay.qrImage}
+                  onChange={(url) => setNewPay({ ...newPay, qrImage: url })}
+                  folder="payment"
+                  label="Bangla QR ছবি"
+                  hint="ব্যাংক/MFS অ্যাপ থেকে নেওয়া মার্চেন্ট QR — গ্রাহক এটি স্ক্যান করে পেমেন্ট করবেন"
+                  aspect="aspect-square"
+                />
+              </div>
+            )}
+
             <button
               onClick={async () => {
-                if (!/^01[3-9]\d{8}$/.test(newPay.accountNo.trim())) {
+                if (newPay.method === 'BANGLA_QR') {
+                  if (newPay.accountNo.trim().length < 2) return toast.error('মার্চেন্টের নাম/আইডি দিন');
+                  if (!newPay.qrImage) return toast.error('QR ছবি আপলোড করুন');
+                } else if (!/^01[3-9]\d{8}$/.test(newPay.accountNo.trim())) {
                   return toast.error('সঠিক মোবাইল নাম্বার দিন');
                 }
                 const ok = await call('/api/admin/payment', 'POST', newPay, 'নাম্বার যোগ হয়েছে');
                 if (ok) {
-                  setNewPay({ method: 'BKASH', accountNo: '', accountType: 'Personal', instruction: '' });
+                  setNewPay({ method: 'BKASH', accountNo: '', accountType: 'Personal', instruction: '', qrImage: null });
                 }
               }}
               disabled={busy}

@@ -28,7 +28,7 @@ export default function DataUnavailable({
     <div className="card p-8 text-center sm:p-12">
       <div
         className="mx-auto grid h-14 w-14 place-items-center rounded-full"
-        style={{ background: 'rgba(230,197,132,.10)', border: '1px solid var(--hair)' }}
+        style={{ background: 'rgba(var(--gold-glow),.10)', border: '1px solid var(--hair)' }}
         aria-hidden="true"
       >
         <svg
@@ -56,7 +56,7 @@ export default function DataUnavailable({
       <p
         className="mx-auto mt-4 max-w-md rounded-lg px-4 py-3 text-sm font-medium"
         style={{
-          background: 'rgba(230,197,132,.07)',
+          background: 'var(--v-steel)',
           border: '1px solid var(--hair)',
           color: 'var(--ink)',
         }}

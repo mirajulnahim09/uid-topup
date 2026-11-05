@@ -74,7 +74,15 @@ export default function FulfillmentSettings({
                   return (
                     <button key={o.v} type="button" onClick={() => setModes({ ...modes, [seg.key]: o.v })}
                       aria-pressed={active}
-                      className="rounded-md px-3 py-1.5 text-[13px] font-bold transition"
+                      /* ★ ট্যাপ-টার্গেট ৪০px — P2-তে বসানো মানদণ্ড।
+                         অডিটে মাপা: এই তিনটি বোতাম ছিল **৩৪px** উঁচু, আর
+                         P2-র পরেও প্রতিটি অ্যাডমিন ভিউপোর্টে অবশিষ্ট
+                         ছোট-ট্যাপের বড় অংশ এখান থেকেই আসত (৯৬ হিট,
+                         ২০২৬-০৮-২৫)। `py-1.5` এর বদলে `min-h` — উল্লম্ব
+                         প্যাডিং দিয়ে বাড়ালে লেখা নিচে সরে যেত, তাই
+                         `grid place-items-center` লেখাটিকে আগের মতোই
+                         কেন্দ্রে রাখে; কেবল ছোঁয়ার জায়গা বাড়ে। */
+                      className="grid min-h-[40px] place-items-center rounded-md px-3 text-[13px] font-bold transition"
                       style={active ? { background: '#7c3aed', color: '#fff' } : { color: 'var(--v-mut)' }}>
                       {o.t}
                     </button>

@@ -1,9 +1,10 @@
+import CodeReveal from '@/components/account/CodeReveal';
 import Link from 'next/link';
 import AutoRefresh from '@/components/AutoRefresh';
+import { orderFingerprint } from '@/lib/orderFingerprint';
 import { notFound } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireUserPage } from '@/lib/pageGuard';
 import { bdt } from '@/lib/money';
 import { fmtDate } from '@/lib/date';
 import Badge from '@/components/Badge';
@@ -17,15 +18,18 @@ import { slaFromSettings, slaExplanationForOrder } from '@/lib/sla';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'অর্ডার বিস্তারিত' };
 
-export default async function OrderDetail({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams: { placed?: string };
+export default async function OrderDetail(props: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ placed?: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null;
+  const params = await props.params;
+  const searchParams = await props.searchParams;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)।
+  //   নাম `viewer` — নিচে `me` নামটি রেফারেল-কোডের কোয়েরির জন্য আগেই ব্যবহৃত।
+  const viewer = await requireUserPage();
+
+  // ★ SCL-02 — শুরুর ছাপ ডেটা পড়ার **আগে**: মাঝে কিছু বদলালে বড়জোর একটি বাড়তি রিফ্রেশ, বদল হারায় না
+  const fp = await orderFingerprint(viewer.id, { kind: 'one', orderId: params.id });
 
   const [order, settings, me] = await Promise.all([
     prisma.order.findUnique({
@@ -38,29 +42,34 @@ export default async function OrderDetail({
           select: { status: true, note: true, createdAt: true },
         },
         review: { select: { id: true } },
+        voucherCode: { select: { code: true, status: true } },
       },
     }),
     getSettings(),
     // ★ রেফারেল কোড (5.4) — শুধু এই একটি ফিল্ড, পুরো User সারি নয়
     //   (CLAUDE.md §8: User এ সবসময় `select`)
     prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: viewer.id },
       select: { referralCode: true },
     }),
   ]);
 
   // ★ শুধু নিজের অর্ডার দেখা যাবে — অন্যের ID দিলেও নয়
-  if (!order || order.userId !== session.user.id) notFound();
+  if (!order || order.userId !== viewer.id) notFound();
 
   const sla = slaFromSettings(settings);
   const isCancelled = order.status === 'REFUNDED' || order.status === 'FAILED';
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      <AutoRefresh seconds={30} />
+      <AutoRefresh seconds={30} scope="one" orderId={order.id} initial={fp} />
+      {/* ★ `min-h-[40px]` — অডিটে মাপা উচ্চতা ছিল **২০px** (২০২৬-০৮-২৬,
+          প্রতিটি ভিউপোর্টে)। একই ত্রুটি `wallet/withdraw` এ আগেই সারানো
+          হয়েছিল, কিন্তু ডিটেইল-পাতাগুলো তখন অডিটের রুট-তালিকায় ছিল না
+          বলে ধরা পড়েনি। ২০px WCAG 2.5.8 (AA) এর ২৪px-ও পার করে না। */}
       <Link
         href="/account/orders"
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-rose-600"
+        className="inline-flex min-h-[40px] items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-rose-600"
       >
         ← সব অর্ডার
       </Link>
@@ -71,7 +80,13 @@ export default async function OrderDetail({
       {searchParams.placed === '1' && (
         <div
           className="card p-5"
-          style={{ borderColor: 'rgba(127,224,187,.35)', background: 'rgba(127,224,187,.06)' }}
+          /* ★ মিন্ট লিটারেল দুটি থিম-অন্ধ ছিল — এটিই গ্রাহকের প্রথম
+               "টাকাটা হাতে নেওয়া হয়েছে" নিশ্চয়তা, তাই লাইট থিমে ফ্যাকাশে
+               হয়ে মিলিয়ে যাওয়া চলে না। এখন `--sem-success`। */
+          style={{
+            borderColor: 'color-mix(in srgb, var(--sem-success) 35%, transparent)',
+            background: 'color-mix(in srgb, var(--sem-success) 6%, transparent)',
+          }}
         >
           <h2 className="dsp text-base font-semibold" style={{ color: 'var(--ink)' }}>
             ✓ অর্ডার #{order.orderNo} গ্রহণ করা হয়েছে
@@ -103,6 +118,12 @@ export default async function OrderDetail({
       />
 
       <section className="card p-5">
+        {order.voucherCode?.status === 'ASSIGNED' && (
+          <div className="mb-5 rounded-2xl p-4" style={{ background: 'var(--sem-success-tint)', border: '1px solid var(--v-edge)' }}>
+            <p className="mb-2 text-sm font-bold" style={{ color: 'var(--sem-success)' }}>🎉 আপনার কোড</p>
+            <CodeReveal code={order.voucherCode.code} />
+          </div>
+        )}
         <h2 className="mb-4 font-bold text-slate-900">বিস্তারিত</h2>
 
         <dl className="space-y-3 text-sm">
@@ -201,7 +222,12 @@ export default async function OrderDetail({
           <div className="flex items-start gap-3">
             <span
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-lg"
-              style={{ background: 'rgba(242,168,196,.12)', border: '1px solid rgba(242,168,196,.3)' }}
+              /* ★ বাতিল/ফেরতের আইকন-বৃত্ত — গোলাপি লিটারেল থেকে
+                   `--sem-danger`-এ, দুই থিমে আলাদা শেড। */
+              style={{
+                background: 'color-mix(in srgb, var(--sem-danger) 12%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--sem-danger) 30%, transparent)',
+              }}
               aria-hidden="true"
             >
               ↩

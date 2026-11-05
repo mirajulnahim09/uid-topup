@@ -91,8 +91,21 @@ export function verifyTotp(
   token: string,
   opts: { window?: number; atMs?: number } = {}
 ): boolean {
+  return matchTotpStep(base32Secret, token, opts) !== null;
+}
+
+/**
+ * ★★★ AUTH-06 — কোন ধাপের (counter) কোড মিলল, সেটিই ফেরত; না মিললে null।
+ *   replay-রোধে কল-সাইট এই ধাপটি ব্যবহারকারীর জন্য "খরচ" করে
+ *   (`claimTotpStep`, lib/totpReplay.ts) — একই বা আগের ধাপ আর চলে না।
+ */
+export function matchTotpStep(
+  base32Secret: string,
+  token: string,
+  opts: { window?: number; atMs?: number } = {}
+): number | null {
   const cleaned = (token || '').replace(/\s/g, '');
-  if (!/^\d{6}$/.test(cleaned)) return false;
+  if (!/^\d{6}$/.test(cleaned)) return null;
 
   const window = opts.window ?? 1;
   const atMs = opts.atMs ?? Date.now();
@@ -101,9 +114,9 @@ export function verifyTotp(
 
   for (let i = -window; i <= window; i++) {
     const candidate = hotp(secret, counter + i);
-    if (timingSafeEqualStr(candidate, cleaned)) return true;
+    if (timingSafeEqualStr(candidate, cleaned)) return counter + i;
   }
-  return false;
+  return null;
 }
 
 function timingSafeEqualStr(a: string, b: string): boolean {

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
+import { Hind_Siliguri, Anek_Bangla, Unbounded, Chakra_Petch } from 'next/font/google';
 import './globals.css';
 import Providers from '@/components/Providers';
 import SiteBackground from '@/components/fx/SiteBackground';
@@ -64,9 +65,45 @@ export const viewport: Viewport = {
   themeColor: '#0a0b11',
 };
 
+/**
+ * ★★★ ফন্ট নিজের origin থেকে — Google-এর CSS আর রানটাইমে লাগে না।
+ *
+ *   আগে `globals.css` এর প্রথম লাইনে `@import url(fonts.googleapis.com…)`
+ *   ছিল। CSS `@import` render-blocking ও শৃঙ্খলিত: Google-এর CSS না আসা
+ *   পর্যন্ত ব্রাউজার পাতা আঁকে না, পরের script-ও অপেক্ষা করে। নিয়ন্ত্রিত
+ *   পরীক্ষায় মাপা (চূড়ান্ত অডিট, ২০২৬-০৯-১৭):
+ *     স্বাভাবিক              → প্রথম paint ১২৩২ms
+ *     Google Fonts ৮s ধীর    → প্রথম paint ৮৮২০ms  (পুরো সাইট সাদা)
+ *   আর যাচাই-রানে নতুন ব্রাউজারের প্রথম নেভিগেশন মাঝে মাঝে ৩০s আটকাত।
+ *
+ *   `next/font` বিল্ডের সময় ফাইল নামিয়ে `/_next/static/media` থেকে দেয়,
+ *   fallback-মেট্রিক দিয়ে লেআউট-সরা কমায়। নাম CSS ভ্যারিয়েবলে আসে,
+ *   `globals.css` সেগুলোই ব্যবহার করে।
+ *   · `preload: false` — আগের মতোই কেবল ব্যবহৃত ওজন/লিপি চাহিদামতো নামে;
+ *     ১০+ বাংলা ফাইল আগাম preload করলে উল্টো LCP খারাপ হতো।
+ *   · Space Grotesk বাদ — `@import` এ ছিল, কোথাও ব্যবহৃত হতো না।
+ */
+const fontHind = Hind_Siliguri({
+  subsets: ['bengali', 'latin'], weight: ['300', '400', '500', '600', '700'],
+  display: 'swap', preload: false, variable: '--font-hind',
+});
+const fontAnek = Anek_Bangla({
+  subsets: ['bengali', 'latin'], weight: ['600', '700', '800'],
+  display: 'swap', preload: false, variable: '--font-anek',
+});
+const fontUnbounded = Unbounded({
+  subsets: ['latin'], weight: ['600', '700', '900'],
+  display: 'swap', preload: false, variable: '--font-unbounded',
+});
+const fontChakra = Chakra_Petch({
+  subsets: ['latin'], weight: ['600', '700'],
+  display: 'swap', preload: false, variable: '--font-chakra',
+});
+const FONT_VARS = `${fontHind.variable} ${fontAnek.variable} ${fontUnbounded.variable} ${fontChakra.variable}`;
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // ★ ফিচার ১০ — কুকি থেকে ভাষা পড়ি (ডিফল্ট বাংলা)
-  const locale = normalizeLocale(cookies().get(LOCALE_COOKIE)?.value);
+  const locale = normalizeLocale((await cookies()).get(LOCALE_COOKIE)?.value);
 
 
   // ★ বুট-পর্দার লোগো — সার্ভারেই রেজলভ করা হয়, কারণ এই মার্কআপ
@@ -83,16 +120,29 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   ];
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <head>
-        {/* ★ ফন্ট preconnect — globals.css এর @import (Google Fonts) শুরু
-            হওয়ার আগেই TCP+TLS হ্যান্ডশেক সেরে রাখে, ফলে টেক্সট দ্রুত
-            রেন্ডার হয় (display=swap আগে থেকেই আছে)। শুধু hint — কোনো
-            ভিজ্যুয়াল/CSP পরিবর্তন নয়। */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
-      <body>
+    <html lang={locale} className={FONT_VARS} suppressHydrationWarning>
+      {/* ★ Google Fonts-এর preconnect আর নেই — ফন্ট এখন নিজের origin থেকে (উপরে `next/font`) */}
+      <head />
+      {/**
+        * ★★★ `suppressHydrationWarning` — `<html>` এ যে কারণে আছে,
+        *   `<body>` এও ঠিক সেই কারণে দরকার।
+        *
+        *   অডিটে (৫১৪ পাতা-মাপ) সবচেয়ে বেশিবার আসা কনসোল-বার্তা
+        *   ছিল এটিই — **৩৬৫ বার**, কার্যত প্রতিটি পাতায়:
+        *   `Warning: Extra attributes from the server: style at body`।
+        *
+        *   কারণ: ছয়টি কম্পোনেন্ট স্ক্রল-লক করতে `document.body.style`
+        *   এ হাত দেয় (`Navbar` · `Toast` · `PopupHost` ·
+        *   `StorefrontShell` · `HowToOrder` · `CustomCursor`)। খালি
+        *   মান বসালেও DOM-এ `style=""` অ্যাট্রিবিউটটি থেকে যায়, আর
+        *   হাইড্রেশনের সময় React সেটিকে "সার্ভারের বাড়তি অ্যাট্রিবিউট"
+        *   বলে অভিযোগ করে।
+        *
+        *   ⚠️ এটি **কেবল `<body>` ট্যাগের নিজের অ্যাট্রিবিউট** চাপা
+        *   দেয় — ভিতরের কোনো কম্পোনেন্টের প্রকৃত hydration mismatch
+        *   আগের মতোই ধরা পড়বে। তাই আসল বাগ লুকানোর ঝুঁকি নেই।
+        */}
+      <body suppressHydrationWarning>
         {/* ★ flash-প্রতিরোধ: প্রথম paint এর আগেই সংরক্ষিত থিম বসায়।
             ★★★ H3 — এখানে ইচ্ছাকৃতভাবে `nonce` **বসানো হয় না**।
             প্রথমে nonce বসানো হয়েছিল, কিন্তু nonce প্রতি-অনুরোধে

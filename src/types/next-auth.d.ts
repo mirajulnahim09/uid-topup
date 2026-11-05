@@ -14,6 +14,10 @@ declare module 'next-auth' {
     user: {
       id: string;
       role: Role;
+      /** ★ লগইনের মুহূর্তের `User.sessionEpoch` — `requireUser()` প্রতিবার মেলায় */
+      epoch?: number;
+      /** ★ AUTH-05 — এই লগইনের স্থায়ী সেশন-id (প্রতি-ডিভাইস লগআউট) */
+      sid?: string;
     } & DefaultSession['user'];
   }
 
@@ -35,5 +39,7 @@ declare module 'next-auth/jwt' {
      *   যাচাই হয় — লগ-আউট নয়, শুধু একবার DB দেখা।
      */
     lastChecked?: number;
+    /** ★ AUTH-05 — এই লগইনের স্থায়ী সেশন-id; লগআউটে কেবল এটি বাতিল হয় */
+    sid?: string;
   }
 }

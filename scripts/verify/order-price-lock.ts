@@ -80,13 +80,23 @@ const PRICE_AFTER = 999;
   });
   console.log(`  variant #${variant.id} · দাম ৳${PRICE_AT_LOCK} · ইউজার ব্যালেন্স ৳5000\n`);
 
+  /**
+   * ⚠️ `try` এর **বাইরে** ঘোষণা — নাহলে মাঝপথে কোনো দাবি throw করলে
+   *   এই সংযোগটি খোলা থেকে যেত। আগে `process.exit()` জোর করে মেরে
+   *   দিত বলে সেটি চোখে পড়ত না; এখন ইভেন্ট-লুপ খালি হওয়ার অপেক্ষা
+   *   করা হয়, তাই একটি খোলা ক্লায়েন্ট মানে স্ক্রিপ্ট **ঝুলে থাকা**।
+   */
+  let other: PrismaClient | null = null;
+
   try {
     // ── ১+২. লক ধরে রেখে সমান্তরাল UPDATE ব্লক হয় কিনা ──
     console.log('── লক আচরণ ──');
     // ★ দ্বিতীয় সংযোগ — একই (যাচাই-নির্ধারিত) ডাটাবেসে
-    const other = new PrismaClient({
+    other = new PrismaClient({
       datasources: { db: { url: process.env.VERIFY_DATABASE_URL || process.env.DATABASE_URL } },
     });
+    /** ★ ক্লোজারের ভিতরে `other` এর narrowing টেকে না (TS18047) — তাই ধ্রুবক */
+    const otherDb = other;
     let updateBlocked = false;
     let updateFinished = false;
 
@@ -94,7 +104,7 @@ const PRICE_AFTER = 999;
       await tx.$queryRaw`SELECT id, stock, price FROM "Variant" WHERE id = ${variant.id} FOR UPDATE`;
 
       // সমান্তরালে দাম বদলানোর চেষ্টা — লকের কারণে অপেক্ষা করবে
-      const upd = other.$executeRaw`UPDATE "Variant" SET price = ${PRICE_AFTER} WHERE id = ${variant.id}`
+      const upd = otherDb.$executeRaw`UPDATE "Variant" SET price = ${PRICE_AFTER} WHERE id = ${variant.id}`
         .then(() => { updateFinished = true; })
         .catch(() => { updateFinished = true; });
 
@@ -113,7 +123,6 @@ const PRICE_AFTER = 999;
     const after = await prisma.variant.findUnique({ where: { id: variant.id }, select: { price: true } });
     check('লক ছাড়ার পর দাম বদলায়', Number(after?.price) === PRICE_AFTER,
       `৳${Number(after?.price)}`);
-    await other.$disconnect();
 
     // ── ৩. দাম আবার ১০০ করে প্রকৃত অর্ডার ──
     await prisma.variant.update({ where: { id: variant.id }, data: { price: PRICE_AT_LOCK } });
@@ -200,9 +209,25 @@ const PRICE_AFTER = 999;
     await prisma.product.deleteMany({ where: { id: product.id } });
     console.log('  (টেস্ট ডেটা মুছে ফেলা হলো)');
     await prisma.$disconnect();
+    await other?.$disconnect();
   }
 
   console.log('\n════════════════════════════════════════');
   console.log(fail ? `  ${fail} ব্যর্থ` : '  সব পাস');
-  process.exit(fail ? 1 : 0);
+  /**
+   * ⚠️ `process.exit()` **নয়** — `exitCode`।
+   *
+   *   এই স্ক্রিপ্টটি দুটি Prisma ক্লায়েন্ট খোলে (লক পরীক্ষার জন্য
+   *   দ্বিতীয় সংযোগ লাগে)। `$disconnect()` এর পরও কোয়েরি-ইঞ্জিনের
+   *   async handle গুলো বন্ধ হতে কয়েক টিক নেয়; ঠিক তখন
+   *   `process.exit()` ডাকলে Windows-এ libuv মরে যেত —
+   *   `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING),
+   *   src\win\async.c, line 76` — আর প্রসেসটি **১২৭** ফেরত দিত।
+   *
+   *   ফলে প্রতিটি দাবি পাস করেও স্ক্রিপ্টটি যেকোনো গেটে **লাল**
+   *   দেখাত (PROGRESS ২০২৬-০৮-২৫ এ "হারনেসের, প্রোডাক্টের নয়" বলে
+   *   লেখা ছিল — কারণটি এখানেই)। `exitCode` বসিয়ে ইভেন্ট-লুপ
+   *   নিজে থেকে খালি হতে দিলে teardown শান্তিতে শেষ হয়।
+   */
+  process.exitCode = fail ? 1 : 0;
 })();

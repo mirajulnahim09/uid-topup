@@ -18,11 +18,22 @@
  *      করলে সেটাই সবচেয়ে বড় বিপদ হতো।
  */
 /** ⚠️ লাইভ DB-তে লেখা আটকায় — প্রথম import হতে হবে। */
-import './_guard-live-db';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { liveWriteGuardActive } from './_guard-live-db';
+import { Prisma } from '@prisma/client';
+import { prisma } from '../src/lib/prisma';
 import { creditWallet, debitWallet } from '../src/lib/services/wallet';
 
-const prisma = new PrismaClient();
+/**
+ * ★★★ গার্ড-করা ক্লায়েন্টই ব্যবহার করতে হবে।
+ *
+ *   আগে এখানে ছিল নিজস্ব `new PrismaClient()`। `_guard-live-db` তার
+ *   middleware বসায় **`src/lib/prisma` এর** ক্লায়েন্টে — এই আলাদা
+ *   ক্লায়েন্টটি সেই পাহারার বাইরে ছিল। ফলে `npm run test:money`
+ *   (যা `.env` = লাইভ Neon পড়ে) খ-অংশে প্রকৃত ব্যবহারকারীর সারিতে
+ *   `creditWallet`/`debitWallet` চালাত। rollback হতো ঠিকই, কিন্তু
+ *   ততক্ষণ লাইভ User সারি লক থাকত — চলমান অর্ডার অপেক্ষায় পড়ত।
+ *   (চূড়ান্ত অডিট ২০২৬-০৯-১৭, কোড পড়ে পাওয়া।)
+ */
 
 let passed = 0;
 let failed = 0;
@@ -250,7 +261,12 @@ async function behaviourInvariants() {
 async function main() {
   console.log('═══ টাকার অপরিবর্তনীয় নিয়ম পরীক্ষা (4.2) ═══');
   await stateInvariants();
-  await behaviourInvariants();
+  if (liveWriteGuardActive) {
+    // ★ লাইভ DB — কেবল পড়ার অংশ (ক)। খ-অংশ লেখে, তাই এখানে চলে না।
+    console.log('\n── খ) আচরণ — বাদ: লাইভ ডাটাবেস (লেখা নিষিদ্ধ)। ডেভ DB-তে চালান। ──');
+  } else {
+    await behaviourInvariants();
+  }
 
   console.log(`\n═══ ফলাফল: ${passed} পাস, ${failed} ব্যর্থ ═══`);
   if (failed > 0) {

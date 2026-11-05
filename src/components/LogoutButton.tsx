@@ -1,7 +1,8 @@
 'use client';
 
 import { signOut } from 'next-auth/react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useResetOnBfcacheRestore } from '@/lib/useBfcacheReset';
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -29,6 +30,7 @@ import { useState } from 'react';
  *   তাই আলাদা বোতাম।
  * ═══════════════════════════════════════════════════════════
  */
+
 export default function LogoutButton({
   /** লগআউটের পর কোথায় — অ্যাডমিন/গ্রাহক দুজনের জন্যই লগইন পাতা */
   callbackUrl = '/login',
@@ -42,6 +44,7 @@ export default function LogoutButton({
 }) {
   // ★ দুবার চাপা আটকাই — নাহলে দুটি signout রিকোয়েস্ট যেত
   const [busy, setBusy] = useState(false);
+  useResetOnBfcacheRestore(useCallback(() => setBusy(false), []));
 
   return (
     <button
@@ -49,7 +52,9 @@ export default function LogoutButton({
       disabled={busy}
       onClick={() => {
         setBusy(true);
-        signOut({ callbackUrl });
+        // signOut() rejects when the CSRF/sign-out request fails (offline);
+        // the session is then still alive, so let the user try again.
+        signOut({ callbackUrl }).catch(() => setBusy(false));
       }}
       /* ★ ছোঁয়ার লক্ষ্য: কমপ্যাক্টেও ৪০px, নাহলে ৪৪px — ফোনে
          নির্ভরযোগ্যভাবে ট্যাপযোগ্য রাখতে। */

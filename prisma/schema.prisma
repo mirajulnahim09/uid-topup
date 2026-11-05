@@ -3,8 +3,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // ★ রানটাইম — Neon-এর **pooled** URL (`-pooler` হোস্ট, `?pgbouncer=true&connection_limit=5`)
+  url       = env("DATABASE_URL")
+  // ★★★ মাইগ্রেশন/`db push`/`migrate status` — **সরাসরি** (non-pooler) URL। PgBouncer-এর
+  //   transaction-pooling-এ `migrate`-এর advisory lock ও prepared statement ভাঙে।
+  //   রানটাইম-ক্লায়েন্ট এটি পড়েই না; কেবল Prisma CLI। (PRODUCTION_CONFIG.md দেখুন)
+  directUrl = env("DIRECT_URL")
 }
 
 // ═════════ USER ═════════
@@ -50,6 +55,12 @@ model User {
   //   অকার্যকর হয় (jwt callback প্রতি refresh এ মিলিয়ে দেখে)। অ্যাডমিন
   //   অ্যাকাউন্ট compromise সন্দেহে বা পাসওয়ার্ড বদলে সব সেশন kill করা যায়।
   sessionEpoch Int @default(0)
+
+  /// Account-deletion request (Play Store "delete account" requirement).
+  /// The user asks; an admin anonymises the account later. Financial
+  /// records are never deleted — only personal data is scrubbed.
+  deletionRequestedAt DateTime?
+  deletionReason      String?
 
   referralCode      String  @unique
   referredById      String?
@@ -131,6 +142,21 @@ model RateLimitBucket {
   @@index([resetAt])
 }
 
+/// ★★★ AUTH-05 — লগআউট করা **একটি** সেশনের (ডিভাইসের) বাতিল-তালিকা।
+///   JWT stateless — লগআউট কেবল ওই ব্রাউজারের কুকি মুছত, কপি করা কুকি ৩০ দিন
+///   চলত (মাপা)। প্রতিটি লগইনে টোকেনে একটি স্থায়ী `sid` থাকে; লগআউটে কেবল সেটি
+///   এখানে ওঠে, অন্য ডিভাইস অক্ষত। `requireUser()`/পাতা-গার্ড প্রতিবার মেলায়।
+///   `expiresAt` = টোকেনের মেয়াদ — তারপর সারিটি অর্থহীন, দৈনিক cleanup মুছে দেয়।
+///   ⚠️ কোনো FK নেই — ইউজার মুছলেও সারি নিজের মেয়াদে মিলিয়ে যায়।
+model RevokedSession {
+  sid       String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -190,6 +216,9 @@ model Product {
   /// ★ কোন সার্ভিস দিয়ে UID যাচাই হবে। null = যাচাই সম্ভব নয়,
   ///   তখন double-entry (দুইবার লিখে মিলিয়ে দেখা) fallback চলবে।
   uidValidationProvider String?
+  /// TOPUP = delivered to a game account by hand/provider.
+  /// CODE  = delivered by assigning a stocked voucher code (VoucherCode).
+  deliveryType          String   @default("TOPUP")
   sortOrder             Int      @default(0)
   isActive              Boolean  @default(true)
   createdAt             DateTime @default(now())
@@ -282,8 +311,9 @@ model Variant {
   ///   ⚠️ কখনো "Instant" লেখা হয় না — ম্যানুয়াল সিস্টেমে সেটি মিথ্যা।
   deliveryMinutes Int?
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orders  Order[]
+  product      Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orders       Order[]
+  voucherCodes VoucherCode[]
 
   @@index([productId])
 }
@@ -355,6 +385,8 @@ model PaymentChannel {
   accountNo   String
   accountType String    @default("Personal")
   instruction String?
+  /// QR image shown to the customer (used by BANGLA_QR channels)
+  qrImage     String?
   isActive    Boolean   @default(true)
   sortOrder   Int       @default(0)
 }
@@ -364,6 +396,7 @@ enum PayMethod {
   NAGAD
   ROCKET
   UPAY
+  BANGLA_QR
 }
 
 // ═════════ COUPON ═════════
@@ -552,6 +585,8 @@ model Order {
   review  Review?
   /// ★ Group I (৪) — এই অর্ডার নিয়ে খোলা টিকিট/বিরোধ
   tickets Ticket[]
+  /// Voucher code delivered for this order (CODE products only)
+  voucherCode VoucherCode?
 
   @@unique([userId, clientRef])
   @@index([userId])
@@ -717,6 +752,10 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+  /// ★ তালিকা: `where userId order by createdAt desc limit 20` — Navbar প্রতি
+  /// ১২০s প্রতিটি লগইন-করা গ্রাহকের জন্য ডাকে। আগে এটি **Seq Scan** ছিল;
+  /// মাপা (EXTREME অডিট, ২০২৬-০৯-১৮, ১ লাখ সারি): ১৭.৪ms → ০.০৫ms।
+  @@index([userId, createdAt])
 }
 
 // ═════════ SETTINGS ═════════
@@ -749,6 +788,10 @@ model AdminLog {
   @@index([adminId, createdAt])
   @@index([action, createdAt])
   @@index([actorType, createdAt])
+  /// ★ DB-01 — গ্রাহক-পাতার অ্যাডমিন-টাইমলাইন ও আংশিক-রিফান্ডের idempotency-খোঁজ
+  ///   (Order-রো লকের ভেতরে) `targetId` দিয়ে চলে; সূচক ছাড়া ১০ লক্ষ সারিতে পুরো
+  ///   টেবিল-স্ক্যান (মাপা ৫৭–৬৩ms, সারির সাথে রৈখিক)।
+  @@index([targetId, createdAt])
 }
 
 // ═════════ TELEGRAM ENTERPRISE (2026-08-05) ═════════
@@ -1089,4 +1132,32 @@ model Withdrawal {
   @@index([userId, status])
   /// ★ অ্যাডমিনের সারি
   @@index([status, createdAt])
+}
+
+// ═════════ VOUCHER CODES ("My Codes") ═════════
+/// Stocked codes for CODE-delivery products (gift cards, subscriptions,
+/// UniPin vouchers). One code is assigned to exactly one order.
+model VoucherCode {
+  id          String            @id @default(cuid())
+  variantId   Int
+  code        String
+  status      VoucherCodeStatus @default(AVAILABLE)
+  orderId     String?           @unique
+  batch       String?
+  addedById   String?
+  addedByName String?
+  createdAt   DateTime          @default(now())
+  assignedAt  DateTime?
+
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([variantId, code])
+  @@index([variantId, status])
+}
+
+enum VoucherCodeStatus {
+  AVAILABLE
+  ASSIGNED
+  VOID
 }

@@ -1,0 +1,264 @@
+{
+  "counts": {
+    "users": 5011,
+    "orders": 300039,
+    "deposits": 20046,
+    "logs": 101560,
+    "ledger": 5068,
+    "notifications": 21600
+  },
+  "rows": [
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin",
+      "status": 200,
+      "ms": 673,
+      "kb": 126,
+      "runs": [
+        559,
+        673,
+        677
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin/orders",
+      "status": 200,
+      "ms": 519,
+      "kb": 389,
+      "runs": [
+        1880,
+        519,
+        281
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin/orders?status=PENDING",
+      "status": 200,
+      "ms": 182,
+      "kb": 390,
+      "runs": [
+        256,
+        169,
+        182
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin/deposits",
+      "status": 200,
+      "ms": 528,
+      "kb": 685,
+      "runs": [
+        528,
+        455,
+        738
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin/users",
+      "status": 200,
+      "ms": 349,
+      "kb": 295,
+      "runs": [
+        295,
+        349,
+        569
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin/users?q=growth-49",
+      "status": 200,
+      "ms": 315,
+      "kb": 295,
+      "runs": [
+        406,
+        302,
+        315
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin/users/grw_heavy",
+      "status": 200,
+      "ms": 301,
+      "kb": 355,
+      "runs": [
+        465,
+        301,
+        295
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin/logs",
+      "status": 200,
+      "ms": 471,
+      "kb": 797,
+      "runs": [
+        416,
+        513,
+        471
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin/logs?q=গ্রোথ",
+      "status": 200,
+      "ms": 693,
+      "kb": 807,
+      "runs": [
+        549,
+        693,
+        784
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin/reports",
+      "status": 200,
+      "ms": 933,
+      "kb": 101,
+      "runs": [
+        1198,
+        910,
+        933
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/api/admin/analytics?days=90",
+      "status": 200,
+      "ms": 4657,
+      "kb": 8,
+      "runs": [
+        4046,
+        4657,
+        4877
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/api/admin/reports?type=orders&from=2025-09-18",
+      "status": 200,
+      "ms": 28750,
+      "kb": 42733,
+      "runs": [
+        34734,
+        21912,
+        28750
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/api/admin/reports?type=deposits&from=2025-09-18",
+      "status": 200,
+      "ms": 948,
+      "kb": 2482,
+      "runs": [
+        1002,
+        870,
+        948
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/api/admin/logs/export",
+      "status": 200,
+      "ms": 252,
+      "kb": 1622,
+      "runs": [
+        239,
+        260,
+        252
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/api/admin/backup",
+      "status": 200,
+      "ms": 30077,
+      "kb": 319290,
+      "runs": [
+        33620,
+        30077,
+        29250
+      ]
+    },
+    {
+      "who": "ভারী গ্রাহক",
+      "path": "/account",
+      "status": 200,
+      "ms": 57,
+      "kb": 139,
+      "runs": [
+        48,
+        57,
+        57
+      ]
+    },
+    {
+      "who": "ভারী গ্রাহক",
+      "path": "/account/orders",
+      "status": 200,
+      "ms": 103,
+      "kb": 387,
+      "runs": [
+        103,
+        112,
+        96
+      ]
+    },
+    {
+      "who": "ভারী গ্রাহক",
+      "path": "/account/notifications",
+      "status": 200,
+      "ms": 47,
+      "kb": 178,
+      "runs": [
+        47,
+        45,
+        65
+      ]
+    },
+    {
+      "who": "ভারী গ্রাহক",
+      "path": "/account/wallet/withdraw",
+      "status": 200,
+      "ms": 48,
+      "kb": 97,
+      "runs": [
+        48,
+        50,
+        32
+      ]
+    },
+    {
+      "who": "ভারী গ্রাহক",
+      "path": "/api/notifications",
+      "status": 200,
+      "ms": 9,
+      "kb": 3,
+      "runs": [
+        10,
+        9,
+        9
+      ]
+    },
+    {
+      "who": "ভারী গ্রাহক",
+      "path": "/api/me",
+      "status": 200,
+      "ms": 10,
+      "kb": 0,
+      "runs": [
+        10,
+        9,
+        10
+      ]
+    }
+  ]
+}

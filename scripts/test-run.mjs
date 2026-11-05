@@ -17,6 +17,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import net from 'node:net';
 import { createRequire } from 'node:module';
+import { checkLocalDb } from './assert-local-db.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -87,7 +88,17 @@ if (!reachable) {
 
 // ★ প্রোডাকশন DATABASE_URL বাদ দিয়ে পরিবেশ বানাই
 const { DATABASE_URL: _prod, ...rest } = process.env;
-const env = { ...rest, DATABASE_URL: TEST_URL, TEST_DATABASE_URL: TEST_URL };
+// ★ DIRECT_URL — schema-র `directUrl`; না দিলে `db push` P1012-এ থামে (মাপা)।
+//   টেস্ট DB-তে pooler নেই, তাই দুটো একই। `.env`-এর প্রোডাকশন DIRECT_URL-ও এভাবে ঢাকা পড়ে।
+const env = { ...rest, DATABASE_URL: TEST_URL, DIRECT_URL: TEST_URL, TEST_DATABASE_URL: TEST_URL };
+
+// O-15 — the same fail-closed guard as build/dev: the final child env and every
+// .env* file must hold local database URLs only, before prisma or Next runs.
+const dbProblems = checkLocalDb(env);
+if (dbProblems.length) {
+  console.error(`\n✗ [assert-local-db] test stopped (O-15):\n${dbProblems.map((p) => `    · ${p}`).join('\n')}\n`);
+  process.exit(1);
+}
 
 // ── ৩. স্কিমা ──
 console.log('  prisma db push → টেস্ট ডাটাবেস …');

@@ -109,8 +109,9 @@ const KEY_PLAIN = `verify:order:${Date.now()}`;
     { file: 'src/app/api/auth/forgot/route.ts', needle: 'forgot:' },
     { file: 'src/app/api/auth/reset/route.ts', needle: 'reset:' },
     { file: 'src/app/api/account/2fa/route.ts', needle: '2fa:' },
-    { file: 'src/app/api/auth/2fa-check/route.ts', needle: '2fa-precheck:ip:' },
-    { file: 'src/app/api/auth/2fa-check/route.ts', needle: '2fa-precheck:email:' },
+    // ★ AUTH-03: 2FA-পূর্ব-যাচাই এখন লগইনের **একই** বাকেট খরচ করে (নিজস্ব `2fa-precheck:*` নয়)
+    { file: 'src/app/api/auth/2fa-check/route.ts', needle: 'login:ip:' },
+    { file: 'src/app/api/auth/2fa-check/route.ts', needle: 'login:email:' },
     { file: 'src/app/api/account/password/route.ts', needle: 'pw:' },
   ];
   for (const { file, needle } of sites) {

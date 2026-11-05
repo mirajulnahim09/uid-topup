@@ -77,11 +77,17 @@ const AMBIENT_GRACE_MS = 180;
  */
 const ROUTE_GRACE_MS = 150;
 /** একবার দেখা গেলে ন্যূনতম যতক্ষণ থাকবে */
-const MIN_SHOW_MS = 420;
+const MIN_SHOW_MS = 320;
 /** fade-out এর দৈর্ঘ্য — CSS `.v-ovl--out` এর সমান রাখতে হবে */
-const FADE_MS = 220;
+const FADE_MS = 180;
 /** শেষ রক্ষা — আটকে যাওয়া কাজ এতক্ষণে জোর করে ছেড়ে দেওয়া হয় */
 const SAFETY_MS = 20_000;
+/**
+ * Route jobs get a much shorter safety: a navigation that never changes
+ * the pathname (query-only links, a cancelled push) must not leave the
+ * top bar running for 20 seconds.
+ */
+const ROUTE_SAFETY_MS = 8_000;
 
 /**
  * ★ যেসব mutation ইচ্ছাকৃতভাবে নীরব — ব্যাকগ্রাউন্ড কাজ, গ্রাহক
@@ -105,7 +111,7 @@ export const SILENT_HEADER = 'x-volt-silent';
 
 type Job = { label: string; at: number; grace: number; tier: Tier };
 
-type StartOpts = { tier?: Tier; grace?: number };
+type StartOpts = { tier?: Tier; grace?: number; safety?: number };
 
 type LoadingApi = {
   /** কাজ শুরু — ফেরত আসা id দিয়ে `stop()` ডাকতে হবে */
@@ -145,8 +151,12 @@ const NOOP_API: LoadingApi = {
  *   ৫.২ সেকেন্ড পর্যন্ত লাগে — পড়াকে ব্লক করলে প্রতিটি পেজ লোড
  *   পাঁচ সেকেন্ড আটকে থাকত।
  */
-function tierFor(_path: string, _upload: boolean): Tier {
-  return 'block';
+function tierFor(path: string, upload: boolean): Tier {
+  // 2026-10-31: full-screen only where a double click costs money or
+  // identity (order, deposit, payment, auth, upload). Everything else —
+  // admin saves, toggles, page changes — uses the thin top bar, so the
+  // site no longer feels blocked on every click.
+  return upload || BLOCKING_PATHS.some((re) => re.test(path)) ? 'block' : 'ambient';
 }
 
 /** টাকা/আপলোডে দ্রুত, বাকি কাজে সামান্য অপেক্ষা (ঝলকানি রোধ) */
@@ -262,7 +272,7 @@ export default function LoadingProvider({ children }: { children: React.ReactNod
         // grace পেরোলে দেখানোর সিদ্ধান্ত
         setTimeout(evaluate, grace),
         // ⚠️ শেষ রক্ষা — কোনো কাজ কখনো ওভারলে আটকে রাখতে পারবে না
-        setTimeout(() => stop(id), SAFETY_MS),
+        setTimeout(() => stop(id), opts?.safety ?? SAFETY_MS),
       ]);
       return id;
     },
@@ -359,8 +369,10 @@ export default function LoadingProvider({ children }: { children: React.ReactNod
    */
   const beginRoute = useCallback(() => {
     if (routeJob.current !== null) stop(routeJob.current);
-    // ★ নামহীন — পাতা-বদলেও ঘূর্ণায়মান বার্তাগুলোই চলে
-    routeJob.current = start('', { tier: 'block', grace: ROUTE_GRACE_MS });
+    // 2026-10-31: page changes use the non-blocking top bar. The full
+    // mascot overlay on every click (≥ 0.8 s with blur) is what made the
+    // site feel slow; the bar shows progress without hiding the page.
+    routeJob.current = start('', { tier: 'ambient', grace: ROUTE_GRACE_MS, safety: ROUTE_SAFETY_MS });
   }, [start, stop]);
 
   useEffect(() => {
@@ -383,7 +395,8 @@ export default function LoadingProvider({ children }: { children: React.ReactNod
       if (!href || !href.startsWith('/')) return;
       if (a.getAttribute('target') === '_blank' || a.hasAttribute('download')) return;
       // একই পাতা বা কেবল #anchor — কোনো ন্যাভিগেশন হয় না
-      if (href.split('#')[0] === window.location.pathname) return;
+      const target = href.split('#')[0];
+      if (target === window.location.pathname || target === window.location.pathname + window.location.search) return;
       beginRoute();
     }
 
@@ -414,6 +427,41 @@ export default function LoadingProvider({ children }: { children: React.ReactNod
   useEffect(() => {
     endRoute();
   }, [path, endRoute]);
+
+  /**
+   * Query-only navigations (`/admin/orders?status=…`) keep the same
+   * pathname, so the effect above never fires. Watch the full URL via the
+   * History API instead — Next's router calls pushState/replaceState for
+   * every client navigation.
+   */
+  useEffect(() => {
+    const h = window.history;
+    const push = h.pushState;
+    const replace = h.replaceState;
+    let last = window.location.href;
+    const check = () => {
+      queueMicrotask(() => {
+        if (window.location.href !== last) {
+          last = window.location.href;
+          endRoute();
+        }
+      });
+    };
+    h.pushState = function (...args: Parameters<History['pushState']>) {
+      const r = push.apply(this, args);
+      check();
+      return r;
+    };
+    h.replaceState = function (...args: Parameters<History['replaceState']>) {
+      const r = replace.apply(this, args);
+      check();
+      return r;
+    };
+    return () => {
+      h.pushState = push;
+      h.replaceState = replace;
+    };
+  }, [endRoute]);
 
   // আনমাউন্টে সব টাইমার পরিষ্কার (leak রোধ)
   useEffect(() => {

@@ -169,13 +169,16 @@ export default function TwoFactorSettings() {
             <code className="mt-1 block break-all rounded bg-slate-100 p-2 font-mono">{setup.secret}</code>
           </details>
           <p className="text-sm text-slate-600">২. অ্যাপে দেখানো ৬-অঙ্কের কোড ও আপনার পাসওয়ার্ড দিন:</p>
+          {/* ★ aria-label — placeholder "••••••" স্ক্রিন-রিডার কিছুই বোঝায় না */}
           <input
+            aria-label="Authenticator অ্যাপের ৬-অঙ্কের কোড"
             className="input text-center text-lg tracking-[0.3em]"
             inputMode="numeric" placeholder="••••••"
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
           />
           <input
+            aria-label="আপনার পাসওয়ার্ড"
             className="input" type="password" placeholder="আপনার পাসওয়ার্ড"
             autoComplete="current-password"
             value={password} onChange={(e) => setPassword(e.target.value)}
@@ -207,11 +210,13 @@ export default function TwoFactorSettings() {
         <div className="space-y-3">
           <p className="text-sm text-slate-600">নিশ্চিত করতে পাসওয়ার্ড ও বর্তমান কোড দিন:</p>
           <input
+            aria-label="Authenticator অ্যাপের বর্তমান কোড"
             className="input text-center text-lg tracking-[0.3em]"
             inputMode="numeric" placeholder="••••••"
             value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
           />
           <input
+            aria-label="আপনার পাসওয়ার্ড"
             className="input" type="password" placeholder="আপনার পাসওয়ার্ড"
             autoComplete="current-password"
             value={password} onChange={(e) => setPassword(e.target.value)}

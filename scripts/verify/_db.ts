@@ -40,6 +40,48 @@ import { PrismaClient } from '@prisma/client';
 /** যাচাই কোন সার্ভারের বিরুদ্ধে চলবে */
 export const BASE = process.env.VERIFY_BASE || 'http://localhost:3000';
 
+/**
+ * ★ প্রোডাকশন রিগের (`scripts/prod-rig.mjs`) সার্টিফিকেট **self-signed**,
+ *   তাই Node-এর `fetch` তাকে `DEPTH_ZERO_SELF_SIGNED_CERT` দিয়ে ফিরিয়ে দেয়।
+ *   ফলে fetch-ভিত্তিক স্ক্রিপ্ট (order-price-lock, ban-revocation,
+ *   ip-spoofing) রিগে চালালে **দাবি ব্যর্থ হওয়ার আগেই** ক্র্যাশ করত —
+ *   দেখে মনে হতো regression, আসলে হারনেসের।
+ *
+ *   ⚠️ ছাড়টি **কেবল localhost https**-এ। দূরের হোস্ট হলে যাচাই আগের
+ *   মতোই সার্ট যাচাই করে — নাহলে একদিন কেউ `VERIFY_BASE` এ আসল ডোমেইন
+ *   দিয়ে TLS-অন্ধ হয়ে যাচাই চালাত।
+ */
+if (/^https:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(BASE)) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
+/**
+ * ★★★ রিগে চালালে স্ক্রিপ্ট-প্রসেসও `production` — নইলে **ফাঁপা পাস**
+ *
+ *   ⚠️ যে ফাঁদটি ধরা পড়েছে (EXTREME অডিট, ২০২৬-০৯-১৮):
+ *   `authCookies.ts` কুকির নাম ঠিক করে `NODE_ENV` দেখে। রিগের সার্ভার
+ *   `next start` — অর্থাৎ production — তাই সে পড়ে
+ *   `__Secure-next-auth.session-token`। কিন্তু যাচাই-স্ক্রিপ্টের নিজের
+ *   প্রসেসে `NODE_ENV` production ছিল না, তাই সে হাতে-বানানো সেশন কুকি
+ *   লিখত `next-auth.session-token` নামে — সার্ভার যা কখনো পড়েই না।
+ *
+ *   ফল দুই রকম, দুটোই খারাপ:
+ *     · `ban-revocation` / `order-price-lock` — 401 পেয়ে **মিথ্যা লাল**।
+ *     · `isr-no-user-leak` — দুই "ভিন্ন" ইউজারই আসলে **অতিথি** হয়ে
+ *       যেত, তাই "A এর তথ্য B এর HTML এ নেই" দাবিটি শূন্যগর্ভভাবে পাস
+ *       করত (মাপা: দুজনের মার্কআপ-হ্যাশ হুবহু এক)। এটিই বেশি বিপজ্জনক —
+ *       লাল হলে চোখে পড়ে, ফাঁপা সবুজ পড়ে না।
+ *
+ *   তাই রিগের ঠিকানায় চালালে এখানেই একবার স্থির করে দেওয়া হয়, এবং
+ *   `authCookies` এর **আগেই** (consumer → `_db` → `authCookies`)।
+ */
+if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]):(3443|3100)(\/|$)/.test(BASE)) {
+  // ⚠️ Next-এর টাইপে `NODE_ENV` read-only (অ্যাপ-কোড যেন বদলাতে না পারে)।
+  //    এটি অ্যাপ নয়, আলাদা যাচাই-প্রসেস — রানটাইমে বদলানো বৈধ ও উদ্দেশ্যমূলক,
+  //    তাই সরাসরি অ্যাসাইনমেন্টের বদলে `Object.assign` (typecheck ভাঙে না)।
+  Object.assign(process.env, { NODE_ENV: 'production' });
+}
+
 const URL_ = process.env.VERIFY_DATABASE_URL || process.env.DATABASE_URL || '';
 
 /** হোস্ট স্থানীয় কি না — পাসওয়ার্ড ছাপা হয় না, শুধু হোস্ট দেখা হয় */
@@ -84,6 +126,27 @@ process.env.DATABASE_URL = URL_;
  *   `.env.development` তার কাছে অদৃশ্য।
  */
 export const db = new PrismaClient({ datasources: { db: { url: URL_ } } });
+
+/**
+ * AdminLog is append-only in any DB that has migration 20261031130000 (a
+ * trigger refuses DELETE). Verify scripts clean up the rows they created, so
+ * their adminLog.deleteMany is re-run inside a transaction with the explicit
+ * purge switch the migration provides. Middleware (not $extends) keeps the
+ * plain PrismaClient type that scripts pass around as a TransactionClient.
+ */
+let purging = false;
+db.$use(async (params, next) => {
+  if (params.model !== 'AdminLog' || params.action !== 'deleteMany' || purging) return next(params);
+  purging = true;
+  try {
+    return await db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.allow_adminlog_purge', 'on', true)`;
+      return tx.adminLog.deleteMany(params.args);
+    });
+  } finally {
+    purging = false;
+  }
+});
 
 /** কোন ডাটাবেসে চলছে তা রানের মাথায় দেখানো (হোস্ট+নাম, শংসাপত্র নয়) */
 export function dbLabel(): string {

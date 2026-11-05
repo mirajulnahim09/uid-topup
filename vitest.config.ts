@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
-import { TEST_DATABASE_URL } from './tests/helpers/testEnv';
+import { TEST_DATABASE_URL, TEST_ISOLATED_ENV } from './tests/helpers/testEnv';
 
 /**
  * ★ Vitest — money-পথের ইন্টিগ্রেশন টেস্ট (Group D)
@@ -38,10 +38,12 @@ export default defineConfig({
     env: {
       DATABASE_URL: TEST_DATABASE_URL,
       TEST_DATABASE_URL,
+      // ★ গোপন/ইন্টিগ্রেশন কী আগেই টেস্ট-মানে — Prisma `.env` থেকে লাইভ মান বসাতে পারে না
+      ...TEST_ISOLATED_ENV,
     },
     include: ['tests/**/*.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
-    // ★ একবারই `next dev` চালু হয় ও সব টেস্ট ফাইল সেটি ভাগ করে।
+    // ★ একবারই production build (`next build` + `next start`) চালু হয় ও সব টেস্ট ফাইল সেটি ভাগ করে।
     //   প্রতি ফাইলে সার্ভার চালু করলে রান কয়েক মিনিট দীর্ঘ হতো।
     globalSetup: ['./tests/globalSetup.ts'],
     pool: 'forks',
@@ -52,6 +54,20 @@ export default defineConfig({
     testTimeout: 60_000,
     hookTimeout: 120_000,
     reporters: 'verbose',
+    /**
+     * Coverage is off unless `--coverage` is passed (`npm run test:coverage`).
+     * It measures only code that runs inside the Vitest process. Route
+     * handlers reached over HTTP run in the separate `next dev` process and
+     * are not instrumented, so their coverage reads as 0 here.
+     */
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'json-summary'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.d.ts'],
+      all: true,
+    },
   },
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },

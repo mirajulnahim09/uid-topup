@@ -14,6 +14,16 @@
  * ═══════════════════════════════════════════════════════════
  */
 
+import { authCookieNames } from '../../src/lib/authCookies';
+
+/**
+ * Session cookie name the test server writes. The harness runs a production
+ * build (`next start`, NODE_ENV=production), so it is the `__Secure-` name.
+ * This jar ignores cookie attributes, so it sends the cookie over plain http
+ * exactly as a browser would over https.
+ */
+export const SESSION_COOKIE = authCookieNames(true).session;
+
 export type ApiResult<T = any> = {
   status: number;
   body: T;
@@ -110,7 +120,7 @@ export class Client {
   }
 
   get hasSession(): boolean {
-    return this.jar.has('next-auth.session-token');
+    return this.jar.has(SESSION_COOKIE);
   }
 
   /**

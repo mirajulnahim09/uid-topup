@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useToast } from '@/components/Toast';
 import type { ProviderInfo, ProviderHealth, ProviderMode } from '@/lib/payments/types';
+import Switch from '@/components/admin/Switch';
 
 /**
  * ★ পেমেন্ট প্রোভাইডার ক্রেডেনশিয়াল ব্যবস্থাপনা (অ্যাডমিন)।
@@ -17,11 +18,47 @@ import type { ProviderInfo, ProviderHealth, ProviderMode } from '@/lib/payments/
  *   (ড্রাইভার বাকি)"। তাই ভুল কনফিগে টাকা নড়ে না।
  */
 
+/**
+ * ★★★ স্বাস্থ্য-ব্যাজ — এখন সম্পূর্ণ ভূমিকা-টোকেনে (C3)।
+ *
+ *   দুটি আলাদা ত্রুটি একসাথে সারানো হলো:
+ *
+ *   ১. **চারটি `dot` হার্ডকোড ছিল** (`#22c55e` `#38bdf8` `#e0a83a`
+ *      `#94a3b8`) — অর্থাৎ থিম-অন্ধ। আর যেহেতু চারটিই হার্ডকোড, একটি
+ *      বদলালেই ম্যাপটি অসামঞ্জস্য হতো, তাই চারটি একসাথে।
+ *
+ *   ২. **`--tint-volt`/`--v-volt` প্রিসেট-চালিত** (`--v-volt` =
+ *      `--accent-text`)। ফলে অ্যাডমিন লাল accent বেছে নিলে
+ *      "ম্যানুয়াল প্রস্তুত" ব্যাজটিও **লাল** হয়ে যেত — অর্থাৎ সুস্থ
+ *      অবস্থা বিপদের মতো দেখাত। globals.css §C3 এই কারণেই `--sem-*`
+ *      টোকেনগুলো accent থেকে আলাদা রেখেছে।
+ *
+ *   ⚠️ `PARTIAL_KEYS` আগে `--tint-heat`/`--v-heat` (রোজ = বিপদ) ছিল,
+ *      অথচ তার নিজের dot ছিল অ্যাম্বার। "কী আংশিক" বিপদ নয়, সতর্কতা —
+ *      dot যা বলছিল সেটিই সঠিক, তাই পুরো সারিটি `--sem-warning`-এ।
+ *      (ইতিহাস: এর আগে সারিটির `bg` ছিল হার্ডকোড sand-gold আর `fg` এর
+ *      ফলব্যাক `#e6c584` — ২০২৬-০৮-২৯ এ টোকেনে সরানো হয়।)
+ *
+ *   ঘনত্ব অপরিবর্তিত: `--tint-*` টোকেনগুলোর α (১৫% / ১২% / ১২%) হুবহু
+ *   একই রাখা হয়েছে, কেবল উৎস-রঙটি ভূমিকা থেকে আসছে।
+ */
 const HEALTH_STYLE: Record<ProviderHealth['status'], { bg: string; fg: string; dot: string }> = {
-  MANUAL_READY:       { bg: 'var(--tint-volt)', fg: 'var(--v-volt)', dot: '#22c55e' },
-  CONFIGURED_PENDING: { bg: 'var(--tint-ice)',  fg: 'var(--v-ice)',  dot: '#38bdf8' },
-  PARTIAL_KEYS:       { bg: 'rgba(230,197,132,.12)', fg: 'var(--v-heat, #e6c584)', dot: '#e0a83a' },
-  NO_KEYS:            { bg: 'var(--v-fill2)', fg: 'var(--v-mut)', dot: '#94a3b8' },
+  MANUAL_READY: {
+    bg: 'color-mix(in srgb, var(--sem-success) 15%, transparent)',
+    fg: 'var(--sem-success)',
+    dot: 'var(--sem-success)',
+  },
+  CONFIGURED_PENDING: {
+    bg: 'color-mix(in srgb, var(--sem-info) 12%, transparent)',
+    fg: 'var(--sem-info)',
+    dot: 'var(--sem-info)',
+  },
+  PARTIAL_KEYS: {
+    bg: 'color-mix(in srgb, var(--sem-warning) 12%, transparent)',
+    fg: 'var(--sem-warning)',
+    dot: 'var(--sem-warning)',
+  },
+  NO_KEYS: { bg: 'var(--v-fill2)', fg: 'var(--v-mut)', dot: 'var(--v-mut)' },
 };
 
 const MASK = '••••••••';
@@ -117,10 +154,12 @@ export default function PaymentProviders({ initialProviders }: { initialProvider
             <div key={p.id} className="rounded-lg border" style={{ borderColor: 'var(--v-edge)', background: 'var(--v-fill)' }}>
               {/* সারি হেডার */}
               <div className="flex flex-wrap items-center justify-between gap-3 p-3">
+                {/* ★ ২৫px উঁচু ছিল — অথচ এটিই গেটওয়ের কনফিগ খোলার
+                    একমাত্র পথ (৭টি প্রোভাইডারে ৭ বার)। */}
                 <button
                   type="button"
                   onClick={() => patch(p.id, (r) => ({ ...r, open: !r.open }))}
-                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  className="flex min-h-[40px] min-w-0 flex-1 items-center gap-2 text-left"
                   aria-expanded={p.open}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
@@ -129,18 +168,19 @@ export default function PaymentProviders({ initialProviders }: { initialProvider
                   </svg>
                   <span className="text-sm font-bold" style={{ color: 'var(--v-ink)' }}>{p.label}</span>
                   <HealthBadge health={p.health} />
-                  <span className="badge" style={{ background: p.mode === 'live' ? 'rgba(34,197,94,.14)' : 'var(--v-fill2)', color: p.mode === 'live' ? '#22c55e' : 'var(--v-dim)' }}>
+                  {/* ★ "লাইভ" চিপ — আগে সবুজ লিটারেল, থিম-অন্ধ। একই
+                      ভূমিকা-টোকেন থেকে, যাতে ব্যাজ ও চিপ এক পরিবারে থাকে। */}
+                  <span className="badge" style={{ background: p.mode === 'live' ? 'color-mix(in srgb, var(--sem-success) 14%, transparent)' : 'var(--v-fill2)', color: p.mode === 'live' ? 'var(--sem-success)' : 'var(--v-dim)' }}>
                     {p.mode === 'live' ? 'লাইভ' : 'টেস্ট'}
                   </span>
                 </button>
 
-                {/* enable switch */}
-                <button type="button" role="switch" aria-checked={p.enabled} aria-label={`${p.label} চালু/বন্ধ`}
+                {/* enable switch — শেয়ার্ড কম্পোনেন্ট (৪০px ট্যাপ-লক্ষ্য) */}
+                <Switch
+                  on={p.enabled}
+                  label={`${p.label} চালু/বন্ধ`}
                   onClick={() => patch(p.id, (r) => ({ ...r, enabled: !r.enabled }))}
-                  className="relative h-7 w-12 shrink-0 rounded-full transition-colors"
-                  style={{ background: p.enabled ? '#7c3aed' : 'var(--v-edge2)' }}>
-                  <span className="absolute top-1 h-5 w-5 rounded-full bg-white transition-all" style={{ left: p.enabled ? 26 : 4 }} />
-                </button>
+                />
               </div>
 
               {/* ক্রেডেনশিয়াল ফর্ম */}
@@ -151,10 +191,12 @@ export default function PaymentProviders({ initialProviders }: { initialProvider
                     <span className="text-[12px] font-semibold" style={{ color: 'var(--v-mut)' }}>পরিবেশ:</span>
                     <div className="inline-flex rounded-lg border p-0.5" style={{ borderColor: 'var(--v-edge2)' }} role="group" aria-label="পরিবেশ">
                       {(['test', 'live'] as ProviderMode[]).map((m) => (
+                        /* ★ টেস্ট/লাইভ — টাকার পথ বদলায়, তাই ভুল ট্যাপের
+                           দাম সবচেয়ে বেশি এখানেই। ৩৪px → ৪০px। */
                         <button key={m} type="button" onClick={() => patch(p.id, (r) => ({ ...r, mode: m }))}
                           aria-pressed={p.mode === m}
-                          className="rounded-md px-3 py-1 text-[12px] font-bold transition"
-                          style={p.mode === m ? { background: '#7c3aed', color: '#fff' } : { color: 'var(--v-mut)' }}>
+                          className="inline-flex min-h-[40px] items-center rounded-md px-3 text-[12px] font-bold transition"
+                          style={p.mode === m ? { background: 'var(--violet)', color: '#fff' } : { color: 'var(--v-mut)' }}>
                           {m === 'test' ? 'টেস্ট' : 'লাইভ'}
                         </button>
                       ))}

@@ -1,0 +1,933 @@
+[
+  {
+    "path": "/api/account/2fa",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/account/2fa",
+    "method": "GET",
+    "anon": 401,
+    "customer": 200,
+    "admin": 200
+  },
+  {
+    "path": "/api/account/delete-request",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/account/delete-request",
+    "method": "DELETE",
+    "anon": 401,
+    "customer": 200,
+    "admin": -1
+  },
+  {
+    "path": "/api/account/orders/fingerprint",
+    "method": "GET",
+    "anon": 401,
+    "customer": 200,
+    "admin": 200
+  },
+  {
+    "path": "/api/account/password",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/account/profile",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/account/sessions/revoke-all",
+    "method": "POST",
+    "anon": 401,
+    "customer": 200,
+    "admin": -1
+  },
+  {
+    "path": "/api/account/withdraw",
+    "method": "GET",
+    "anon": 401,
+    "customer": 200,
+    "admin": 200
+  },
+  {
+    "path": "/api/account/withdraw",
+    "method": "PUT",
+    "anon": 401,
+    "customer": 503,
+    "admin": -1
+  },
+  {
+    "path": "/api/account/withdraw",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/analytics",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/announce",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/backup",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 0
+  },
+  {
+    "path": "/api/admin/banner",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/banner",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/banner",
+    "method": "DELETE",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/branding",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/branding",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/campaign",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/campaign",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/campaign",
+    "method": "DELETE",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/codes",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/codes",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/coupon",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/coupon",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/coupon",
+    "method": "DELETE",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/deposit",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/flags",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/logs/export",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/media",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/media",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/media",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/media",
+    "method": "DELETE",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/order",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/order/bulk",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/order/claim",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/order/refund",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/otp",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/otp",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/otp",
+    "method": "PUT",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/payment",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/payment",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/payment",
+    "method": "DELETE",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/payment/provider",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/payment/provider",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/product",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/product",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/product",
+    "method": "DELETE",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/readiness",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/reports",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/restore",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/search",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/settings",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/social",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/social",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/social",
+    "method": "DELETE",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/telegram",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/telegram",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/telegram-test",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/telegram-test",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/telegram/analytics",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/telegram/backup",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/telegram/backup",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/telegram/bots",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/telegram/bots",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/telegram/config",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/telegram/config",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/telegram/connect",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/telegram/manage",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/telegram/scheduler",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/telegram/scheduler",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/telegram/scheduler/tick",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/telegram/scheduler/tick",
+    "method": "GET",
+    "anon": 405,
+    "customer": 405,
+    "admin": 405
+  },
+  {
+    "path": "/api/admin/telegram/templates",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/telegram/templates",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/telegram/verify",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/tickets",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/tickets",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/tickets",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/upload",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/user",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/user",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/user/anonymize",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/user/api-key",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 400
+  },
+  {
+    "path": "/api/admin/user/api-key",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/user/api-key",
+    "method": "DELETE",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/user/recovery",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/user/tier",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/variant",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/variant",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/variant",
+    "method": "DELETE",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/admin/withdrawals",
+    "method": "GET",
+    "anon": 401,
+    "customer": 403,
+    "admin": 200
+  },
+  {
+    "path": "/api/admin/withdrawals",
+    "method": "POST",
+    "anon": 401,
+    "customer": 403,
+    "admin": -1
+  },
+  {
+    "path": "/api/auth/2fa-check",
+    "method": "POST",
+    "anon": 200,
+    "customer": 200,
+    "admin": -1
+  },
+  {
+    "path": "/api/auth/forgot",
+    "method": "POST",
+    "anon": 400,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/auth/login-status",
+    "method": "POST",
+    "anon": 200,
+    "customer": 200,
+    "admin": -1
+  },
+  {
+    "path": "/api/auth/otp/send",
+    "method": "POST",
+    "anon": 400,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/auth/reset",
+    "method": "POST",
+    "anon": 400,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/coupon/check",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/cron/ratelimit-cleanup",
+    "method": "POST",
+    "anon": 401,
+    "customer": 401,
+    "admin": -1
+  },
+  {
+    "path": "/api/cron/ratelimit-cleanup",
+    "method": "GET",
+    "anon": 401,
+    "customer": 401,
+    "admin": -1
+  },
+  {
+    "path": "/api/cron/sla-breach",
+    "method": "POST",
+    "anon": 401,
+    "customer": 401,
+    "admin": -1
+  },
+  {
+    "path": "/api/cron/sla-breach",
+    "method": "GET",
+    "anon": 401,
+    "customer": 401,
+    "admin": -1
+  },
+  {
+    "path": "/api/cron/telegram-scheduler",
+    "method": "POST",
+    "anon": 401,
+    "customer": 401,
+    "admin": -1
+  },
+  {
+    "path": "/api/cron/telegram-scheduler",
+    "method": "GET",
+    "anon": 401,
+    "customer": 401,
+    "admin": -1
+  },
+  {
+    "path": "/api/deposit",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/deposit/check-trx",
+    "method": "POST",
+    "anon": 401,
+    "customer": 200,
+    "admin": -1
+  },
+  {
+    "path": "/api/health",
+    "method": "GET",
+    "anon": 200,
+    "customer": 200,
+    "admin": 200
+  },
+  {
+    "path": "/api/me",
+    "method": "GET",
+    "anon": 401,
+    "customer": 200,
+    "admin": 200
+  },
+  {
+    "path": "/api/notifications",
+    "method": "GET",
+    "anon": 401,
+    "customer": 200,
+    "admin": 200
+  },
+  {
+    "path": "/api/notifications",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 200,
+    "admin": -1
+  },
+  {
+    "path": "/api/order",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/order/confirm",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/order/direct",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/register",
+    "method": "POST",
+    "anon": 400,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/reseller/balance",
+    "method": "GET",
+    "anon": 401,
+    "customer": 401,
+    "admin": 401
+  },
+  {
+    "path": "/api/reseller/order-status",
+    "method": "GET",
+    "anon": 401,
+    "customer": 401,
+    "admin": 401
+  },
+  {
+    "path": "/api/reseller/orders",
+    "method": "POST",
+    "anon": 401,
+    "customer": 401,
+    "admin": -1
+  },
+  {
+    "path": "/api/reseller/products",
+    "method": "GET",
+    "anon": 401,
+    "customer": 401,
+    "admin": 401
+  },
+  {
+    "path": "/api/review",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/search",
+    "method": "GET",
+    "anon": 200,
+    "customer": 200,
+    "admin": 200
+  },
+  {
+    "path": "/api/stream",
+    "method": "GET",
+    "anon": 401,
+    "customer": 0,
+    "admin": 0
+  },
+  {
+    "path": "/api/tickets",
+    "method": "GET",
+    "anon": 401,
+    "customer": 200,
+    "admin": 200
+  },
+  {
+    "path": "/api/tickets",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/tickets/probe-id",
+    "method": "GET",
+    "anon": 401,
+    "customer": 404,
+    "admin": 404
+  },
+  {
+    "path": "/api/tickets/probe-id",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/tickets/probe-id",
+    "method": "PATCH",
+    "anon": 401,
+    "customer": 404,
+    "admin": -1
+  },
+  {
+    "path": "/api/track",
+    "method": "POST",
+    "anon": 400,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/uid/recent",
+    "method": "GET",
+    "anon": 401,
+    "customer": 200,
+    "admin": 200
+  },
+  {
+    "path": "/api/uid/verify",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/upload",
+    "method": "POST",
+    "anon": 401,
+    "customer": 400,
+    "admin": -1
+  },
+  {
+    "path": "/api/webhooks/payment/probe-id",
+    "method": "POST",
+    "anon": 404,
+    "customer": 404,
+    "admin": -1
+  }
+]

@@ -18,7 +18,7 @@ function slugify(s: string) {
 export async function POST(req: Request) {
   try {
     const admin = await requireAdmin();
-    const { categoryId, name, image, description, uidLabel, uidHint } = await readJson(req);
+    const { categoryId, name, image, description, uidLabel, uidHint, deliveryType } = await readJson(req);
 
     if (!categoryId) throw new ApiError('ক্যাটাগরি বেছে নিন', 400);
     const nm = cleanText(String(name || ''), 80);
@@ -35,6 +35,7 @@ export async function POST(req: Request) {
         description: description ? cleanText(String(description), 300) : null,
         uidLabel: cleanText(String(uidLabel || 'Player UID'), 40),
         uidHint: uidHint ? cleanText(String(uidHint), 160) : null,
+        deliveryType: deliveryType === 'CODE' ? 'CODE' : 'TOPUP',
         sortOrder: count,
       },
     });
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const admin = await requireAdmin();
-    const { id, isActive, name, image, description, uidLabel, uidHint } = await readJson(req);
+    const { id, isActive, name, image, description, uidLabel, uidHint, deliveryType } = await readJson(req);
     if (!id) throw new ApiError('id প্রয়োজন', 400);
 
     const current = await prisma.product.findUnique({ where: { id: Number(id) } });
@@ -85,6 +86,7 @@ export async function PATCH(req: Request) {
     }
     if (uidLabel !== undefined) data.uidLabel = cleanText(String(uidLabel), 40);
     if (uidHint !== undefined) data.uidHint = uidHint ? cleanText(String(uidHint), 160) : null;
+    if (deliveryType !== undefined) data.deliveryType = deliveryType === 'CODE' ? 'CODE' : 'TOPUP';
 
     await prisma.product.update({ where: { id: Number(id) }, data });
 

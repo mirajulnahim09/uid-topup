@@ -32,7 +32,7 @@ import { existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 import { db } from '../vitest.setup';
 import { baseUrl } from './helpers/app';
-import { createUser, createAdmin, createVariant, balanceOf, DEFAULT_PASSWORD } from './helpers/factories';
+import { createUser, createAdmin, createVariant, createCompletedOrder, balanceOf, DEFAULT_PASSWORD } from './helpers/factories';
 import { generateApiKey } from '../src/lib/apiKey';
 
 const EXE = [
@@ -273,6 +273,78 @@ describe('ব্রাউজার smoke (CSP + hydration)', () => {
   );
   /**
    * ═══════════════════════════════════════════════════════════
+   * ★★★ হোমপেজ, ৩৯০px ফোন — প্রি-প্রোডাকশন লক (২০২৬-০৯-২৭) এ পাওয়া দুটি ত্রুটি
+   *
+   *   ১. "সদ্য সম্পন্ন অর্ডার"-এর `ul.grid`-এ কোনো মূল কলাম ছিল না, তাই অন্তর্নিহিত
+   *      `auto` কলাম লম্বা প্রোডাক্ট-নামের nowrap প্রস্থে (৫১৩px) বেড়ে যেত —
+   *      প্রতিটি সারির ডানের "সম্পন্ন"/সময় ৩৫৮px কার্ডের বাইরে কাটা পড়ত।
+   *   ২. নোটিশ-বারের ✕ ছিল ৩২×৩২ — প্রকল্পের ৪০px নিয়মের নিচে।
+   *   ৩. reduced-motion-এ চলন থামলে লম্বা নোটিশের শেষটুকু পড়ার উপায় ছিল না —
+   *      এখন জানালাটি আড়াআড়ি স্ক্রলযোগ্য।
+   * ═══════════════════════════════════════════════════════════
+   */
+  it.skipIf(!EXE)(
+    '৩৯০px হোমপেজ: লাইভ-অর্ডারের সারি কার্ডে ধরে, নোটিশের ✕ ≥৪০px, reduced-motion-এ নোটিশ স্ক্রলযোগ্য',
+    async () => {
+      const variant = await createVariant(db, { price: 100, stock: -1 });
+      const buyer = await createUser(db, { name: 'মোহাম্মদ পরীক্ষক' });
+      const order = await createCompletedOrder(db, { userId: buyer.id, variantId: variant.id });
+      await db.order.update({
+        where: { id: order.id },
+        data: { productName: 'Free Fire [BD SERVER] — বাংলাদেশ সার্ভার (তাৎক্ষণিক ডেলিভারি) অনেক লম্বা নাম', variantName: '25 Diamond' },
+      });
+      const NOTICE = 'প্রতিটি পেমেন্ট আমরা নিজে যাচাই করি — অর্ডারের অবস্থা যেকোনো সময় অ্যাকাউন্টে দেখতে পারবেন। শেষ-চিহ্ন ZQ9END';
+      await db.setting.upsert({ where: { key: 'site_notice' }, update: { value: NOTICE }, create: { key: 'site_notice', value: NOTICE } });
+
+      const browser = await chromium.launch({ headless: true, executablePath: EXE });
+      try {
+        for (const reducedMotion of ['no-preference', 'reduce'] as const) {
+          const ctx = await browser.newContext({
+            viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion,
+          });
+          const page = await ctx.newPage();
+          // ★ সার্ভারের সেটিং-ক্যাশ (৩০s) নতুন নোটিশ না দেখা পর্যন্ত আবার লোড
+          for (let i = 0; i < 12; i++) {
+            await page.goto(`${baseUrl()}/`, { waitUntil: 'networkidle', timeout: 60_000 });
+            await page.waitForFunction(`!document.getElementById('v-boot')`, null, { timeout: 30_000 }).catch(() => {});
+            if (await page.locator('.marquee-viewport').count()) break;
+            await page.waitForTimeout(4000);
+          }
+
+          const m = (await page.evaluate(`(function(){
+            var card = document.getElementById('live-orders-h').closest('.sf-card, .card').getBoundingClientRect();
+            var rows = Array.prototype.map.call(document.querySelectorAll('#live-orders li'), function (li) {
+              return Math.round(li.getBoundingClientRect().right - card.right);
+            });
+            var x = document.querySelector('button[aria-label="নোটিশ বন্ধ করুন"]').getBoundingClientRect();
+            var vp = document.querySelector('.marquee-viewport');
+            return { rows: rows, xw: x.width, xh: x.height, ox: getComputedStyle(vp).overflowX,
+              scrollable: vp.scrollWidth > vp.clientWidth, dupHidden: vp.querySelectorAll('.marquee-track > [aria-hidden="true"]').length > 0
+                && getComputedStyle(vp.querySelector('.marquee-track > [aria-hidden="true"]')).display === 'none' };
+          })()`)) as { rows: number[]; xw: number; xh: number; ox: string; scrollable: boolean; dupHidden: boolean };
+
+          expect(m.rows.length, 'লাইভ-অর্ডারে সারি নেই').toBeGreaterThan(0);
+          expect(Math.max(...m.rows), `সারি কার্ডের ${Math.max(...m.rows)}px বাইরে (${reducedMotion})`).toBeLessThanOrEqual(1);
+          expect(Math.min(m.xw, m.xh), `✕ ${m.xw}×${m.xh}`).toBeGreaterThanOrEqual(40);
+          if (reducedMotion === 'reduce') {
+            expect(m.ox, 'reduced-motion-এ নোটিশ-জানালা স্ক্রলযোগ্য নয়').toBe('auto');
+            expect(m.scrollable, 'লম্বা নোটিশ জানালার চেয়ে চওড়া হওয়া উচিত').toBe(true);
+            expect(m.dupHidden, 'লুপের দ্বিতীয় কপি লুকানো নয়').toBe(true);
+          } else {
+            expect(m.ox).toBe('hidden');
+          }
+          await ctx.close();
+        }
+      } finally {
+        await browser.close();
+        await db.setting.deleteMany({ where: { key: 'site_notice' } });
+      }
+    },
+    240_000,
+  );
+
+  /**
+   * ═══════════════════════════════════════════════════════════
    * ★★★ নিশ্চিতকরণ ডায়ালগে দুইবার ক্লিক — একটিই অর্ডার, একবারই চার্জ
    *
    *   ── কোন বাগটি এটি আটকায় (প্রোডাকশন বিল্ডে মাপা, ২০২৬-০৮-১৫) ──
@@ -330,7 +402,13 @@ describe('ব্রাউজার smoke (CSP + hydration)', () => {
         await ok.click({ timeout: 15_000 });
         await page.waitForTimeout(60);
         await ok.click({ force: true, timeout: 3000 }).catch(() => {});
-        await page.waitForTimeout(6000);
+        // Under full-suite load the first /api/order compile can exceed a fixed
+        // 6 s wait (measured: 0 orders counted, order landed later). Wait for
+        // the first order, then give a duplicate time to land before asserting.
+        for (let i = 0; i < 60 && (await db.order.count({ where: { userId: user.id } })) === 0; i++) {
+          await page.waitForTimeout(500);
+        }
+        await page.waitForTimeout(3000);
 
         const orders = await db.order.count({ where: { userId: user.id } });
         const entries = await db.ledgerEntry.count({ where: { userId: user.id } });

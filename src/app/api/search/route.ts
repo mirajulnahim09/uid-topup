@@ -16,6 +16,19 @@ import { searchProducts } from '@/lib/services/search';
  *   কার্যত একটি খরচ-নিয়ন্ত্রণ (Neon-এ সংযোগ সীমিত — H4)।
  * ═══════════════════════════════════════════════════════════
  */
+
+/**
+ * ⚠️ **`force-dynamic` ইচ্ছাকৃত।** রুটটি `getIp(req)` দিয়ে হেডার পড়ে,
+ *   কিন্তু কোনো সেশন/কুকি পড়ে না — তাই Next একে **স্ট্যাটিক** ধরে
+ *   prerender করার চেষ্টা করত, রেন্ডারের সময় `headers` দেখে থেমে যেত,
+ *   আর সেই ব্যর্থতা অ্যাপের **নিজের** লগারে `level:error` হিসেবে
+ *   প্রতিটি বিল্ডে ছাপা হতো। আচরণ ঠিকই ছিল (রুট ডাইনামিকই চলত),
+ *   কিন্তু একটি স্থায়ী মিথ্যা-ত্রুটি বিল্ড-লগে থাকত — আর Sentry যুক্ত
+ *   হলে (Phase 4b) প্রতিটি ডিপ্লয়ে একটি ভুয়া ত্রুটি যেত।
+ *   অন্য GET রুটগুলো (`account/withdraw`, `admin/user/api-key`) সেশন
+ *   পড়ে বলে Next এমনিতেই ডাইনামিক ধরে; এটিই একমাত্র ব্যতিক্রম ছিল।
+ */
+export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   try {
     const rl = await rateLimit(`search:${getIp(req)}`, LIMITS.search.limit, LIMITS.search.window);

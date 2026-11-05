@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { countBreaches } from './slaBreach';
+import { dhakaDayStart } from './date';
 
 /**
  * ★★★ অপারেশনাল মেট্রিক (3.10)
@@ -58,8 +59,8 @@ const minutesBetween = (a: Date, b: Date) => Math.max(0, Math.round((b.getTime()
 
 export async function getOpsMetrics(now: Date = new Date()): Promise<OpsMetrics> {
   const since = new Date(now.getTime() - WINDOW_DAYS * 86_400_000);
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
+  // ★ "আজ সম্পন্ন/অনুমোদিত" = ঢাকার আজ (`lib/date.ts`)
+  const today = dhakaDayStart(now);
 
   // ★ সব কোয়েরি সমান্তরাল — অর্ডার সংখ্যা বাড়লেও রাউন্ড-ট্রিপ একই
   const [openOrders, oldestDeposit, fulfilled, approved, todayCompleted, todayApproved] =

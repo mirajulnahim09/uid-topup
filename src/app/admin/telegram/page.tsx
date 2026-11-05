@@ -6,6 +6,7 @@ import {
   getAllBots, toPublic, hasDbConfig,
 } from '@/lib/telegram';
 import { isSecretBoxReady } from '@/lib/secretbox';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const metadata: Metadata = { title: 'টেলিগ্রাম' };
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,8 @@ export const dynamic = 'force-dynamic';
  *   দেখায়, নাহলে ড্যাশবোর্ড।
  */
 export default async function AdminTelegramPage() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const [conn, bots, stats, flags, dbConfigured] = await Promise.all([
     getConnectionStatus(),
     getAllBots(),

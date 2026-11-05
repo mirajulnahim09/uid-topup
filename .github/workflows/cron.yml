@@ -42,9 +42,18 @@ on:
         type: choice
         options: [all, telegram-scheduler, sla-breach, ratelimit-cleanup]
 
+# ★ ন্যূনতম অধিকার — এই workflow কেবল curl করে, রিপোতে কিছু লেখে না
+permissions:
+  contents: read
+
 # একই জব একসাথে দুবার চললে ডুপ্লিকেট ব্রডকাস্ট যেতে পারে
+# ★★★ OPS-03 — group এখন **প্রতি জবে আলাদা**। আগে তিনটি schedule একটিই group
+#   (`cron-<ref>`) ভাগ করত; GitHub-এর নিয়মে একই group-এ নতুন রান এলে আগের
+#   *pending* রান **cancel** হয় (লাল নয়, নীরব) — :00/:30-এ টেলিগ্রাম ও SLA একসাথে
+#   ফায়ার করে, আর GitHub-এর দেরিতে রান জমলে একটি SLA রান নিঃশব্দে হারাতে পারত।
+#   ডুপ্লিকেট-রোধ এখন সার্ভারেই (SLA: lease — OPS-02; টেলিগ্রাম: RUNNING lease)।
 concurrency:
-  group: cron-${{ github.ref }}
+  group: cron-${{ github.ref }}-${{ github.event.schedule || github.event.inputs.job || 'manual' }}
   cancel-in-progress: false
 
 jobs:

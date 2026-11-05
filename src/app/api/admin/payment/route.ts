@@ -1,11 +1,23 @@
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, apiError, ApiError, readJson } from '@/lib/guard';
 import { invalidateSettings } from '@/lib/settings';
-import { cleanText } from '@/lib/sanitize';
+import { cleanText, safeUrl } from '@/lib/sanitize';
 import { adminLog } from '@/lib/adminLog';
 import { getIp } from '@/lib/rateLimit';
 
-const METHODS = ['BKASH', 'NAGAD', 'ROCKET', 'UPAY'];
+const METHODS = ['BKASH', 'NAGAD', 'ROCKET', 'UPAY', 'BANGLA_QR'];
+
+/** Bangla QR: the "number" is a merchant name/ID and a QR image is mandatory. */
+function checkAccount(method: string, raw: unknown): string {
+  const v = String(raw || '').trim();
+  if (method === 'BANGLA_QR') {
+    const name = cleanText(v, 60);
+    if (name.length < 2) throw new ApiError('মার্চেন্টের নাম/আইডি দিন', 400);
+    return name;
+  }
+  if (!/^01[3-9]\d{8}$/.test(v)) throw new ApiError('সঠিক মোবাইল নাম্বার দিন', 400);
+  return v;
+}
 
 /**
  * ★★★ পেমেন্ট চ্যানেল — সবচেয়ে ঝুঁকিপূর্ণ অ্যাডমিন রুট (3.3)
@@ -21,21 +33,23 @@ const METHODS = ['BKASH', 'NAGAD', 'ROCKET', 'UPAY'];
 export async function POST(req: Request) {
   try {
     const admin = await requireAdmin();
-    const { method, accountNo, accountType, instruction } = await readJson(req);
+    const { method, accountNo, accountType, instruction, qrImage } = await readJson(req);
 
     const m = String(method || '').toUpperCase();
     if (!METHODS.includes(m)) throw new ApiError('অবৈধ পেমেন্ট মাধ্যম', 400);
 
-    const no = String(accountNo || '').trim();
-    if (!/^01[3-9]\d{8}$/.test(no)) throw new ApiError('সঠিক মোবাইল নাম্বার দিন', 400);
+    const no = checkAccount(m, accountNo);
+    const qr = qrImage ? safeUrl(String(qrImage)) : null;
+    if (m === 'BANGLA_QR' && !qr) throw new ApiError('Bangla QR-এর ছবি আপলোড করুন', 400);
 
     const count = await prisma.paymentChannel.count();
     const c = await prisma.paymentChannel.create({
       data: {
-        method: m as 'BKASH' | 'NAGAD' | 'ROCKET' | 'UPAY',
+        method: m as 'BKASH' | 'NAGAD' | 'ROCKET' | 'UPAY' | 'BANGLA_QR',
         accountNo: no,
         accountType: cleanText(String(accountType || 'Personal'), 20),
         instruction: instruction ? cleanText(String(instruction), 400) : null,
+        qrImage: qr,
         sortOrder: count,
       },
     });
@@ -60,7 +74,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const admin = await requireAdmin();
-    const { id, accountNo, accountType, instruction, isActive } = await readJson(req);
+    const { id, accountNo, accountType, instruction, isActive, qrImage } = await readJson(req);
     if (!id) throw new ApiError('id প্রয়োজন', 400);
 
     // ★ আগের অবস্থা পড়ে রাখি — লগে "কী থেকে কী" দেখাতে
@@ -72,10 +86,11 @@ export async function PATCH(req: Request) {
 
     const data: Record<string, unknown> = {};
 
-    if (accountNo !== undefined) {
-      const no = String(accountNo).trim();
-      if (!/^01[3-9]\d{8}$/.test(no)) throw new ApiError('সঠিক মোবাইল নাম্বার দিন', 400);
-      data.accountNo = no;
+    if (accountNo !== undefined) data.accountNo = checkAccount(before.method, accountNo);
+    if (qrImage !== undefined) {
+      const qr = qrImage ? safeUrl(String(qrImage)) : null;
+      if (before.method === 'BANGLA_QR' && !qr) throw new ApiError('Bangla QR-এর ছবি লাগবে', 400);
+      data.qrImage = qr;
     }
     if (accountType !== undefined) data.accountType = cleanText(String(accountType), 20);
     if (instruction !== undefined) {

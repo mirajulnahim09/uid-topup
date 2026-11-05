@@ -133,10 +133,21 @@ async function mkUser(n: number, balance: number) {
       const ra = await get(`${SESSION_COOKIE_NAME}=${a.jwt}`);
       const rb = await get(`${SESSION_COOKIE_NAME}=${b.jwt}`);
 
-      const [ng, na, nb] = [guest.html, ra.html, rb.html].map(normalize);
-      console.log(`  guest ${guest.status} · sha ${sha(ng)} · x-nextjs-cache=${guest.cache}`);
-      console.log(`  userA ${ra.status} · sha ${sha(na)}`);
-      console.log(`  userB ${rb.status} · sha ${sha(nb)}`);
+      /**
+       * ⚠️ **যে হ্যাশটি ছাপা হয়, দাবিটি ঠিক সেটির উপরেই হওয়া চাই।**
+       *
+       *   আগে ছাপা হতো পূর্ণ HTML-এর হ্যাশ, অথচ "মার্কআপ অভিন্ন"
+       *   দাবিটি মিলিয়ে দেখত `markupOnly` (স্ক্রিপ্ট-ছাড়া) সংস্করণ।
+       *   RSC পে-লোডের খণ্ডগুলোর ক্রম অনুরোধভেদে বদলায়, তাই লগে
+       *   userA ও userB এর হ্যাশ **আলাদা** দেখাত আর পরের লাইনেই
+       *   লেখা থাকত "অভিন্ন" — পাঠকের পক্ষে দুটো মেলানো অসম্ভব।
+       *   দাবিটি সত্যি ছিল, প্রমাণটি বিভ্রান্তিকর। এখন দুটোই ছাপা
+       *   হয়: `মার্কআপ` (যেটির উপর দাবি) ও `পূর্ণ` (স্ক্রিপ্টসহ)।
+       */
+      const shaOf = (html: string) => `${sha(markupOnly(html))} · পূর্ণ ${sha(normalize(html))}`;
+      console.log(`  guest ${guest.status} · মার্কআপ ${shaOf(guest.html)} · x-nextjs-cache=${guest.cache}`);
+      console.log(`  userA ${ra.status} · মার্কআপ ${shaOf(ra.html)}`);
+      console.log(`  userB ${rb.status} · মার্কআপ ${shaOf(rb.html)}`);
 
       /**
        * ★★★ আসল নিরাপত্তা-দাবি: **দুই ভিন্ন ব্যবহারকারীর** HTML অভিন্ন।
@@ -162,6 +173,37 @@ async function mkUser(n: number, balance: number) {
        *
        *   তাই আগে ঠিক করি পাতাটি ক্যাশড কি না, তারপর সেই অনুযায়ী দাবি।
        */
+      /**
+       * ★★★ **শূন্যগর্ভ-পাস প্রতিরোধী গার্ড** (EXTREME অডিট, ২০২৬-০৯-১৮)
+       *
+       *   ⚠️ যা ঘটেছিল: স্ক্রিপ্ট-প্রসেসের `NODE_ENV` production না হলে
+       *   হাতে-বানানো কুকি লেখা হতো ভুল নামে (`authCookies.ts` দেখুন),
+       *   ফলে A ও B **দুজনেই অতিথি** হয়ে যেত। তখন "A এর তথ্য B এর
+       *   HTML-এ নেই" দাবিটি নিখুঁত সবুজ দেখাত — কারণ কারো তথ্যই
+       *   কোথাও ছিল না। মাপা প্রমাণ: দুজনের মার্কআপ-হ্যাশ হুবহু এক।
+       *
+       *   তাই দাবির **পূর্বশর্তটি** এখন নিজেই একটি দাবি: প্রতিটি
+       *   ব্যবহারকারীর সেশন সত্যিই জীবিত কি না তা `/api/me` থেকে
+       *   যাচাই করা হয় (পাতার HTML নয় — পাতা ক্যাশড হলে নিজের নামও
+       *   থাকবে না, সেটি বৈধ)। জীবিত না হলে স্যুট **লাল** হবে।
+       */
+      if (path === paths[0]) {
+        for (const [label, u] of [['A', a], ['B', b]] as const) {
+          const me = await fetch(`${BASE}/api/me`, {
+            headers: { cookie: `${SESSION_COOKIE_NAME}=${u.jwt}` },
+            redirect: 'manual',
+          });
+          // `/api/me` ইমেইল ফেরায় না — নাম ও ব্যালেন্স ফেরায়, দুটোই এখানে অনন্য
+          const body = me.ok ? await me.text() : '';
+          const mine = body.includes(u.name);
+          check(
+            `পূর্বশর্ত: ইউজার ${label} এর সেশন সত্যিই জীবিত (নইলে পুরো স্যুট শূন্যগর্ভ)`,
+            me.status === 200 && mine,
+            `/api/me → ${me.status}${me.status === 200 && !mine ? ' · কিন্তু নাম মেলেনি' : ''}`,
+          );
+        }
+      }
+
       const cached = guest.cache !== '(নেই)' && guest.cache.toUpperCase() !== 'MISS';
       console.log(`  মোড  : ${cached ? 'ক্যাশড (ISR/স্ট্যাটিক)' : 'প্রতি-অনুরোধে রেন্ডার (dynamic)'}`);
 
@@ -190,7 +232,8 @@ async function mkUser(n: number, balance: number) {
         if (ma !== mb) console.log('  note  দুই ব্যবহারকারীর মার্কআপ আলাদা — dynamic পাতায় প্রত্যাশিত');
       }
 
-      if (ng !== na) {
+      /** ★ তুলনাটি মার্কআপে — উপরে ছাপা হ্যাশটিও ঠিক এটিই */
+      if (markupOnly(guest.html) !== ma) {
         console.log('  note  guest ≠ লগ-ইন — navbar এর auth-অবস্থা (প্রত্যাশিত)');
       }
 

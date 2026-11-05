@@ -1,0 +1,36 @@
+{
+  "counts": {
+    "users": 5011,
+    "orders": 300035,
+    "deposits": 20045,
+    "logs": 101018,
+    "ledger": 5064,
+    "notifications": 20123
+  },
+  "rows": [
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin",
+      "status": 200,
+      "ms": 181,
+      "kb": 126,
+      "runs": [
+        181,
+        167,
+        224
+      ]
+    },
+    {
+      "who": "অ্যাডমিন",
+      "path": "/admin/reports",
+      "status": 200,
+      "ms": 289,
+      "kb": 101,
+      "runs": [
+        239,
+        375,
+        289
+      ]
+    }
+  ]
+}

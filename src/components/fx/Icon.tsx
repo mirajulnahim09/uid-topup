@@ -20,7 +20,11 @@
 export type IconName =
   | 'box' | 'wallet' | 'bell' | 'gear' | 'pencil' | 'gift' | 'copy' | 'check'
   | 'user' | 'card' | 'gem' | 'play' | 'chat' | 'shield' | 'clock' | 'arrow'
-  | 'alert' | 'chart' | 'tag' | 'image' | 'logout' | 'search' | 'plus';
+  | 'alert' | 'chart' | 'tag' | 'image' | 'logout' | 'search' | 'plus'
+  // ★ অ্যাডমিন নেভিগেশনের জন্য (২.৫) — ঐ মেনুটি এতদিন ইমোজি
+  //   ব্যবহার করত, অথচ ফাইলের মাথায় লেখা তিনটি কারণ সেখানেও হুবহু
+  //   প্রযোজ্য। এই আটটি যোগ হওয়ায় গোটা প্যানেল একই আইকন-ভাষায় আসে।
+  | 'home' | 'camera' | 'list' | 'bank' | 'plug' | 'send' | 'wrench' | 'palette';
 
 const P: Record<IconName, string> = {
   box:    'M3 8.5 12 4l9 4.5v7L12 20l-9-4.5zM3 8.5 12 13l9-4.5M12 13v7',
@@ -46,6 +50,14 @@ const P: Record<IconName, string> = {
   logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
   search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.3-4.3',
   plus:   'M12 5v14M5 12h14',
+  home:   'M3 10.5 12 3l9 7.5M5.5 9.2V20h13V9.2M9.8 20v-5.8h4.4V20',
+  camera: 'M3 8a2 2 0 0 1 2-2h2l1.4-2h7.2L17 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z',
+  list:   'M8.5 6H21M8.5 12H21M8.5 18H21M3.4 6h.01M3.4 12h.01M3.4 18h.01',
+  bank:   'M3 10h18L12 4zM5.5 10.5v7.5M9.8 10.5v7.5M14.2 10.5v7.5M18.5 10.5v7.5M3 21h18',
+  plug:   'M9 2v5.5M15 2v5.5M6 7.5h12v3.2A6 6 0 0 1 6 10.7zM12 16.7V22',
+  send:   'M21.5 2.5 10.8 13.2M21.5 2.5 14.8 21.5l-4-8.3-8.3-4z',
+  wrench: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.7-3.7a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z',
+  palette:'M12 22a10 10 0 1 1 10-10 4 4 0 0 1-4 4h-2.2a1.8 1.8 0 0 0-1.4 2.9 1.8 1.8 0 0 1-1.4 2.9zM13.5 6.6h.01M17.4 10.5h.01M6.6 12.4h.01M8.5 7.6h.01',
 };
 
 export default function Icon({

@@ -1,7 +1,33 @@
 import { createHash, randomBytes } from 'node:crypto';
+import type { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 import { ApiError } from './guard';
 import { logger } from './logger';
+
+/**
+ * ★★★ AUTH-01 — একজন ব্যবহারকারীর **সব সক্রিয়** API কী প্রত্যাহার।
+ *
+ *   ── কেন দরকার ──
+ *   পাসওয়ার্ড রিসেট, "সব ডিভাইস থেকে সাইন-আউট" ও অ্যাডমিন-রিকভারি কেবল
+ *   `sessionEpoch` বাড়াত; API কী সেশন-নিরপেক্ষ (`requireApiKey` epoch দেখে না),
+ *   তাই বেহাত অ্যাকাউন্টের কী মালিকের রিসেটের **পরেও** তাঁর ওয়ালেট থেকে অর্ডার
+ *   দিতে পারত। "অ্যাকাউন্ট সুরক্ষিত করলাম" মানে সব শংসাপত্র বাতিল।
+ *
+ *   ⚠️ কী **মোছা হয় না** — `revokedAt` বসে (অ্যাডমিনের প্রত্যাহারের মতোই),
+ *   ইতিহাস অক্ষত। কলারের transaction-এ চলে, তাই epoch-বৃদ্ধি ও কী-প্রত্যাহার
+ *   একসাথে হয় অথবা কোনোটিই নয়।
+ *   @returns কতগুলো কী প্রত্যাহার হলো
+ */
+export async function revokeUserApiKeys(
+  tx: Prisma.TransactionClient,
+  userId: string,
+): Promise<number> {
+  const r = await tx.apiKey.updateMany({
+    where: { userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+  return r.count;
+}
 
 /**
  * ═══════════════════════════════════════════════════════════

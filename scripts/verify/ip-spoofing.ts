@@ -87,10 +87,12 @@ const headers = (o: Record<string, string>) => (n: string) => o[n];
   check('★ জাল XFF দিয়ে সীমা বাইপাস করা যায় না (৪২৯ আসে)', got429,
     got429 ? 'সীমা কার্যকর' : '⚠️ ৮টি অনুরোধেই পাস — বাকেট আলাদা হয়ে গেছে');
 
+  // ★ কেবল **IP**-বাকেট গোনা হয়। forgot রুট এখন প্রতি-ইমেইল বাকেটও (`forgot:email:*`) রাখে —
+  //   প্রতিটি জাল অনুরোধে ভিন্ন ইমেইল, তাই সেগুলো আলাদা হওয়াই সঠিক; প্রশ্নটি কেবল IP আলাদা হলো কি না।
   const buckets = await prisma.$queryRaw<Array<{ key: string; count: number }>>`
-    SELECT "key", "count" FROM "RateLimitBucket" WHERE "key" LIKE 'forgot:%'`;
-  console.log(`  বাকেট সংখ্যা: ${buckets.length} — ${buckets.map((b) => `${b.key}=${b.count}`).join(', ')}`);
-  check('একটিমাত্র বাকেট তৈরি হয়েছে (IP আলাদা হয়নি)', buckets.length === 1,
+    SELECT "key", "count" FROM "RateLimitBucket" WHERE "key" LIKE 'forgot:%' AND "key" NOT LIKE 'forgot:email:%'`;
+  console.log(`  IP-বাকেট সংখ্যা: ${buckets.length} — ${buckets.map((b) => `${b.key}=${b.count}`).join(', ')}`);
+  check('একটিমাত্র IP-বাকেট তৈরি হয়েছে (IP আলাদা হয়নি)', buckets.length === 1,
     `${buckets.length} টি`);
 
   await prisma.$executeRaw`DELETE FROM "RateLimitBucket" WHERE "key" LIKE 'forgot:%'`;

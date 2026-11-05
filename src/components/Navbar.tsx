@@ -383,6 +383,7 @@ export default function Navbar({
                     কেবল লেবেলটি স্পষ্ট করা হয়েছে: "SMM" গ্রাহকের কাছে
                     অর্থহীন শব্দ, যেখানে জিনিসটি আসলে সাবস্ক্রিপশন। */}
                 <Link href="/account/smm-orders" className="v-nav">সাবস্ক্রিপশন</Link>
+                <Link href="/account/codes" className="v-nav">আমার কোড</Link>
                 <Link href="/account" className="v-nav">{t('nav.account')}</Link>
 
                 {isAdmin && (
@@ -397,6 +398,7 @@ export default function Navbar({
 
                 <ThemeToggle />
                 <LanguageToggle />
+                <span className="mx-1 h-5 w-px shrink-0" style={{ background: 'var(--v-edge2)' }} aria-hidden="true" />
 
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
@@ -410,6 +412,12 @@ export default function Navbar({
               <>
                 <ThemeToggle />
                 <LanguageToggle />
+                {/* ★ পছন্দ ও গন্তব্যের মাঝে একটি চুলচেরা রেখা (২.৬)।
+                    হেডারের ডান দিকে দশটি নিয়ন্ত্রণ একসাথে দাঁড়ালে
+                    কোনটি কী কাজের তা চোখে আলাদা হয় না; রেখাটি
+                    "সেটিংস" আর "লগইন/রেজিস্টার" কে দুটি দলে ভাগ করে।
+                    কিছুই সরানো হয়নি — কেবল গোষ্ঠীবদ্ধ। */}
+                <span className="mx-1 h-5 w-px shrink-0" style={{ background: 'var(--v-edge2)' }} aria-hidden="true" />
                 <Link href="/login" className="v-nav">{t('nav.login')}</Link>
                 <Link href="/register" className="v-btn v-btn--volt" style={{ minHeight: 42 }}>
                   {t('nav.register')}
@@ -517,8 +525,15 @@ export default function Navbar({
           >
             {/* ★ Group I — সার্চ মেনুর **সবার উপরে**: মোবাইলে খুঁজে
                 পাওয়াই মূল সমস্যা, ক্যাটাগরি স্ক্রল করা নয় */}
-            <div className="px-1 pb-3 pt-1">
-              <SearchBox />
+            {/* ★★★ `relative z-10` — `.stagger > *` এর animation (`both`)
+                প্রতিটি সন্তানকে আলাদা stacking context বানায়, তাই ড্রপডাউনের
+                `z-50` এই মোড়কের ভেতরেই আটকে থাকত আর পরের আইটেমগুলো
+                ("ক্যাটাগরি", "থিম") তার **উপরে** আঁকা হতো — লেখা একটার উপর
+                আরেকটা (৩৯০px-এ স্ক্রিনশটে ধরা)। `onNavigate` — মেনুর অন্য
+                লিংকগুলোর মতোই, সার্চ করলে মেনু বন্ধ হয়; নাহলে খোলা মেনু
+                ফলাফল-পাতা ঢেকে রাখত। */}
+            <div className="relative z-10 px-1 pb-3 pt-1">
+              <SearchBox onNavigate={() => setMenu(false)} />
             </div>
 
             <p className="hud-mut hud px-1 pb-2 pt-1">ক্যাটাগরি</p>
@@ -583,6 +598,9 @@ export default function Navbar({
                 </Link>
                 <Link href="/account/smm-orders" onClick={() => setMenu(false)} className="flex min-h-[46px] items-center px-3 text-sm transition-colors hover:bg-[rgba(255,255,255,.06)]" style={{ color: 'var(--v-mut)', borderRadius: 2 }}>
                   সাবস্ক্রিপশন অর্ডার
+                </Link>
+                <Link href="/account/codes" onClick={() => setMenu(false)} className="flex min-h-[46px] items-center px-3 text-sm transition-colors hover:bg-[rgba(255,255,255,.06)]" style={{ color: 'var(--v-mut)', borderRadius: 2 }}>
+                  আমার কোড
                 </Link>
                 <Link href="/account" onClick={() => setMenu(false)} className="flex min-h-[46px] items-center px-3 text-sm transition-colors hover:bg-[rgba(255,255,255,.06)]" style={{ color: 'var(--v-mut)', borderRadius: 2 }}>
                   প্রোফাইল ও রেফারেল

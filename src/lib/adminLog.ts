@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { logger } from './logger';
+import { pickIp } from './rateLimit';
 
 /**
  * ★ অ্যাডমিন অডিট লগ — কে কখন কী করল।
@@ -73,7 +74,13 @@ export type AdminAction =
   | 'INTEGRATION_CHANGE'
   // ★ Phase 2 নিরাপত্তা — 2FA ও সেশন revocation
   | 'TWO_FACTOR_ENABLE' | 'TWO_FACTOR_DISABLE' | 'TWO_FACTOR_RECOVERY_USED'
-  | 'SESSION_REVOKE_ALL';
+  | 'SESSION_REVOKE_ALL'
+  // ★ জরুরি অ্যাকাউন্ট-রিকভারি (চূড়ান্ত অডিট, ২০২৬-০৯-১৭) — কে কার জন্য লিংক
+  //   বানালেন, আর গ্রাহক কখন কোন পথে (ইমেইল/অ্যাডমিন-লিংক) পাসওয়ার্ড বদলালেন
+  | 'ACCOUNT_RECOVERY_LINK' | 'PASSWORD_RESET' | 'PASSWORD_CHANGE'
+  // voucher code stock and account deletion
+  | 'VOUCHER_CODES_ADD' | 'VOUCHER_CODE_VOID' | 'VOUCHER_CODE_DELIVER'
+  | 'ACCOUNT_DELETION_REQUEST' | 'ACCOUNT_ANONYMIZE';
 
 /** কে কাজটি করল — ভূমিকা নয়, শ্রেণি */
 export type ActorType = 'ADMIN' | 'CUSTOMER' | 'SYSTEM';
@@ -143,8 +150,9 @@ export async function adminLog(opts: {
 /** Request থেকে IP + userAgent — লগে device/আইপি রাখতে */
 export function requestMeta(req: Request): { ip: string; userAgent: string } {
   const h = req.headers;
-  const ip =
-    h.get('x-real-ip') || h.get('cf-connecting-ip') ||
-    h.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
-  return { ip, userAgent: h.get('user-agent') || '' };
+  // ★ রেট-লিমিটের একই নিয়ম (`pickIp`, H2)। আগে এখানে `x-forwarded-for`
+  //   নিঃশর্তে পড়া হতো — `x-real-ip` না থাকা হোস্টে যে কেউ হেডার পাঠিয়ে
+  //   অডিট-লগে নিজের IP হিসেবে যেকোনো ঠিকানা লেখাতে পারত। প্রমাণ হিসেবে
+  //   লগ কেবল তখনই মূল্যবান, যখন তা জাল করা যায় না।
+  return { ip: pickIp((n) => h.get(n)), userAgent: h.get('user-agent') || '' };
 }

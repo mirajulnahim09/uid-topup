@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '../prisma';
+import { prisma, boundLockWait } from '../prisma';
 import { logger } from '../logger';
 import { ApiError } from '../guard';
 import { round2 } from '../money';
@@ -8,6 +8,7 @@ import { recordOrderEvent } from '../orderEvents';
 import { generateTrackToken } from '../tracking';
 import { debitWallet } from './wallet';
 import { autoFulfillOrder } from '../fulfillment/autoFulfill';
+import { deliverVoucherCode } from './voucherCodes';
 import { notify, checkStockAlert } from '../notify';
 import { emailOrderPlaced } from '../email';
 import { logActivity } from '../adminLog';
@@ -56,6 +57,14 @@ export type PlaceOrderInput = {
    *   বানাতে **পারে না**; বিদ্যমানটিই ফেরত যায়।
    */
   clientRef?: string | null;
+  /**
+   * ★ গ্রাহক নিশ্চিতকরণে যে মোট দাম দেখেছিলেন (ঐচ্ছিক)।
+   *
+   *   ⚠️ এটি **কখনো কাটা হয় না** — কাটা হয় সবসময় লক করা রো-র দাম
+   *   (CLAUDE.md §2.1-৪)। এটি কেবল একটি সীমা: আসল দাম এর **বেশি** হলে
+   *   অর্ডার থামে। না পাঠালে আগের আচরণ (রিসেলার API, পুরনো ক্লায়েন্ট)।
+   */
+  expectedPrice?: number | null;
 };
 
 export type PlacedOrder = {
@@ -140,6 +149,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
   try {
     return await prisma.$transaction(
       async (tx) => {
+        // ★ SCL-01 — ভিড়ে লকের অপেক্ষা সীমিত; নাহলে অনুরোধ অনির্দিষ্টকাল ঝোলে
+        await boundLockWait(tx);
         // ★★★ ভ্যারিয়েন্ট রো লক — নাহলে stock race:
         //     ৩টা স্টকে ৫ জন একসাথে অর্ডার দিলে সবাই দেখত "stock=3 > 0",
         //     সবাই কিনে ফেলত, stock হয়ে যেত −2।
@@ -272,10 +283,30 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
           throw new ApiError('মূল্য হিসাবে সমস্যা হয়েছে', 400);
         }
 
+        // ★★★ বাসি দাম — গ্রাহক যা দেখে "হ্যাঁ" বলেছেন, তার **বেশি** কাটা নয়।
+        //
+        //   ব্রাউজারে মাপা (চূড়ান্ত অডিট, ২০২৬-০৯-১৭): পাতা খোলার পর অ্যাডমিন
+        //   দাম ৳৫০ → ৳৬০ করলেন; নিশ্চিতকরণে ৳৫০ দেখানো অবস্থায় কোনো সতর্কতা
+        //   ছাড়াই ৳৬০ কাটা হলো। টাকা ঠিক খতিয়ানেই গেছে, কিন্তু গ্রাহকের
+        //   সম্মতি ছিল ৳৫০-এ — এটি আস্থা ও ভোক্তা-অধিকারের প্রশ্ন।
+        //
+        //   ⚠️ তুলনার মান লক করা রো থেকে (`finalPrice`), কাটাও সেটিই — ক্লায়েন্টের
+        //   সংখ্যা কেবল "থামো" বলতে পারে, দাম ঠিক করতে পারে না।
+        //   ⚠️ কম হলে থামানো হয় না: গ্রাহকের লাভ, আর রিসেলার ওয়েবে খুচরা দাম
+        //   দেখে কম দামে পান — সেটি ভাঙত।
+        //   ⚠️ স্টক/কুপন/ব্যালেন্সের কোনো লেখার **আগে** — throw মানে কিছুই বদলায়নি।
+        if (input.expectedPrice != null && finalPrice > round2(input.expectedPrice)) {
+          throw new ApiError(
+            `দাম বদলেছে — এখন ৳${finalPrice.toFixed(2)}। নতুন দাম দেখে আবার নিশ্চিত করুন।`,
+            409,
+            'PRICE_CHANGED',
+          );
+        }
+
         const balance = Number(row.balance);
         if (balance < finalPrice) {
           throw new ApiError(
-            `পর্যাপ্ত ব্যালেন্স নেই। প্রয়োজন ৳${finalPrice.toFixed(2)}, আছে ৳${balance.toFixed(2)}। Add Money করুন।`,
+            `পর্যাপ্ত ব্যালেন্স নেই। প্রয়োজন ৳${finalPrice.toFixed(2)}, আছে ৳${balance.toFixed(2)}। আগে টাকা যোগ করুন।`,
             400
           );
         }
@@ -360,7 +391,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
           duplicate: false,
         };
       },
-      { timeout: 15000 }
+      // ★ SCL-01 — maxWait: pool থেকে সংযোগ পেতে কতক্ষণ অপেক্ষা (Prisma ডিফল্ট ২ সে.)।
+      //   ভিড়ে ২ সে. খুব কম — অকারণে P2028 হতো; ৫ সে. পরেও না পেলে apiError ৫০৩ দেয়।
+      { timeout: 15000, maxWait: 5000 }
     );
   } catch (e) {
     // ★★★ সমান্তরাল retry — দুটি অনুরোধ একই `clientRef` নিয়ে একসাথে
@@ -418,6 +451,11 @@ export async function afterOrderPlaced(
   //   ⚠️ await করা হয়: ডেলিভারি সফল হলে গ্রাহক উত্তর পাওয়ার আগেই
   //   অর্ডার COMPLETED হয়ে থাকে, তাই তিনি রিফ্রেশ করে "PENDING" দেখে
   //   বিভ্রান্ত হন না। ভেতরে সবকিছু guarded — throw হয় না।
+  // Voucher-code products are delivered from code stock first. For any
+  // other product this returns SKIPPED without writing anything; if it
+  // delivers, the order is no longer PENDING and autoFulfillOrder() below
+  // steps aside on its own locked check. Never moves money, never throws.
+  await deliverVoucherCode(result.orderId);
   await autoFulfillOrder(result.orderId);
 
   // ★ অডিট: গ্রাহক অর্ডার তৈরি করেছে (best-effort)

@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { logger } from './logger';
 import { BRAND } from './brand';
 import { getBranding, absoluteUrl } from './branding';
+import { isPreviewDeployment } from './deploymentEnv';
 
 /**
  * ★ Email fail করলে কখনো main flow ভাঙবে না।
@@ -14,6 +15,24 @@ const resend = KEY ? new Resend(KEY) : null;
 
 export function isEmailConfigured(): boolean {
   return Boolean(resend);
+}
+
+/**
+ * ★★★ প্রেরকের ঠিকানা এখনো Resend-এর **স্যান্ডবক্স** ডোমেইনে কিনা।
+ *
+ *   ⚠️ কেন এটি আলাদা করে জানা দরকার: `RESEND_API_KEY` থাকলেই ইমেইল
+ *   "কনফিগার করা" মনে হয়, অথচ `EMAIL_FROM` ডিফল্টে
+ *   `onboarding@resend.dev` — Resend-এর স্যান্ডবক্স প্রেরক, যা দিয়ে
+ *   **কেবল অ্যাকাউন্টের নিজের ঠিকানায়** মেইল যায়। ফলে প্রোডাকশনে
+ *   প্রতিটি নতুন গ্রাহকের OTP ও পাসওয়ার্ড-রিসেট নীরবে ব্যর্থ হয়,
+ *   অথচ হেলথ-চেক সবুজ দেখায়। ঠিক এই অবস্থাতেই সাইটটি ছিল
+ *   (HANDOFF §১ — লঞ্চ-ব্লকার ১)।
+ *
+ *   সমাধান কোডে নয়, কনফিগে: resend.com/domains এ ডোমেইন verify,
+ *   DNS-এ SPF ও DKIM, তারপর `EMAIL_FROM` ঐ ডোমেইনের ঠিকানায়।
+ */
+export function isSandboxSender(): boolean {
+  return /@resend\.dev/i.test(FROM);
 }
 
 const base = () => process.env.NEXTAUTH_URL || 'http://localhost:3000';
@@ -75,6 +94,11 @@ let lastNoopWarnAt = 0;
 const NOOP_WARN_THROTTLE_MS = 10 * 60 * 1000;
 
 async function send(to: string, subject: string, html: string) {
+  // ★ O-15 — Preview কখনো আসল ইমেইল পাঠায় না (deploymentEnv.ts)
+  if (isPreviewDeployment()) {
+    logger.info('email', 'preview: email suppressed', { subject: subject.slice(0, 60) });
+    return;
+  }
   if (!resend) {
     const now = Date.now();
     if (now - lastNoopWarnAt >= NOOP_WARN_THROTTLE_MS) {
@@ -126,6 +150,11 @@ export async function emailOtpCode(
   code: string,
   ttlMinutes: number,
 ): Promise<boolean> {
+  // ★ O-15 — Preview-তে OTP যায় না; সত্যি বলি: পাঠানো হয়নি
+  if (isPreviewDeployment()) {
+    logger.warn('email', 'preview: OTP email suppressed');
+    return false;
+  }
   if (!resend) {
     logger.error('email', 'OTP পাঠানো যায়নি — RESEND_API_KEY সেট নেই');
     return false;
@@ -219,7 +248,7 @@ export async function emailOrderCompleted(
 ) {
   await send(to, `অর্ডার #${orderNo} সম্পন্ন 🎉`, wrap(
     `অর্ডার #${orderNo} সম্পন্ন 🎉`,
-    `<p>${name}, আপনার অর্ডার সফলভাবে ডেলিভারি করা হয়েছে।</p>
+    `<p>${name}, আপনার অর্ডার ডেলিভারি হয়ে গেছে।</p>
      <p style="margin-top:10px"><strong style="color:#fff">${product}</strong> — ${variant}</p>
      <p style="margin-top:14px;font-size:13px">গেমে চেক করে দেখুন।</p>`,
     { label: 'আবার অর্ডার করুন', url: base() }

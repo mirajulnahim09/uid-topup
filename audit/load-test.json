@@ -1,0 +1,690 @@
+{
+  "base": "https://localhost:3443",
+  "mixSeconds": 20,
+  "levels": [
+    {
+      "level": 10,
+      "mix": {
+        "total": 585,
+        "rps": 29.3,
+        "serverErr": 0,
+        "limited429": 0,
+        "p50": 247,
+        "p95": 887,
+        "p99": 1160,
+        "per": [
+          {
+            "name": "GET /api/search",
+            "n": 54,
+            "ok": 54,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 53,
+            "p95": 159,
+            "p99": 194,
+            "max": 194
+          },
+          {
+            "name": "GET /api/notifications",
+            "n": 56,
+            "ok": 56,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 65,
+            "p95": 268,
+            "p99": 577,
+            "max": 577
+          },
+          {
+            "name": "GET /api/me",
+            "n": 55,
+            "ok": 55,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 50,
+            "p95": 130,
+            "p99": 175,
+            "max": 175
+          },
+          {
+            "name": "GET product",
+            "n": 108,
+            "ok": 108,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 237,
+            "p95": 638,
+            "p99": 809,
+            "max": 811
+          },
+          {
+            "name": "GET /search page",
+            "n": 53,
+            "ok": 53,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 243,
+            "p95": 388,
+            "p99": 583,
+            "max": 583
+          },
+          {
+            "name": "GET /account/orders",
+            "n": 55,
+            "ok": 55,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 201,
+            "p95": 733,
+            "p99": 740,
+            "max": 740
+          },
+          {
+            "name": "GET /",
+            "n": 168,
+            "ok": 168,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 684,
+            "p95": 1086,
+            "p99": 1300,
+            "max": 1326
+          },
+          {
+            "name": "admin /admin/orders",
+            "n": 24,
+            "ok": 24,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 463,
+            "p95": 862,
+            "p99": 883,
+            "max": 883
+          },
+          {
+            "name": "admin /admin",
+            "n": 12,
+            "ok": 12,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 650,
+            "p95": 1032,
+            "p99": 1032,
+            "max": 1032
+          }
+        ]
+      },
+      "memBeforeMB": 495,
+      "memPeakMB": 681,
+      "peakDbConnections": 17,
+      "orderWave": {
+        "total": 20,
+        "rps": 20,
+        "serverErr": 0,
+        "limited429": 0,
+        "p50": 268,
+        "p95": 316,
+        "p99": 320,
+        "per": [
+          {
+            "name": "POST /api/order",
+            "n": 10,
+            "ok": 10,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 264,
+            "p95": 315,
+            "p99": 315,
+            "max": 315
+          },
+          {
+            "name": "POST /api/order (dup)",
+            "n": 10,
+            "ok": 10,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 268,
+            "p95": 320,
+            "p99": 320,
+            "max": 320
+          }
+        ]
+      },
+      "duplicateMismatch": 0,
+      "loginWave": {
+        "attempted": 10,
+        "succeeded": 10,
+        "p50": 2752,
+        "p95": 2766,
+        "max": 2766
+      }
+    },
+    {
+      "level": 25,
+      "mix": {
+        "total": 588,
+        "rps": 29.4,
+        "serverErr": 0,
+        "limited429": 0,
+        "p50": 838,
+        "p95": 1753,
+        "p99": 2126,
+        "per": [
+          {
+            "name": "GET /api/search",
+            "n": 54,
+            "ok": 54,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 447,
+            "p95": 896,
+            "p99": 1098,
+            "max": 1098
+          },
+          {
+            "name": "GET /api/notifications",
+            "n": 57,
+            "ok": 57,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 307,
+            "p95": 987,
+            "p99": 1050,
+            "max": 1050
+          },
+          {
+            "name": "GET /api/me",
+            "n": 59,
+            "ok": 59,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 206,
+            "p95": 694,
+            "p99": 911,
+            "max": 911
+          },
+          {
+            "name": "GET /search page",
+            "n": 54,
+            "ok": 54,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 892,
+            "p95": 1191,
+            "p99": 1468,
+            "max": 1468
+          },
+          {
+            "name": "GET product",
+            "n": 109,
+            "ok": 109,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 799,
+            "p95": 1473,
+            "p99": 1501,
+            "max": 1501
+          },
+          {
+            "name": "GET /account/orders",
+            "n": 56,
+            "ok": 56,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 818,
+            "p95": 1388,
+            "p99": 1396,
+            "max": 1396
+          },
+          {
+            "name": "GET /",
+            "n": 166,
+            "ok": 166,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 1392,
+            "p95": 2003,
+            "p99": 2314,
+            "max": 2420
+          },
+          {
+            "name": "admin /admin/orders",
+            "n": 22,
+            "ok": 22,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 1321,
+            "p95": 1668,
+            "p99": 1901,
+            "max": 1901
+          },
+          {
+            "name": "admin /admin",
+            "n": 11,
+            "ok": 11,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 1173,
+            "p95": 1893,
+            "p99": 1893,
+            "max": 1893
+          }
+        ]
+      },
+      "memBeforeMB": 681,
+      "memPeakMB": 758,
+      "peakDbConnections": 17,
+      "orderWave": {
+        "total": 50,
+        "rps": 50,
+        "serverErr": 0,
+        "limited429": 0,
+        "p50": 604,
+        "p95": 679,
+        "p99": 690,
+        "per": [
+          {
+            "name": "POST /api/order",
+            "n": 25,
+            "ok": 25,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 605,
+            "p95": 679,
+            "p99": 686,
+            "max": 686
+          },
+          {
+            "name": "POST /api/order (dup)",
+            "n": 25,
+            "ok": 25,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 602,
+            "p95": 679,
+            "p99": 690,
+            "max": 690
+          }
+        ]
+      },
+      "duplicateMismatch": 0,
+      "loginWave": {
+        "attempted": 25,
+        "succeeded": 10,
+        "p50": 138,
+        "p95": 2845,
+        "max": 2846
+      }
+    },
+    {
+      "level": 50,
+      "mix": {
+        "total": 601,
+        "rps": 30.1,
+        "serverErr": 0,
+        "limited429": 0,
+        "p50": 1753,
+        "p95": 3265,
+        "p99": 3835,
+        "per": [
+          {
+            "name": "GET /api/search",
+            "n": 59,
+            "ok": 59,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 475,
+            "p95": 2916,
+            "p99": 2918,
+            "max": 2918
+          },
+          {
+            "name": "GET /api/notifications",
+            "n": 58,
+            "ok": 58,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 658,
+            "p95": 1513,
+            "p99": 1525,
+            "max": 1525
+          },
+          {
+            "name": "GET /api/me",
+            "n": 63,
+            "ok": 63,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 1149,
+            "p95": 2181,
+            "p99": 2224,
+            "max": 2224
+          },
+          {
+            "name": "GET /search page",
+            "n": 56,
+            "ok": 56,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 1664,
+            "p95": 2209,
+            "p99": 2901,
+            "max": 2901
+          },
+          {
+            "name": "GET product",
+            "n": 102,
+            "ok": 102,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 1660,
+            "p95": 2938,
+            "p99": 2953,
+            "max": 3131
+          },
+          {
+            "name": "GET /",
+            "n": 163,
+            "ok": 163,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 2359,
+            "p95": 3528,
+            "p99": 4010,
+            "max": 4068
+          },
+          {
+            "name": "GET /account/orders",
+            "n": 57,
+            "ok": 57,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 2223,
+            "p95": 3831,
+            "p99": 3835,
+            "max": 3835
+          },
+          {
+            "name": "admin /admin/orders",
+            "n": 29,
+            "ok": 29,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 2469,
+            "p95": 3058,
+            "p99": 4054,
+            "max": 4054
+          },
+          {
+            "name": "admin /admin",
+            "n": 14,
+            "ok": 14,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 2443,
+            "p95": 3956,
+            "p99": 3956,
+            "max": 3956
+          }
+        ]
+      },
+      "memBeforeMB": 756,
+      "memPeakMB": 913,
+      "peakDbConnections": 17,
+      "orderWave": {
+        "total": 100,
+        "rps": 100,
+        "serverErr": 0,
+        "limited429": 0,
+        "p50": 894,
+        "p95": 1204,
+        "p99": 1231,
+        "per": [
+          {
+            "name": "POST /api/order",
+            "n": 50,
+            "ok": 50,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 784,
+            "p95": 1192,
+            "p99": 1231,
+            "max": 1231
+          },
+          {
+            "name": "POST /api/order (dup)",
+            "n": 50,
+            "ok": 50,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 915,
+            "p95": 1206,
+            "p99": 1232,
+            "max": 1232
+          }
+        ]
+      },
+      "duplicateMismatch": 0,
+      "loginWave": {
+        "attempted": 50,
+        "succeeded": 10,
+        "p50": 277,
+        "p95": 3024,
+        "max": 3027
+      }
+    },
+    {
+      "level": 100,
+      "mix": {
+        "total": 621,
+        "rps": 31.1,
+        "serverErr": 0,
+        "limited429": 0,
+        "p50": 3603,
+        "p95": 5534,
+        "p99": 6361,
+        "per": [
+          {
+            "name": "GET /api/search",
+            "n": 57,
+            "ok": 57,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 1945,
+            "p95": 4189,
+            "p99": 4461,
+            "max": 4461
+          },
+          {
+            "name": "GET /api/notifications",
+            "n": 59,
+            "ok": 59,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 2082,
+            "p95": 4082,
+            "p99": 4162,
+            "max": 4162
+          },
+          {
+            "name": "GET /api/me",
+            "n": 67,
+            "ok": 67,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 2395,
+            "p95": 3977,
+            "p99": 4452,
+            "max": 4452
+          },
+          {
+            "name": "GET /search page",
+            "n": 50,
+            "ok": 50,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 3602,
+            "p95": 5489,
+            "p99": 5559,
+            "max": 5559
+          },
+          {
+            "name": "GET product",
+            "n": 102,
+            "ok": 102,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 3537,
+            "p95": 5524,
+            "p99": 5667,
+            "max": 5670
+          },
+          {
+            "name": "GET /",
+            "n": 175,
+            "ok": 175,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 4178,
+            "p95": 6193,
+            "p99": 6626,
+            "max": 6642
+          },
+          {
+            "name": "GET /account/orders",
+            "n": 60,
+            "ok": 60,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 3919,
+            "p95": 5911,
+            "p99": 6246,
+            "max": 6246
+          },
+          {
+            "name": "admin /admin/orders",
+            "n": 34,
+            "ok": 34,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 4147,
+            "p95": 5743,
+            "p99": 5970,
+            "max": 5970
+          },
+          {
+            "name": "admin /admin",
+            "n": 17,
+            "ok": 17,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 3941,
+            "p95": 5783,
+            "p99": 5783,
+            "max": 5783
+          }
+        ]
+      },
+      "memBeforeMB": 912,
+      "memPeakMB": 915,
+      "peakDbConnections": 17,
+      "orderWave": {
+        "total": 200,
+        "rps": 200,
+        "serverErr": 0,
+        "limited429": 0,
+        "p50": 1659,
+        "p95": 2453,
+        "p99": 2474,
+        "per": [
+          {
+            "name": "POST /api/order",
+            "n": 100,
+            "ok": 100,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 1549,
+            "p95": 2429,
+            "p99": 2473,
+            "max": 2485
+          },
+          {
+            "name": "POST /api/order (dup)",
+            "n": 100,
+            "ok": 100,
+            "limited429": 0,
+            "clientErr": 0,
+            "serverErr": 0,
+            "p50": 1684,
+            "p95": 2457,
+            "p99": 2474,
+            "max": 2488
+          }
+        ]
+      },
+      "duplicateMismatch": 0,
+      "loginWave": {
+        "attempted": 100,
+        "succeeded": 10,
+        "p50": 445,
+        "p95": 3364,
+        "max": 3377
+      }
+    }
+  ],
+  "stockRush": {
+    "stock": 30,
+    "attempted": 100,
+    "succeeded": 30,
+    "serverErr": 0,
+    "stockAfter": 0
+  },
+  "integrity": {
+    "orders": 215,
+    "duplicateRefs": 0,
+    "problems": []
+  }
+}

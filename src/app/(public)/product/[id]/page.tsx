@@ -4,7 +4,10 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 /** /product/1 → /product/1/free-fire-bd-server এ পাঠায় */
-export default async function ProductRedirect({ params }: { params: { id: string } }) {
+export default async function ProductRedirect(props: {
+  params: Promise<{ id: string }>;
+}) {
+  const params = await props.params;
   const id = Number(params.id);
   if (isNaN(id) || id < 1) notFound();
 
@@ -14,5 +17,7 @@ export default async function ProductRedirect({ params }: { params: { id: string
   });
   if (!p || !p.isActive) notFound();
 
-  redirect(`/product/${id}/${p.slug}`);
+  // ★ encode আবশ্যক — বাংলা slug কাঁচা অবস্থায় `Location` হেডারে বসালে
+  //   Node `ERR_INVALID_CHAR` দিয়ে ৫০০ হতো (`[slug]/page.tsx` এ বিস্তারিত)
+  redirect(`/product/${id}/${encodeURIComponent(p.slug)}`);
 }

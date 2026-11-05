@@ -62,11 +62,6 @@ export async function periodSummary(since: Date): Promise<PeriodSummary> {
  */
 const BD_OFFSET_MS = 6 * 60 * 60 * 1000; // UTC+6
 
-/** একটি Date → Bangladesh দিনের 'YYYY-MM-DD' */
-function bdDayKey(d: Date): string {
-  return new Date(d.getTime() + BD_OFFSET_MS).toISOString().slice(0, 10);
-}
-
 export async function revenueTrend(days = 30): Promise<RevenuePoint[]> {
   // ★ Bangladesh আজকের দিন থেকে পিছিয়ে গণনা
   const nowBd = new Date(Date.now() + BD_OFFSET_MS);
@@ -76,10 +71,24 @@ export async function revenueTrend(days = 30): Promise<RevenuePoint[]> {
   // UTC-তে সেই মুহূর্ত (query filter-এর জন্য) = BD-মধ্যরাত − ৬ঘণ্টা
   const since = new Date(sinceBdMidnight.getTime() - BD_OFFSET_MS);
 
-  const orders = await prisma.order.findMany({
-    where: { status: 'COMPLETED', completedAt: { gte: since } },
-    select: { completedAt: true, price: true, costPrice: true, refundedAmount: true },
-  });
+  /**
+   * ★★★ দিন-অনুযায়ী যোগ **ডাটাবেসে** (GROUP BY), JS-এ নয়।
+   *
+   *   ⚠️ মাপা (সিমুলেশন, ২০২৬-০৯-২৫): আগে ৩০ দিনের **প্রতিটি** সম্পন্ন অর্ডার
+   *   মেমরিতে এনে লুপে যোগ হতো — ৫০ হাজারে ০.৬s, ১ লাখে ১.২s, আকারের সাথে
+   *   সরলরৈখিক। দিনে ৫০ হাজার অর্ডারের ব্যস্ত মাসে সেটি ১৫ লাখ সারি — একটি
+   *   serverless ফাংশনের মেমরি/সময়সীমার বাইরে। এখন ফেরে সর্বোচ্চ `days`টি সারি।
+   *   যোগফল Postgres `numeric`-এ (float নয়), তাই পয়সার গরমিলও নেই।
+   *
+   *   ⚠️ BD দিন = UTC + ৬ ঘণ্টা (`BD_OFFSET_MS`) — আগের JS-বাকেটের হুবহু একই সংজ্ঞা।
+   */
+  const rows = await prisma.$queryRaw<Array<{ day: string; revenue: string; cost: string; refund: string; orders: bigint }>>`
+    SELECT to_char(("completedAt" + interval '6 hours')::date, 'YYYY-MM-DD') AS day,
+           SUM(price)::text AS revenue, SUM("costPrice")::text AS cost,
+           SUM("refundedAmount")::text AS refund, COUNT(*) AS orders
+      FROM "Order"
+     WHERE status = 'COMPLETED' AND "completedAt" >= ${since}
+     GROUP BY 1`;
 
   // দিন-বাকেট প্রস্তুত (শূন্য সহ — ফাঁকা দিনও চার্টে থাকবে), BD দিনে
   const buckets = new Map<string, RevenuePoint>();
@@ -90,18 +99,15 @@ export async function revenueTrend(days = 30): Promise<RevenuePoint[]> {
     buckets.set(key, { date: key, revenue: 0, cost: 0, profit: 0, orders: 0 });
   }
 
-  for (const o of orders) {
-    if (!o.completedAt) continue;
-    const key = bdDayKey(o.completedAt); // ★ BD দিন
-    const b = buckets.get(key);
+  for (const r of rows) {
+    const b = buckets.get(r.day);
     if (!b) continue;
-    const rev = num(o.price);
-    const cost = num(o.costPrice);
-    const refund = num(o.refundedAmount);
-    b.revenue += rev;
-    b.cost += cost;
-    b.profit += rev - cost - refund;
-    b.orders += 1;
+    const rev = num(r.revenue);
+    const cost = num(r.cost);
+    b.revenue = rev;
+    b.cost = cost;
+    b.profit = rev - cost - num(r.refund);
+    b.orders = Number(r.orders);
   }
 
   // দুই দশমিকে round
@@ -129,15 +135,13 @@ export async function customerInsights(): Promise<CustomerInsight> {
     prisma.user.count({ where: { role: 'USER' } }),
     prisma.user.count({ where: { role: 'USER', createdAt: { gte: monthAgo } } }),
     // ১টির বেশি সম্পন্ন অর্ডার আছে এমন ইউজার (repeat customer)
-    //   ⚠️ having-এ যে field count করি (userId) সেটিই _count-এ select করা —
-    //      _all আর নির্দিষ্ট-field count মেশালে কিছু Prisma version runtime
-    //      error দেয়। তাই দুটোই userId।
-    prisma.order.groupBy({
-      by: ['userId'],
-      where: { status: 'COMPLETED' },
-      _count: { userId: true },
-      having: { userId: { _count: { gt: 1 } } },
-    }),
+    //   ⚠️ কেবল **সংখ্যাটি** DB থেকে — আগে `groupBy` প্রতিটি ফিরতি গ্রাহকের
+    //   একটি করে সারি JS-এ এনে `.length` নিত (সিমুলেশনে ৫ লাখ অর্ডারে এই
+    //   endpoint ৫.৪s-এর অংশ)। ফল হুবহু একই।
+    prisma.$queryRaw<Array<{ n: bigint }>>`
+      SELECT COUNT(*) AS n FROM (
+        SELECT 1 FROM "Order" WHERE status = 'COMPLETED' GROUP BY "userId" HAVING COUNT(*) > 1
+      ) x`,
     prisma.order.aggregate({
       where: { status: 'COMPLETED' },
       _avg: { price: true },
@@ -147,7 +151,7 @@ export async function customerInsights(): Promise<CustomerInsight> {
   return {
     totalCustomers,
     newThisMonth,
-    repeatCustomers: repeatGroups.length,
+    repeatCustomers: Number(repeatGroups[0]?.n ?? 0),
     avgOrderValue: Math.round(num(ordAgg._avg.price) * 100) / 100,
   };
 }

@@ -1,8 +1,6 @@
 import Link from 'next/link';
-import { getServerSession } from 'next-auth';
-import { redirect } from 'next/navigation';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireAdminPage } from '@/lib/pageGuard';
 import AdminNav from '@/components/admin/AdminNav';
 import AdminSearch from '@/components/admin/AdminSearch';
 import LogoutButton from '@/components/LogoutButton';
@@ -12,18 +10,21 @@ import { getBranding } from '@/lib/branding';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  // ★ middleware এ প্রথম guard আছে — এটা দ্বিতীয় স্তর (defense in depth)
-  const session = await getServerSession(authOptions);
-  if (!session) redirect('/login?callbackUrl=/admin');
-  if (session.user.role !== 'ADMIN') redirect('/');
+/**
+ * ★ অ্যাডমিন এলাকা কখনো ইনডেক্স হবে না। `robots.txt` আগেই ক্রল বন্ধ করে, কিন্তু
+ *   root layout সবার জন্য `index: true` দিত — অর্থাৎ কোথাও লিংক ফাঁস হলে URL
+ *   ইনডেক্স হয়ে যেতে পারত (স্বাধীন অডিটে মাপা, ২০২৬-০৯-১৮)। দুই স্তরের সুরক্ষা।
+ */
+export const metadata = {
+  robots: { index: false, follow: false, nocache: true },
+};
 
-  // ★ DB থেকেও role re-verify — পুরনো JWT ধরবে
-  const me = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { role: true, isBanned: true },
-  });
-  if (!me || me.role !== 'ADMIN' || me.isBanned) redirect('/');
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  // ★ middleware এ প্রথম guard আছে — এটা দ্বিতীয় স্তর (defense in depth)।
+  //   SEC-01: DB থেকে role + ban + **sessionEpoch** (আগে epoch দেখা হতো না)।
+  //   ⚠️ সফট-নেভিগেশনে এই লেআউট চলে না — তাই প্রতিটি পাতাও নিজে একই
+  //   গার্ড ডাকে (pageGuard.ts দ্রষ্টব্য); `cache()` থাকায় কোয়েরি একটিই।
+  await requireAdminPage();
 
   // ★ অ্যাডমিন হেডারের লোগো — অ্যাডমিন প্যানেলও একই ব্র্যান্ড দেখায়
   const brandLogos = (await getBranding()).logos.compact;
@@ -53,8 +54,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span
               className="rounded-md px-2.5 py-1 text-[10px] font-bold uppercase"
               style={{
-                background: 'rgba(230,197,132,.14)',
-                border: '1px solid rgba(230,197,132,.38)',
+                background: 'rgba(var(--gold-glow),.14)',
+                border: '1px solid rgba(var(--gold-glow),.38)',
                 color: 'var(--gold)',
                 letterSpacing: '.12em',
               }}
@@ -71,12 +72,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <ThemeToggle />
             <Link
               href="/"
-              className="inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap text-sm transition-colors"
+              className="inline-flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center whitespace-nowrap px-2 text-sm transition-colors"
               style={{ color: 'var(--mut)' }}
             >
               {/* ★ ৩২০px-এ কেবল তীরচিহ্ন — পুরো লেখাটি রাখলে লগআউটসহ
                   সারিটি ওভারফ্লো করত। sr-only লেবেল থাকায় স্ক্রিনরিডারে
-                  অর্থ অটুট। */}
+                  অর্থ অটুট।
+
+                  ⚠️ `min-w-[40px]` + `px-2` **আবশ্যক**। আগে শুধু
+                  `min-h-[40px]` ছিল, ফলে তীরচিহ্নটির প্রকৃত মাপ
+                  দাঁড়াত **৪০×১২px** — অডিটে ১০০টি "ছোট ট্যাপ-টার্গেট"
+                  হিট। উচ্চতা ঠিক থাকলেই ছোঁয়ার লক্ষ্য ঠিক হয় না;
+                  প্রস্থও লাগে। */}
               <span aria-hidden="true">←</span>
               <span className="ml-1 hidden xs:inline">সাইটে ফিরুন</span>
               <span className="sr-only">সাইটে ফিরুন</span>

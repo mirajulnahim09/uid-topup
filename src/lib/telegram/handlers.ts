@@ -2,6 +2,16 @@ import { prisma } from '../prisma';
 import { registerJobHandler, type RunResult } from './scheduler';
 import { renderTemplate } from './templates';
 import { sendToEvent } from './dispatch';
+import { APP_TIME_ZONE } from '../date';
+
+/**
+ * ★ টেলিগ্রাম বার্তার তারিখ/সময় — **ঢাকার** ঘড়িতে।
+ *   আগে `toLocaleDateString('bn-BD')` সার্ভারের ঘড়ি ধরত; Vercel UTC-তে চলে,
+ *   তাই মাপা (TZ=UTC): ঢাকার ২২/৯ রাত ৩:৩০ দেখাত "২১/৯ ৯:৩০ PM" — দৈনিক
+ *   সারাংশের সময় ৬ ঘণ্টা ভুল, আর কুপনের মেয়াদ-তারিখ এক দিন আগের।
+ */
+const bnDay = (d: Date) => d.toLocaleDateString('bn-BD', { timeZone: APP_TIME_ZONE });
+const bnTime = (d: Date) => d.toLocaleTimeString('bn-BD', { timeZone: APP_TIME_ZONE });
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -42,8 +52,8 @@ async function summaryJob(key: 'daily_summary' | 'weekly_summary', since: Date, 
     revenue: s.revenue.toFixed(2),
     deposits: s.deposits,
     pending: s.pendingOrders + s.pendingDeposits,
-    date: new Date().toLocaleDateString('bn-BD'),
-    time: new Date().toLocaleTimeString('bn-BD'),
+    date: bnDay(new Date()),
+    time: bnTime(new Date()),
     site_name: 'SS UID TOPUP',
   });
 
@@ -130,7 +140,7 @@ registerJobHandler('coupon_expiry', async () => {
     select: { code: true, expiresAt: true }, take: 20,
   });
   if (rows.length === 0) return { ok: true, detail: 'মেয়াদ শেষ হওয়ার মতো কুপন নেই' };
-  const list = rows.map((c) => `• ${c.code} — ${c.expiresAt?.toLocaleDateString('bn-BD') ?? ''}`).join('\n');
+  const list = rows.map((c) => `• ${c.code} — ${c.expiresAt ? bnDay(c.expiresAt) : ''}`).join('\n');
   const sent = await sendToEvent('coupon', '🎟️ কুপনের মেয়াদ শেষ হচ্ছে', list, '/admin/coupons');
   return sent.ok ? { ok: true, detail: `${rows.length}টি কুপন` } : { ok: false, error: sent.error };
 });

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import MediaBrowser from '@/components/admin/MediaBrowser';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const metadata: Metadata = { title: 'মিডিয়া লাইব্রেরি' };
 export const dynamic = 'force-dynamic';
@@ -10,7 +11,9 @@ export const dynamic = 'force-dynamic';
  *   একবার আপলোড → সর্বত্র ব্যবহার। search / ফোল্ডার / sort / unused /
  *   SEO মেটাডেটা — সবই এখানে।
  */
-export default function AdminMediaPage() {
+export default async function AdminMediaPage() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   return (
     <div className="space-y-6">
       <AdminPageHeader

@@ -1,0 +1,136 @@
+# ═══════════════════════════════════════════════════════════
+# Production database migration — the ONLY production migration path
+# (owner decision 2026-10-31, O-15).
+#
+#   · Manual only (workflow_dispatch), from `main`, with the confirm phrase.
+#   · The `migrate` job uses the `production-db` GitHub environment
+#     (O-15): required reviewer = repository owner, deployment branches =
+#     `main` only, administrator bypass disabled. GitHub enforces those
+#     rules itself, so a copy of this file edited on another branch still
+#     gets no secrets and cannot skip the approval.
+#     (Not `production`: that name is Vercel's deployment environment.)
+#   · Credentials come only from that environment's secrets, and only in
+#     the steps that call Prisma — never in `npm ci` (run with
+#     --ignore-scripts) or any other step:
+#       PRODUCTION_DATABASE_URL  (required)
+#       PRODUCTION_DIRECT_URL    (optional, non-pooler URL for `directUrl`)
+#   · Runs `prisma migrate status`, lists the pending migration names, then
+#     `prisma migrate deploy` — nothing else. Never `migrate reset`,
+#     `migrate dev` or `db push`. Hostnames are redacted from the log.
+#   · Local `npm run db:migrate:deploy` / `db:migrate:status` are guarded by
+#     scripts/assert-local-db.mjs and can only reach a localhost database.
+# ═══════════════════════════════════════════════════════════
+name: Production migration (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type MIGRATE-PRODUCTION to apply pending migrations to the production database'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# one production migration at a time; never cancel one that is running
+concurrency:
+  group: production-migration
+  cancel-in-progress: false
+
+jobs:
+  precheck:
+    name: Precheck (no secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Branch and confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != "refs/heads/main" ]; then
+            echo "::error::Production migrations run only from main (got $REF)."
+            exit 1
+          fi
+          if [ "$CONFIRM" != "MIGRATE-PRODUCTION" ]; then
+            echo "::error::Confirmation phrase does not match. Nothing was run."
+            exit 1
+          fi
+          echo "Precheck passed: main, confirmation given."
+
+  migrate:
+    name: prisma migrate deploy (production)
+    needs: precheck
+    # ★ belt and braces: the environment's branch policy already limits this to main
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production-db
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --ignore-scripts
+
+      - name: Secret present?
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PRODUCTION_DATABASE_URL is not set in the production environment."
+            exit 1
+          fi
+
+      - name: Migration status and pending migrations
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL || secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          set +e
+          npx prisma migrate status > status.txt 2>&1
+          code=$?
+          set -e
+          # never echo the datasource host
+          sed -E 's/ at "[^"]*"/ at "<redacted>"/' status.txt
+          if [ "$code" -eq 0 ]; then
+            echo "Database schema is up to date — nothing to apply."
+            echo "pending=0" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if ! grep -q "have not yet been applied" status.txt; then
+            echo "::error::migrate status failed for a reason other than pending migrations (failed migration, drift or connection). Not deploying."
+            exit 1
+          fi
+          {
+            echo "### Pending migrations"
+            sed -n '/have not yet been applied/,/^$/p' status.txt | grep -E '^[0-9]{14}_' | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Pending migrations:"
+          sed -n '/have not yet been applied/,/^$/p' status.txt | grep -E '^[0-9]{14}_'
+          echo "pending=1" >> "$GITHUB_ENV"
+
+      - name: prisma migrate deploy
+        if: env.pending == '1'
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL || secrets.PRODUCTION_DATABASE_URL }}
+        # pipefail: a failed deploy must fail the step, not the sed after it
+        shell: bash
+        run: |
+          set -o pipefail
+          npx prisma migrate deploy 2>&1 | sed -E 's/ at "[^"]*"/ at "<redacted>"/'
+
+      - name: Status after deploy must be clean
+        if: env.pending == '1'
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL || secrets.PRODUCTION_DATABASE_URL }}
+        shell: bash
+        run: |
+          set -o pipefail
+          npx prisma migrate status 2>&1 | sed -E 's/ at "[^"]*"/ at "<redacted>"/'

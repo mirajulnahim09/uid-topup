@@ -9,7 +9,9 @@ import { adminLog } from '@/lib/adminLog';
 import { getIp } from '@/lib/rateLimit';
 import { recordOrderEvent } from '@/lib/orderEvents';
 import { ORDER_FAIL_COPY, buildRejectionMessage } from '@/lib/rejectReasons';
-import { claimState, isBlockedByOther, claimBlockMessage } from '@/lib/orderClaim';
+import {
+  claimState, isBlockedByOther, claimBlockMessage, isAutoFulfillInFlight, AUTO_INFLIGHT_MESSAGE,
+} from '@/lib/orderClaim';
 import { applyOrderStatus } from '@/lib/fulfilment';
 import { creditWallet } from '@/lib/services/wallet';
 
@@ -64,6 +66,16 @@ export async function POST(req: Request) {
           throw new ApiError(claimBlockMessage(claim), 409, 'CLAIM_HELD');
         }
 
+        // ★★★ D1-1 — অটো-ডেলিভারির প্রোভাইডার-কল চলাকালীন কোনো চূড়ান্ত সিদ্ধান্ত নয়,
+        //     টেক-ওভার দিয়েও নয়। সিদ্ধান্তটি এই লক করা রো-র `claimedById/claimedAt`
+        //     থেকে; অটো-ডেলিভারিও একই রো লক করেই claim ছাড়ে — তাই দুই পথ কখনো
+        //     মাঝখানে মিশতে পারে না। ⚠️ `PROCESSING`-ও আটকানো: `applyOrderStatus`
+        //     সেটিতে claim অ্যাডমিনের নামে নেয় — ছাড় দিলে "PROCESSING → FAIL"
+        //     দুই ধাপে এই পাহারাই এড়ানো যেত।
+        if (isAutoFulfillInFlight(locked[0])) {
+          throw new ApiError(AUTO_INFLIGHT_MESSAGE, 409, 'AUTO_IN_FLIGHT');
+        }
+
         const order = await tx.order.findUnique({
           where: { id: orderId },
           include: { user: { select: { id: true, name: true, email: true } } },
@@ -85,17 +97,15 @@ export async function POST(req: Request) {
         }
 
         // ── FAIL → auto refund ──
-        // ★ ব্যালেন্স + খতিয়ান একসাথে (4.1)। খতিয়ানের নোট আগের
-        //   মতোই — ঐতিহাসিক এন্ট্রির সাথে সামঞ্জস্য রাখতে।
-        await creditWallet({
-          tx,
-          userId: order.userId,
-          amount: order.price,
-          type: 'REFUND',
-          refId: order.id,
-          note: `অর্ডার #${order.orderNo} বাতিল — রিফান্ড`,
-        });
-
+        // ★★★ লক-ক্রম: variant → coupon → **তারপর** user (CLAUDE.md §2.1)।
+        //   আগে ওয়ালেট আগে ক্রেডিট হতো (User রো লক), তারপর স্টক ফেরত
+        //   (Variant রো লক) — অর্ডার-পথের ঠিক উল্টো ক্রম। মাপা (EXTREME
+        //   অডিট, ২০২৬-০৯-২১): একই গ্রাহক একই প্যাকেজে অর্ডার দিচ্ছেন ঠিক যখন
+        //   অ্যাডমিন তাঁর আগের অর্ডার বাতিল করছেন — ৭২টি অনুরোধে ৫০টি ৫০০
+        //   (Postgres `40P01 deadlock detected`, আর আটকে থাকা লকে সংযোগ-পুল
+        //   ভরে "Unable to start a transaction")। টাকা নিরাপদ ছিল (rollback),
+        //   কিন্তু রিফান্ড ও অর্ডার দুটোই ব্যর্থ হতো। এখন স্টক ও কুপন আগে,
+        //   ওয়ালেট পরে — ক্রম সর্বত্র এক, তাই চক্র তৈরি হয় না।
         // স্টক ফেরত
         const variant = await tx.variant.findUnique({ where: { id: order.variantId } });
         if (variant && variant.stock >= 0) {
@@ -113,6 +123,18 @@ export async function POST(req: Request) {
           });
           await tx.couponUse.deleteMany({ where: { orderId: order.id } });
         }
+
+        // ★ ব্যালেন্স + খতিয়ান একসাথে (4.1)। খতিয়ানের নোট আগের
+        //   মতোই — ঐতিহাসিক এন্ট্রির সাথে সামঞ্জস্য রাখতে।
+        //   ⚠️ স্টক/কুপনের **পরে** — উপরের লক-ক্রমের ব্যাখ্যা দেখুন।
+        await creditWallet({
+          tx,
+          userId: order.userId,
+          amount: order.price,
+          type: 'REFUND',
+          refId: order.id,
+          note: `অর্ডার #${order.orderNo} বাতিল — রিফান্ড`,
+        });
 
         // ★ কাঠামোবদ্ধ কারণ → গ্রাহকের জন্য সুনির্দিষ্ট বার্তা
         const reason = buildRejectionMessage(

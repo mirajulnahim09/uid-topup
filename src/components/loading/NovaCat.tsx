@@ -50,13 +50,6 @@ export default function NovaCat({
 }) {
   const g = (n: string) => `${uid}-${n}`;
 
-  /* ── ব্র্যান্ড-চিহ্নের জ্যামিতি ──
-     `VoltMark.tsx` এর হুবহু বিন্দুগুলো, কেন্দ্র (352,118) ও R=46 এ
-     স্কেল করা (s = 46/21)। হাতে নতুন করে আঁকা হয়নি — লোগো "প্রায়
-     একই রকম" হলে সেটি ব্র্যান্ড নয়, নকল। */
-  const HEX = '352,72 391.84,95 391.84,141 352,164 312.16,141 312.16,95';
-  const HEX_INNER = '352,83.4 381.57,100.5 381.57,135.5 352,152.6 322.43,135.5 322.43,100.5';
-  const BOLT = 'M359.67 89.52 L334.48 121.29 H347.18 L344.33 146.48 L369.52 114.71 H356.82 Z';
 
   return (
     <svg
@@ -98,17 +91,6 @@ export default function NovaCat({
           <stop offset="1" stopColor="#7de3ff" stopOpacity="0" />
         </linearGradient>
 
-        {/* ── ব্র্যান্ড ত্রয়ী: চিহ্নের গ্রেডিয়েন্ট (VoltMark এর মতোই) ── */}
-        <linearGradient id={g('mark')} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#c8ff3d" />
-          <stop offset=".52" stopColor="#7de3ff" />
-          <stop offset="1" stopColor="#7b2cff" />
-        </linearGradient>
-        {/* চিহ্ন থেকে বজ্র কেটে নেওয়া — VoltMark এর কৌশলই */}
-        <mask id={g('cut')}>
-          <polygon points={HEX} fill="#fff" />
-          <path d={BOLT} fill="#000" />
-        </mask>
 
         {/* ── ডায়মন্ড: আইস-নীল, পণ্যের রঙ ── */}
         <linearGradient id={g('diaTop')} x1="0" y1="0" x2=".6" y2="1">
@@ -191,32 +173,42 @@ export default function NovaCat({
         {/* আঘাতের আভা — শুধু চার্জ হওয়ার সময় জ্বলে */}
         <circle className="nv-mark-bloom" cx="352" cy="118" r="86" fill={`url(#${g('bloomLime')})`} />
 
-        {/* শকওয়েভ — দুটি রিং, একটু পিছিয়ে */}
-        <polygon className="nv-shock nv-shock--1" points={HEX} fill="none"
-          stroke="#e8ffb0" strokeWidth="2.5" strokeLinejoin="round" />
-        <polygon className="nv-shock nv-shock--2" points={HEX} fill="none"
-          stroke="#7de3ff" strokeWidth="1.8" strokeLinejoin="round" />
+        {/* Brand mark v3 ("Gem Lift") — same geometry as VoltMark.tsx,
+            scaled from its 48-box to a 92px tile centred on (352,118). */}
+        <defs>
+          <linearGradient id={g('gl-tile')} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#8b5cf6" /><stop offset=".55" stopColor="#5b21b6" /><stop offset="1" stopColor="#1e1b4b" />
+          </linearGradient>
+          <linearGradient id={g('gl-gem')} x1="0" y1="0" x2=".6" y2="1">
+            <stop offset="0" stopColor="#ecfccb" /><stop offset=".45" stopColor="#bef264" /><stop offset="1" stopColor="#22d3ee" />
+          </linearGradient>
+        </defs>
 
-        {/* ম্লান অবস্থা — অপেক্ষারত চিহ্ন */}
+        {/* শকওয়েভ — দুটি রিং, একটু পিছিয়ে */}
+        <rect className="nv-shock nv-shock--1" x="306" y="72" width="92" height="92" rx="27" fill="none"
+          stroke="#e8ffb0" strokeWidth="2.5" />
+        <rect className="nv-shock nv-shock--2" x="306" y="72" width="92" height="92" rx="27" fill="none"
+          stroke="#7de3ff" strokeWidth="1.8" />
+
+        {/* ম্লান অবস্থা — অপেক্ষারত চিহ্ন (দেখা যায়, কিন্তু নিভু) */}
         <g className="nv-mark-dim">
-          {/* ⚠️ ম্লান মানে **অদৃশ্য নয়** — অপেক্ষারত লক্ষ্যটি না দেখা
-              গেলে ডায়মন্ড কোথায় যাচ্ছে তা বোঝা যেত না, আর হালকা
-              থিমে ২৬% অস্বচ্ছতা প্রায় মিলিয়ে যাচ্ছিল। */}
-          <polygon points={HEX} fill={`url(#${g('mark')})`} mask={`url(#${g('cut')})`} opacity=".42" />
-          <polygon points={HEX} fill="none" stroke={`url(#${g('mark')})`} strokeWidth="2.4"
-            strokeLinejoin="round" opacity=".72" />
-          <polygon points={HEX_INNER} fill="none" stroke="rgba(125,227,255,.28)" strokeWidth="1.1"
-            strokeLinejoin="round" />
+          <g transform="translate(301.82 67.82) scale(2.0909)" opacity=".45">
+            <rect x="2" y="2" width="44" height="44" rx="13" fill={`url(#${g('gl-tile')})`} />
+            <path d="M12.5 19.5 L18.3 12 H29.7 L35.5 19.5 L24 37 Z" fill={`url(#${g('gl-gem')})`} opacity=".55" />
+          </g>
         </g>
 
         {/* জ্বলন্ত অবস্থা — চার্জ সম্পন্ন */}
         <g className="nv-mark-lit">
-          <polygon points={HEX} fill={`url(#${g('mark')})`} mask={`url(#${g('cut')})`} />
-          <polygon points={HEX} fill="none" stroke="#eaffb8" strokeWidth="2.4" strokeLinejoin="round" />
-          <polygon points={HEX_INNER} fill="none" stroke="rgba(232,255,176,.7)" strokeWidth="1.3"
-            strokeLinejoin="round" />
-          {/* বজ্রটি নেগেটিভ-স্পেস — তাই তার পেছনে আলো দিলে সেটিই জ্বলে */}
-          <path className="nv-bolt" d={BOLT} fill="#f6ffe0" opacity=".95" />
+          <g transform="translate(301.82 67.82) scale(2.0909)">
+            <rect x="2" y="2" width="44" height="44" rx="13" fill={`url(#${g('gl-tile')})`} />
+            <rect x="2.5" y="2.5" width="43" height="43" rx="12.5" fill="none" stroke="#eaffb8" strokeOpacity=".7" strokeWidth=".8" />
+            <path d="M12.5 19.5 L18.3 12 H29.7 L35.5 19.5 L24 37 Z" fill={`url(#${g('gl-gem')})`} />
+            <path d="M12.5 19.5 H35.5 M18.3 12 L21.4 19.5 L24 12 L26.6 19.5 L29.7 12" fill="none"
+              stroke="#1e1b4b" strokeOpacity=".32" strokeWidth="1" strokeLinejoin="round" />
+            <path className="nv-bolt" d="M24 31.5 V23.4 M20.4 26.8 L24 23.2 L27.6 26.8" fill="none"
+              stroke="#1e1b4b" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
         </g>
 
         {/* আঘাতের রশ্মি */}
@@ -323,11 +315,9 @@ export default function NovaCat({
             strokeLinecap="round" fill="none" opacity=".65" />
           {/* ঝুলন্ত ষড়ভুজ ট্যাগ — ছোট VoltMark */}
           <g className="nv-tag">
-            <polygon points="161,149 170,154 170,164 161,169 152,164 152,154"
-              fill={`url(#${g('mark')})`} />
-            <polygon points="161,149 170,154 170,164 161,169 152,164 152,154"
-              fill="none" stroke="#eaffb8" strokeWidth="1" opacity=".8" />
-            <path d="M162.6 153.5 157.5 160h2.6l-.6 5 5.1-6.5h-2.6z" fill="#0a0f1e" opacity=".85" />
+            <rect x="151" y="149" width="20" height="20" rx="6" fill={`url(#${g('gl-tile')})`} />
+            <rect x="151" y="149" width="20" height="20" rx="6" fill="none" stroke="#eaffb8" strokeWidth="1" opacity=".8" />
+            <path d="M155.2 155.6 L157.7 152.4 H164.3 L166.8 155.6 L161 164 Z" fill={`url(#${g('gl-gem')})`} />
           </g>
         </g>
 

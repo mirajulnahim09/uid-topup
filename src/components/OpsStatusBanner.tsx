@@ -10,18 +10,23 @@
 import type { OpsStatus } from '@/lib/opsStatus';
 
 /** ★ Phase A — ARC টোকেন। ভূমিকা কঠোরভাবে মানা হয়েছে:
- *  mint = লাইভ/স্বাভাবিক, ember = মনোযোগ দরকার, ধূসর = বন্ধ। */
+ *  mint = লাইভ/স্বাভাবিক, ember = মনোযোগ দরকার, ধূসর = বন্ধ।
+ *
+ *  ⚠️ `busy` আগে হুবহু `open`-এর রঙ ব্যবহার করত (দুটোই volt) —
+ *  অর্থাৎ "সব ঠিক আছে" আর "দেরি হচ্ছে" এক রঙে। এটি C3-এর
+ *  (success ≡ warning) ঠিক একই ত্রুটি, কেবল অন্য ফাইলে। এখন
+ *  `--sem-warning` — টোকেনটি দুই থিমেই আলাদা মান রাখে। */
 const STYLE: Record<OpsStatus['level'], { dot: string; border: string; bg: string; label: string }> = {
   open: {
-    dot: 'var(--v-volt)',
-    border: 'rgba(200,255,61,.28)',
-    bg: 'rgba(200,255,61,.06)',
+    dot: 'var(--sem-success)',
+    border: 'color-mix(in srgb, var(--sem-success) 28%, transparent)',
+    bg: 'color-mix(in srgb, var(--sem-success) 6%, transparent)',
     label: 'অনলাইন',
   },
   busy: {
-    dot: 'var(--v-volt)',
-    border: 'rgba(200,255,61,.3)',
-    bg: 'rgba(200,255,61,.06)',
+    dot: 'var(--sem-warning)',
+    border: 'color-mix(in srgb, var(--sem-warning) 30%, transparent)',
+    bg: 'color-mix(in srgb, var(--sem-warning) 8%, transparent)',
     label: 'ব্যস্ত',
   },
   closed: {

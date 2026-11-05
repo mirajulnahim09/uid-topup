@@ -16,10 +16,15 @@ export default function CustomerTimeline({ events }: { events: TimelineEvent[] }
   return (
     <ol className="relative space-y-0">
       {events.map((e, i) => {
+        // ★ তিনটি হার্ডকোড টোন থেকে ভূমিকা-টোকেনে। লাইট থিমে এগুলো
+        //   সাদা কার্ডের উপর লেখা হিসেবে বসত — `#6ec49a` সেখানে
+        //   ~১.৯:১, অর্থাৎ WCAG-এর ৪.৫:১ এর ধারেকাছেও নয়। `--sem-*`
+        //   এর লাইট শেডগুলো (#15803d/#b45309/#be123c) ঠিক এই জন্যই
+        //   আলাদা করে বাছা হয়েছিল (C3)।
         const color =
-          e.tone === 'good' ? '#6ec49a'
-          : e.tone === 'bad' ? '#e07878'
-          : e.tone === 'warn' ? '#e0a05a'
+          e.tone === 'good' ? 'var(--sem-success)'
+          : e.tone === 'bad' ? 'var(--sem-danger)'
+          : e.tone === 'warn' ? 'var(--sem-warning)'
           : 'var(--ink)';
         return (
           <li key={i} className="relative flex gap-3 pb-4">
@@ -43,7 +48,7 @@ export default function CustomerTimeline({ events }: { events: TimelineEvent[] }
                 {e.amount !== undefined && (
                   <span
                     className="font-mono text-sm font-bold"
-                    style={{ color: e.positive ? '#6ec49a' : 'var(--ink)' }}
+                    style={{ color: e.positive ? 'var(--sem-success)' : 'var(--ink)' }}
                   >
                     {e.positive ? '+' : e.positive === false ? '−' : ''}{bdt(e.amount)}
                   </span>

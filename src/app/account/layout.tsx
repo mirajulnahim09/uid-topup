@@ -5,6 +5,11 @@ import { getSetting } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
 
+/** ★ গ্রাহকের ব্যক্তিগত এলাকা — ইনডেক্স নয় (robots.txt-এর পাশাপাশি মেটা-স্তরেও) */
+export const metadata = {
+  robots: { index: false, follow: false, nocache: true },
+};
+
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   let siteName = 'SS UID TOPUP';
   try {

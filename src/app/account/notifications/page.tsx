@@ -1,7 +1,6 @@
 import Link from 'next/link';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireUserPage } from '@/lib/pageGuard';
 import { fmtDate } from '@/lib/date';
 import Icon from '@/components/fx/Icon';
 
@@ -9,18 +8,18 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'নোটিফিকেশন' };
 
 export default async function NotificationsPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)
+  const me = await requireUserPage();
 
   const items = await prisma.notification.findMany({
-    where: { userId: session.user.id },
+    where: { userId: me.id },
     orderBy: { createdAt: 'desc' },
     take: 100,
   });
 
   // দেখার সাথে সাথেই পড়া হিসেবে চিহ্নিত
   await prisma.notification.updateMany({
-    where: { userId: session.user.id, isRead: false },
+    where: { userId: me.id, isRead: false },
     data: { isRead: true },
   });
 

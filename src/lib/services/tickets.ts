@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { cleanText } from '../sanitize';
+import { ApiError } from '../guard';
 import type { TicketKind, TicketStatus } from '@prisma/client';
 
 /**
@@ -48,8 +49,8 @@ export type NewTicket = {
 export async function createTicket(input: NewTicket) {
   const subject = cleanText(input.subject, TICKET_SUBJECT_MAX);
   const body = cleanText(input.body, TICKET_BODY_MAX);
-  if (!subject) throw new Error('বিষয় লিখুন');
-  if (!body) throw new Error('বার্তা লিখুন');
+  if (!subject) throw new ApiError('বিষয় লিখুন', 400);
+  if (!body) throw new ApiError('বার্তা লিখুন', 400);
 
   return prisma.$transaction(async (tx) => {
     let orderId: string | null = null;
@@ -150,7 +151,7 @@ export async function replyToTicket(opts: {
   ownerId: string | null;
 }) {
   const body = cleanText(opts.body, TICKET_BODY_MAX);
-  if (!body) throw new Error('বার্তা লিখুন');
+  if (!body) throw new ApiError('বার্তা লিখুন', 400);
 
   return prisma.$transaction(async (tx) => {
     const ticket = await tx.ticket.findFirst({
@@ -158,7 +159,15 @@ export async function replyToTicket(opts: {
       select: { id: true, status: true },
     });
     if (!ticket) return null;
-    if (ticket.status === 'CLOSED') throw new Error('টিকিটটি বন্ধ — নতুন টিকিট খুলুন');
+    // ★★★ অবস্থা **লক করা সারি** থেকে (উত্তর ও বন্ধ — দুই পথেই একই লক)।
+    //   মাপা (EXTREME অডিট, ২০২৬-০৯-২১, in-process ২০০ বার একসাথে): উপরের
+    //   লক-বহির্ভূত পাঠে ১১৮ বার বন্ধ টিকিট আবার `ANSWERED` হয়ে যেত (`closedAt`
+    //   বসানো অবস্থায়), আর ৯৩ বার বন্ধ-বার্তার **পরে** উত্তর জমা হতো।
+    const locked = await tx.$queryRaw<{ status: string }[]>`
+      SELECT "status"::text AS status FROM "Ticket" WHERE "id" = ${ticket.id} FOR UPDATE`;
+    if ((locked[0]?.status ?? ticket.status) === 'CLOSED') {
+      throw new ApiError('টিকিটটি বন্ধ — নতুন টিকিট খুলুন', 409);
+    }
 
     const now = new Date();
     await tx.ticketMessage.create({
@@ -196,7 +205,10 @@ export async function closeTicket(opts: {
       select: { id: true, status: true },
     });
     if (!ticket) return null;
-    if (ticket.status === 'CLOSED') return { ok: true as const };
+    // ★ উত্তর-পথের একই লক — দুটি একসাথে এলে একটির পরে অন্যটি, লক করা অবস্থা দেখে
+    const locked = await tx.$queryRaw<{ status: string }[]>`
+      SELECT "status"::text AS status FROM "Ticket" WHERE "id" = ${ticket.id} FOR UPDATE`;
+    if ((locked[0]?.status ?? ticket.status) === 'CLOSED') return { ok: true as const };
 
     const now = new Date();
     await tx.ticketMessage.create({

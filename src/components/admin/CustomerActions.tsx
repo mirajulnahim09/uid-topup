@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast, ConfirmDialog } from '@/components/Toast';
+import CopyButton from '@/components/admin/CopyButton';
 
 /**
  * ★ Admin customer detail পেজের অ্যাকশন — ব্যালেন্স যোগ/কাটা ও ব্যান/আনব্যান।
@@ -31,6 +32,10 @@ export default function CustomerActions({
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  // ★ এক ডায়ালগ = এক সমন্বয়: ডাবল-ক্লিক বা নেট-কাটা retry সার্ভারে একবারই গোনে
+  const [adjustKey, setAdjustKey] = useState('');
+  const [recoveryAsk, setRecoveryAsk] = useState(false);
+  const [recovery, setRecovery] = useState<{ url: string; expiresAt: string } | null>(null);
 
   const STATUS_LABEL: Record<string, string> = { ACTIVE: 'সক্রিয়', SUSPENDED: 'সাময়িক স্থগিত', BLOCKED: 'স্থায়ীভাবে বন্ধ' };
 
@@ -44,16 +49,42 @@ export default function CustomerActions({
       const res = await fetch('/api/admin/user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, amount: amt, note: note.trim() }),
+        body: JSON.stringify({ userId, amount: amt, note: note.trim(), requestId: adjustKey || undefined }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
-      toast.success(`${name} — ${amt > 0 ? '+' : ''}৳${amt.toFixed(2)} (নতুন ব্যালেন্স ৳${d.balance})`);
+      if (d.duplicate) toast.success(`এই সমন্বয় আগেই হয়ে গেছে — আবার যোগ করা হয়নি (ব্যালেন্স ৳${d.balance})`);
+      else toast.success(`${name} — ${amt > 0 ? '+' : ''}৳${amt.toFixed(2)} (নতুন ব্যালেন্স ৳${d.balance})`);
       setAmount('');
       setNote('');
+      setAdjustKey('');
       startTransition(() => router.refresh());
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'সমন্বয় করা যায়নি');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * ★★★ জরুরি রিকভারি-লিংক — এক-বারের, ৩০ মিনিট মেয়াদি।
+   *   লিংকটি কেবল এই dialog-এ **একবার** দেখানো হয়; কোথাও সংরক্ষিত হয় না।
+   *   সার্ভার-পাশের সব শর্ত `api/admin/user/recovery/route.ts` এ।
+   */
+  async function runRecovery() {
+    setRecoveryAsk(false);
+    setBusy(true);
+    try {
+      const res = await fetch('/api/admin/user/recovery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error);
+      setRecovery({ url: d.url, expiresAt: d.expiresAt });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'লিংক তৈরি করা যায়নি');
     } finally {
       setBusy(false);
     }
@@ -83,7 +114,7 @@ export default function CustomerActions({
 
   return (
     <div className="flex flex-wrap gap-2">
-      <button disabled={busy} onClick={() => { setAmount(''); setNote(''); setAdjustOpen(true); }} className="btn-primary">
+      <button disabled={busy} onClick={() => { if (!adjustKey) { setAmount(''); setNote(''); setAdjustKey(crypto.randomUUID()); } setAdjustOpen(true); }} className="btn-primary">
         ৳ ব্যালেন্স যোগ / কাটা
       </button>
       {!isAdmin && (
@@ -97,8 +128,54 @@ export default function CustomerActions({
           {status !== 'BLOCKED' && (
             <button disabled={busy} onClick={() => setPendingStatus('BLOCKED')} className="btn-danger">⛔ স্থায়ীভাবে বন্ধ</button>
           )}
+          {status === 'ACTIVE' && (
+            <button disabled={busy} onClick={() => setRecoveryAsk(true)} className="btn-ghost">🔑 রিকভারি-লিংক</button>
+          )}
         </>
       )}
+
+      <ConfirmDialog
+        open={recoveryAsk}
+        title={`${name} — জরুরি রিকভারি-লিংক`}
+        message={
+          'গ্রাহক পাসওয়ার্ড ভুলে গেলে ও ইমেইল না পেলে এটি ব্যবহার করুন।\n\n' +
+          '• আগে ফোনে গ্রাহকের পরিচয় নিশ্চিত করুন\n' +
+          '• লিংকটি ৩০ মিনিট মেয়াদি, একবারই চলে\n' +
+          '• গ্রাহক নিজে নতুন পাসওয়ার্ড দেবেন — আপনি কোনো পাসওয়ার্ড দেখবেন না\n' +
+          '• এই কাজটি অ্যাক্টিভিটি লগে আপনার নামে থাকবে'
+        }
+        confirmLabel="লিংক তৈরি করুন"
+        onConfirm={runRecovery}
+        onCancel={() => setRecoveryAsk(false)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(recovery)}
+        title="রিকভারি-লিংক তৈরি হয়েছে"
+        message={
+          recovery
+            ? `মেয়াদ শেষ: ${new Date(recovery.expiresAt).toLocaleTimeString('bn-BD', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' })}\n\n` +
+              'লিংকটি কেবল এখনই দেখানো হচ্ছে — কপি করে সরাসরি গ্রাহককে পাঠান। অন্য কাউকে দেবেন না।'
+            : undefined
+        }
+        confirmLabel="হয়ে গেছে"
+        cancelLabel="বন্ধ"
+        onConfirm={() => setRecovery(null)}
+        onCancel={() => setRecovery(null)}
+      >
+        {recovery && (
+          <div className="flex items-center gap-2">
+            <input
+              aria-label="রিকভারি-লিংক"
+              readOnly
+              value={recovery.url}
+              onFocus={(e) => e.currentTarget.select()}
+              className="input min-w-0 flex-1 font-mono text-xs"
+            />
+            <CopyButton value={recovery.url} label="রিকভারি-লিংক" />
+          </div>
+        )}
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={adjustOpen}
@@ -112,11 +189,11 @@ export default function CustomerActions({
           <div>
             <label className="label">পরিমাণ (+ / −)</label>
             <input aria-label="পরিমাণ (+ / −)" className="input" type="number" step="0.01" value={amount}
-              onChange={(e) => setAmount(e.target.value)} placeholder="যেমন: 100 বা -50" />
+              onChange={(e) => { setAmount(e.target.value); setAdjustKey(crypto.randomUUID()); }} placeholder="যেমন: 100 বা -50" />
           </div>
           <div>
             <label className="label">কারণ (বাধ্যতামূলক)</label>
-            <input aria-label="কারণ (বাধ্যতামূলক)" className="input" value={note} onChange={(e) => setNote(e.target.value)}
+            <input aria-label="কারণ (বাধ্যতামূলক)" className="input" value={note} onChange={(e) => { setNote(e.target.value); setAdjustKey(crypto.randomUUID()); }}
               placeholder="যেমন: ম্যানুয়াল রিফান্ড" />
           </div>
         </div>

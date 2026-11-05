@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { fmtShort } from '@/lib/date';
 
 /**
  * ★★★ টেলিগ্রাম Connection Wizard — ৬ ধাপ
@@ -432,7 +433,7 @@ export default function ConnectionWizard({
                 </div>
                 <dl className="grid gap-1.5 text-[12px] sm:grid-cols-2">
                   {[
-                    ['ডেলিভারি সময়', new Date(testResult.deliveredAt).toLocaleTimeString('bn-BD')],
+                    ['ডেলিভারি সময়', fmtShort(testResult.deliveredAt)],
                     ['রেসপন্স টাইম', `${testResult.responseMs} ms`],
                     ['মোট সময়', `${testResult.totalMs} ms`],
                     ['Telegram API', testResult.apiStatus],
@@ -562,8 +563,10 @@ export default function ConnectionWizard({
         )}
       </div>
 
+      {/* ★ ২০px উঁচু ছিল — উইজার্ড থেকে বেরোনোর একমাত্র পথ, তাই
+          ছোট লক্ষ্য মানে অ্যাডমিন আটকে আছেন বলে মনে হওয়া। */}
       {step < 5 && onClose && (
-        <button onClick={onClose} className="mx-auto block text-[11.5px] underline"
+        <button onClick={onClose} className="mx-auto flex min-h-[40px] items-center px-3 text-[11.5px] underline"
           style={{ color: 'var(--v-dim)' }}>
           পরে করব — উইজার্ড বন্ধ করুন
         </button>

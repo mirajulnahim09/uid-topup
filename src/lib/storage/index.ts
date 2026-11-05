@@ -50,8 +50,9 @@ export function getStorage(): StorageDriver {
     // স্পষ্ট opt-in — প্রোডাকশনে প্রায় নিশ্চিতভাবেই ভুল
     if (isProd()) {
       console.warn(
-        '[storage] STORAGE_DRIVER=local প্রোডাকশনে — serverless ফাইল-সিস্টেম ephemeral, ' +
-        'আপলোড করা ফাইল পরের ডিপ্লয়ে হারিয়ে যাবে। Blob/S3/R2 ব্যবহার করুন।',
+        '[storage] STORAGE_DRIVER=local প্রোডাকশনে — আপলোড করা ফাইল **সাথে সাথেই ৪০৪** দেবে: ' +
+        'Next প্রোডাকশন বিল্ডের পরে `public/`-এ লেখা ফাইল পরিবেশন করে না (মাপা, চূড়ান্ত মাস্টার ' +
+        'অডিট ২০২৬-০৯-১৭); serverless-এ ফাইল-সিস্টেম ephemeral-ও। Blob/S3/R2 ব্যবহার করুন।',
       );
     }
     d = localDriver();

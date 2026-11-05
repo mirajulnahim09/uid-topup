@@ -72,9 +72,9 @@ export const translations: Record<Locale, Dict> = {
     'load.payment': 'পেমেন্ট প্রসেস হচ্ছে…',
 
     // ── লোডিং পর্দার ঘূর্ণায়মান বার্তা ──
-    'load.rotate1': 'নিরাপদে সংযুক্ত হচ্ছে…',
-    'load.rotate2': 'আপনার গেমিং অভিজ্ঞতা প্রস্তুত হচ্ছে…',
-    'load.rotate3': 'ড্যাশবোর্ড লোড হচ্ছে…',
+    'load.rotate1': 'এক সেকেন্ড…',
+    'load.rotate2': 'পাতা খুলছে…',
+    'load.rotate3': 'প্রায় হয়ে গেছে…',
 
     'pwa.title': 'অ্যাপ ইনস্টল করুন',
     'pwa.subtitle': 'হোম স্ক্রিন থেকে এক ট্যাপে টপ-আপ',
@@ -109,7 +109,7 @@ export const translations: Record<Locale, Dict> = {
 
     // ── Footer ──
     'footer.product': 'পণ্য',
-    'footer.support': 'সহায়তা',
+    'footer.support': 'প্রশ্ন ও নীতি',
     'footer.info': 'তথ্য',
     'footer.terms': 'শর্তাবলী',
     'footer.privacy': 'প্রাইভেসি পলিসি',
@@ -161,9 +161,9 @@ export const translations: Record<Locale, Dict> = {
     'load.payment': 'Processing payment…',
 
     // ── Rotating loading messages ──
-    'load.rotate1': 'Connecting securely…',
-    'load.rotate2': 'Preparing your gaming experience…',
-    'load.rotate3': 'Loading your dashboard…',
+    'load.rotate1': 'One moment…',
+    'load.rotate2': 'Opening the page…',
+    'load.rotate3': 'Almost there…',
 
     'pwa.title': 'Install the app',
     'pwa.subtitle': 'One-tap top-ups from your home screen',
@@ -198,7 +198,7 @@ export const translations: Record<Locale, Dict> = {
 
     // ── Footer ──
     'footer.product': 'Products',
-    'footer.support': 'Support',
+    'footer.support': 'Help & policies',
     'footer.info': 'Information',
     'footer.terms': 'Terms & Conditions',
     'footer.privacy': 'Privacy Policy',

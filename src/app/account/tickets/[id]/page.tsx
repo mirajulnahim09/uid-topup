@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { fmtDate } from '@/lib/date';
+import { requireUserPage } from '@/lib/pageGuard';
 import { getThread } from '@/lib/services/tickets';
 import TicketReply from '@/components/tickets/TicketReply';
 
@@ -19,20 +18,25 @@ export const metadata = {
  *   ⚠️ মালিকানা যাচাই `getThread(id, userId)` করে — অন্যের থ্রেড
  *   চাইলে `null` ফেরে ও ৪০৪। "নেই" আর "আপনার নয়" আলাদা করা হয় না।
  */
-export default async function TicketThreadPage({ params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null;
+export default async function TicketThreadPage(props: {
+  params: Promise<{ id: string }>;
+}) {
+  const params = await props.params;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)
+  const me = await requireUserPage();
 
-  const t = await getThread(params.id, session.user.id);
+  const t = await getThread(params.id, me.id);
   if (!t) notFound();
 
   const closed = t.status === 'CLOSED';
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
+      {/* ★ `min-h-[40px]` — মাপা ২০px (২০২৬-০৮-২৬)। বিরোধ-থ্রেডের
+          একমাত্র "ফিরে যাওয়ার" পথ, তাই আঙুলের মাপ থাকা জরুরি। */}
       <Link
         href="/account/tickets"
-        className="inline-flex items-center gap-1.5 text-sm font-semibold"
+        className="inline-flex min-h-[40px] items-center gap-1.5 text-sm font-semibold"
         style={{ color: 'var(--v-mut)' }}
       >
         ← সব টিকিট

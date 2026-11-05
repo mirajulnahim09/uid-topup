@@ -61,6 +61,7 @@ export type PayChannel = {
   accountNo: string;
   accountType: string;
   instruction: string;
+  qrImage?: string | null;
 };
 
 export default function OrderForm({
@@ -81,6 +82,9 @@ export default function OrderForm({
 
   // ★ ব্যালেন্স ক্লায়েন্ট-সাইডে আনা হয় — তাই পেজটা ক্যাশ করা যায় (দ্রুত লোড)
   const [balance, setBalance] = useState<number | null>(null);
+  // `/api/me` failed: without this flag the wallet button area stayed a
+  // skeleton forever (balance never arrived, nothing retried).
+  const [balanceFailed, setBalanceFailed] = useState(false);
   const [sel, setSel] = useState<V | null>(null);
   const [uid, setUid] = useState('');
   const [uidErr, setUidErr] = useState('');
@@ -126,12 +130,15 @@ export default function OrderForm({
 
   const loadBalance = useCallback(async () => {
     if (status !== 'authenticated') return;
+    setBalanceFailed(false);
     try {
       // ★ শেয়ার্ড de-dup (4.5)
       const d = await fetchMe<{ balance: string }>();
       setBalance(Number(d.balance));
     } catch {
-      /* silent — ব্যালেন্স না এলেও অর্ডার বোতাম কাজ করবে, সার্ভার যাচাই করবে */
+      // Show a retry instead of an endless skeleton. The server re-checks the
+      // balance on every order anyway, so this is display-only.
+      setBalanceFailed(true);
     }
   }, [status]);
 
@@ -182,6 +189,15 @@ export default function OrderForm({
       alive = false;
     };
   }, [status, productId]);
+
+  /**
+   * ★ সার্ভার থেকে নতুন `variants` এলে (router.refresh — যেমন PRICE_CHANGED এর
+   *   পর) বাছাই করা প্যাকেজটিও নতুন রো-তে বদলাই। নাহলে `sel` পুরনো অবজেক্ট ধরে
+   *   রাখত, নিশ্চিতকরণ আবার পুরনো দাম দেখাত, আর গ্রাহক ৪০৯-এর চক্রে আটকে যেতেন।
+   */
+  useEffect(() => {
+    setSel((s) => (s ? variants.find((x) => x.id === s.id && x.stock !== 0) ?? null : s));
+  }, [variants]);
 
   const total = applied ? applied.finalPrice : sel?.price ?? 0;
   const bal = balance ?? 0;
@@ -276,6 +292,9 @@ export default function OrderForm({
           playerName: playerName.trim() || undefined,
           couponCode: applied?.code || undefined,
           clientRef: clientRefRef.current,
+          // ★ নিশ্চিতকরণে দেখানো দাম — এর বেশি হলে সার্ভার থামায় (৪০৯ PRICE_CHANGED)।
+          //   ডাইরেক্ট-পে তে `amount` মিলিয়ে দেখা আগে থেকেই হয়।
+          ...(isDirect ? {} : { expectedPrice: payable }),
           ...(isDirect
             ? {
                 method: dpMethod,
@@ -287,6 +306,12 @@ export default function OrderForm({
         }),
       });
       const d = await res.json();
+      if (res.status === 409 && d.code === 'PRICE_CHANGED') {
+        // ★ দাম বদলেছে — কিছুই কাটা হয়নি। নতুন দাম আনি (নিচের effect বাছাই করা
+        //   প্যাকেজকে হালনাগাদ করে), আর পুরনো দামে হিসাব করা কুপন বাতিল করি।
+        setApplied(null);
+        startTransition(() => router.refresh());
+      }
       if (!res.ok) throw new Error(d.error || 'অর্ডার করা যায়নি');
 
       // ★★★ ক্যাশ বাতিল (4.5) — টাকা কাটা হয়েছে, তাই পুরনো ব্যালেন্স
@@ -352,7 +377,11 @@ export default function OrderForm({
       <section className="card overflow-hidden lg:col-span-2" aria-labelledby="s1">
         <div className="flex items-center gap-2.5 border-b border-slate-200 px-5 py-4">
           <StepBadge n={1} />
-          <h2 id="s1" className="text-lg font-bold text-slate-900">Select Recharge</h2>
+          {/* ★ পুরো পাতাটি বাংলায়, অথচ দুটি ধাপের শিরোনামই ইংরেজিতে
+              ছিল — গ্রাহকের পড়ার ছন্দ ভাঙত। কম্পোনেন্টটি i18n
+              ব্যবহার করে না (বাকি প্রতিটি লেখাও হার্ডকোড বাংলা),
+              তাই এটিও বাংলায় আনা সঙ্গতিপূর্ণ। */}
+          <h2 id="s1" className="text-lg font-bold text-slate-900">প্যাকেজ বেছে নিন</h2>
         </div>
 
         <div className="p-4 sm:p-5">
@@ -362,7 +391,7 @@ export default function OrderForm({
             <div
               role="radiogroup"
               aria-label="প্যাকেজ বেছে নিন"
-              className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+              className="pkg-grid grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-3"
             >
               {variants.map((v: (typeof variants)[number], i: number) => {
                 const out = v.stock === 0;
@@ -468,13 +497,20 @@ export default function OrderForm({
                       <Icon name="gem" size={14} className="shrink-0" />
                     </span>
 
-                    <span className="shrink-0 text-right">
+                    {/* ★ "355 TK" → "৳355"।
+                        দুটি কারণ: (১) বাকি পুরো সাইট `bdt()` দিয়ে
+                        ৳-চিহ্ন লেখে (ওয়ালেট, খতিয়ান, চালান) — এই
+                        একটি জায়গাতেই "TK" ছিল; (২) সরু কলামে
+                        "TK" শব্দটি দামের চেয়ে বেশি জায়গা নিত, ফলে
+                        বাঁয়ের নামটি বেশি লাইনে ভেঙে একই সারির
+                        কার্ডগুলোর উচ্চতা অসমান দেখাত। */}
+                    <span className="pkg-price shrink-0 text-right">
                       <span className="v-dsp block whitespace-nowrap text-base font-extrabold" style={{ color: 'var(--v-ink)' }}>
-                        {v.price.toFixed(0)} TK
+                        ৳{v.price.toFixed(0)}
                       </span>
                       {v.oldPrice && v.oldPrice > v.price && (
-                        <span className="block text-[10px] text-slate-400 line-through">
-                          {v.oldPrice.toFixed(0)} TK
+                        <span className="block whitespace-nowrap text-[10px] text-slate-400 line-through">
+                          ৳{v.oldPrice.toFixed(0)}
                         </span>
                       )}
                       {out && <span className="block text-[10px] text-red-500">স্টক শেষ</span>}
@@ -496,7 +532,7 @@ export default function OrderForm({
         <section className="card overflow-hidden" aria-labelledby="s2">
           <div className="flex items-center gap-2.5 border-b border-slate-200 px-5 py-4">
             <StepBadge n={2} />
-            <h2 id="s2" className="text-lg font-bold text-slate-900">Account Info</h2>
+            <h2 id="s2" className="text-lg font-bold text-slate-900">অ্যাকাউন্টের তথ্য</h2>
           </div>
 
           <div className="space-y-3 p-5">
@@ -524,8 +560,14 @@ export default function OrderForm({
                       }}
                       className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
                       style={{
-                        borderColor: uid === r.uid ? 'rgba(230,197,132,.6)' : 'var(--hair)',
-                        background: uid === r.uid ? 'rgba(230,197,132,.10)' : 'var(--glass)',
+                        // ★ নির্বাচিত চিপের বর্ডার **নিরেট** `--gold` —
+                        //   `aria-pressed` ছাড়া এটিই একমাত্র দৃশ্যমান
+                        //   ইঙ্গিত যে কোন UID বাছা হয়েছে। মাপা: .6 আভায়
+                        //   লাইটে ছিল **১.৩৫:১**, অর্থাৎ সাদা কার্ডে
+                        //   ক্রিম দাগ — নির্বাচন দেখাই যেত না। নিরেটে
+                        //   ৪.১৪:১ (লাইট) ও ১৩.৪:১ (ডার্ক)।
+                        borderColor: uid === r.uid ? 'var(--gold)' : 'var(--hair)',
+                        background: uid === r.uid ? 'rgba(var(--gold-glow),.10)' : 'var(--glass)',
                         color: 'var(--ink)',
                       }}
                       aria-pressed={uid === r.uid}
@@ -763,7 +805,7 @@ export default function OrderForm({
                           : 'border-slate-200 bg-white text-slate-600 hover:border-[var(--violet)]'
                       }`}
                     >
-                      {c.method}
+                      {c.method === 'BANGLA_QR' ? 'Bangla QR' : c.method}
                     </button>
                   ))}
                 </div>
@@ -775,6 +817,10 @@ export default function OrderForm({
                       <p className="text-[11px] font-semibold text-slate-500">
                         {c.method} — {c.accountType}
                       </p>
+                      {c.qrImage && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.qrImage} alt="Bangla QR — স্ক্যান করে পেমেন্ট করুন" className="mx-auto my-2 aspect-square w-full max-w-[220px] rounded-lg bg-white object-contain p-2" />
+                      )}
                       <p className="font-mono text-lg font-bold text-slate-900">{c.accountNo}</p>
                       {c.instruction && (
                         <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
@@ -941,9 +987,23 @@ export default function OrderForm({
               <button disabled className="btn-primary w-full py-3.5 text-base font-bold">
                 ← আগে একটি প্যাকেজ বেছে নিন
               </button>
-            ) : balance === null ? (
-              /* ── ব্যালেন্স আসছে ── */
-              <div className="skeleton h-12 w-full" />
+            ) : balance === null && payMode !== 'direct' ? (
+              balanceFailed ? (
+                /* ── balance could not be loaded: retry instead of an endless skeleton ── */
+                <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-rose-300 bg-rose-50 p-3">
+                  <p className="text-sm font-semibold text-rose-800">ব্যালেন্স দেখা যাচ্ছে না — সংযোগ দেখে আবার চেষ্টা করুন</p>
+                  <button
+                    type="button"
+                    onClick={() => { invalidateMe(); void loadBalance(); }}
+                    className="btn-ghost shrink-0 px-3 py-2 text-sm font-bold"
+                  >
+                    আবার চেষ্টা
+                  </button>
+                </div>
+              ) : (
+                /* ── ব্যালেন্স আসছে ── */
+                <div className="skeleton h-12 w-full" />
+              )
             ) : payMode === 'direct' ? (
               /* ── ডাইরেক্ট পে — ব্যালেন্স লাগে না ── */
               !uidTrim ? (

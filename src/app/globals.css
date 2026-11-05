@@ -1,10 +1,10 @@
-/* ★ একটিমাত্র @import (CLAUDE.md §6)।
+/* ★ ফন্ট-নির্বাচন (লোড হয় `app/layout.tsx` এর `next/font` দিয়ে, ২০২৬-০৯-১৭ থেকে)।
    Anek Bangla যোগ করার কারণ: এই সাইটের শিরোনাম বাংলায়, আর
    Hind Siliguri এর সর্বোচ্চ ওজন ৭০০ — বড় ডিসপ্লে শিরোনামের জন্য
    যথেষ্ট ভরাট নয়। Anek Bangla ৮০০ পর্যন্ত যায়, আর সেটিই
    "টাইপোগ্রাফি দুর্বল" সমস্যার আসল সমাধান (একটি ল্যাটিন ফন্ট
    বদলানো নয় — বাংলা লেখা তাতে fallback করে যেত)। */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Hind+Siliguri:wght@300;400;500;600;700&family=Anek+Bangla:wght@600;700;800&family=Unbounded:wght@600;700;900&family=Chakra+Petch:wght@600;700&display=swap');
+/* ★ ফন্ট এখন `next/font` দিয়ে নিজের origin থেকে (`app/layout.tsx`) — Google-এর render-blocking `@import` সরানো হয়েছে; নাম `var(--font-*)` ভ্যারিয়েবলে আসে। */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -81,6 +81,22 @@
      একটি নিছক প্রসাধনী নামবদল ওই সব কল-সাইটে ঝুঁকি টেনে আনত।
      ভূমিকা: অ্যাকশন/সফল সংকেত (নতুন কোডে `--sem-success` ব্যবহার করুন)। */
   --gold:#bef264;        /* অ্যাকশন লাইম (নাম ঐতিহাসিক) — ১৪.৮:১ */
+  /* ★ `--gold` পৃষ্ঠতলের **উপরে** বসা লেখার রঙ। কেন টোকেন দরকার:
+     `admin/orders` এর সক্রিয় ফিল্টার-চিপ দুই জায়গায় হার্ডকোড
+     `#1a1408` ব্যবহার করত। dark-এ `--gold` উজ্জ্বল (#bef264), তাই
+     সেখানে ১৪.৩:১ — নিখুঁত। কিন্তু light-এ `--gold` অলিভ (#5a8a00),
+     আর সেই পৃষ্ঠতলে ঐ একই near-black মাপা **৪.৪২:১** — WCAG AA
+     (৪.৫:১) এর ঠিক নিচে। লেখাটি চিপের একমাত্র লেবেল, তাই AA
+     প্রযোজ্য। light-এ সামান্য গাঢ় সবুজ-কালো দিলে ৪.৬৩:১। */
+  --gold-ink:#1a1408;
+  /* ★ `--gold` এর rgb-ট্রিপল, কেবল `rgba(var(--gold-glow), α)` আভার জন্য।
+     ⚠️ কেন আলাদা টোকেন: JSX-এ ছড়িয়ে থাকা `rgba(230,197,132, α)` লিটারেল
+     (পুরনো sand-gold) **থিম মানত না** — লাইট ও ডার্কে হুবহু একই রঙ আঁকত,
+     মাপা: `.rule-gold` এর computed মান দুই থিমেই `rgba(230,197,132,.7)`।
+     ফলে লাইটে প্রতিটি সোনালি বর্ডার পৃষ্ঠতলের বিপরীতে ১.১৪–১.৩৫:১ —
+     কার্যত অদৃশ্য ক্রিম দাগ। `--accent-glow` এর মতোই ট্রিপল রাখা হলো
+     যাতে `color-mix` (Chrome 111+) ছাড়াই পুরনো ফোনে চলে। */
+  --gold-glow:190,242,100;
   --rose:#fb7185;        /* সতর্কতা — ৭.১:১ */
   --ink:#eef1f6;         /* প্রধান পাঠ্য — ১৬.৪:১ */
   --mut:#9aa6b8;         /* সহায়ক পাঠ্য — ৭.৬:১ */
@@ -100,7 +116,7 @@ html { scroll-behavior: smooth; }
 body {
   color: var(--ink);
   background: var(--bg);
-  font-family: 'Hind Siliguri', system-ui, sans-serif;
+  font-family: var(--font-hind), system-ui, sans-serif;
   min-height:100vh; min-height:100dvh;
   overflow-x:hidden;
   -webkit-font-smoothing: antialiased;
@@ -193,7 +209,7 @@ body { padding-bottom: var(--tabbar-space); }
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
-.dsp, .eng { font-family:'Unbounded','Anek Bangla','Hind Siliguri',system-ui,sans-serif; letter-spacing:-.02em; }
+.dsp, .eng { font-family:var(--font-unbounded),var(--font-anek),var(--font-hind),system-ui,sans-serif; letter-spacing:-.02em; }
 
 /* ★ DARK থিমের পরিবেশ-আলো: উপরে একটি প্লাজমা-আভা ও ডানে আইস-আভা,
    নিচে হালকা ভিনিয়েট — সমতল কালোকে "গভীরতা" দেয়। pointer-events:none,
@@ -279,7 +295,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     background: transparent;
     min-height: 46px;
     letter-spacing: .04em;
-    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+    font-family: var(--font-chakra), var(--font-hind), system-ui, sans-serif;
     --nc: 10px;
     --panel-edge: var(--v-edge2);
     --panel-fill: var(--v-steel);
@@ -347,7 +363,37 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     box-shadow: 0 0 0 3px var(--v-focus-ring-soft);
     background: var(--v-field-focus);
   }
-  @screen sm { .input { font-size: 14px; } }
+  /**
+   * ★★★ ছোট ফন্ট **কেবল মাউস-চালিত পর্দায়**।
+   *
+   *   ── কোন বাগটি এটি সারায় ──
+   *   iOS Safari একটি নিয়ম মানে: ফোকাস পাওয়া ইনপুটের ফন্ট
+   *   ১৬px-এর ছোট হলে সে **পুরো পাতা জুম করে দেয়** — এবং
+   *   নিজে থেকে আর ফিরে আসে না, ব্যবহারকারীকে হাতে zoom-out
+   *   করতে হয়। `.input` এর ভিত্তি ১৬px (নিরাপদ), কিন্তু আগের
+   *   `@screen sm` নিঃশর্তে ৬৪০px+ এ ১৪px বসাত। ফোন **ল্যান্ডস্কেপে**
+   *   (৮৪৪×৩৯০) ও ট্যাবলেটে প্রস্থ ৬৪০ ছাড়ায় — অর্থাৎ ঠিক সেখানেই
+   *   জুম চালু হতো। অডিটে মাপা: ১৯৫টি ইনপুট ঝুঁকিতে, তার মধ্যে
+   *   **`#email` · `#pw` · `#name` · `#otp`** — অর্থাৎ লগইন ও
+   *   রেজিস্ট্রেশন, নতুন গ্রাহকের একেবারে প্রথম অভিজ্ঞতা।
+   *
+   *   `pointer: fine` = মাউস/ট্র্যাকপ্যাড (ডেস্কটপ) — সেখানে জুমের
+   *   নিয়মটিই নেই, তাই ঘন ১৪px রাখা যায়। টাচ-পর্দায় (`coarse`)
+   *   ১৬px থাকে। একই মিডিয়া-কোয়েরি টাচস্ক্রিন ল্যাপটপেও সঠিক।
+   */
+  @media (min-width: 640px) and (pointer: fine) {
+    .input { font-size: 14px; }
+  }
+
+  /**
+   * ★ ঘন রূপ — ন্যাভবারের সার্চের মতো সংকীর্ণ জায়গার জন্য।
+   *   উচ্চতা সবখানেই ৪০px (ছোঁয়ার ন্যূনতম), কিন্তু ছোট ফন্ট
+   *   কেবল মাউস-চালিত পর্দায় — উপরের নিয়মের হুবহু একই কারণে।
+   */
+  .input-compact { min-height: 40px; }
+  @media (min-width: 640px) and (pointer: fine) {
+    .input-compact { font-size: 13px; }
+  }
   .input:disabled { @apply cursor-not-allowed opacity-60; }
   .input[aria-invalid='true'] { border-color: rgba(255,90,60,.65); box-shadow: 0 0 0 3px rgba(255,90,60,.12); }
 
@@ -355,13 +401,13 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     @apply mb-2 block text-[11px] font-bold uppercase;
     letter-spacing: .08em;
     color: var(--v-ice);
-    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+    font-family: var(--font-chakra), var(--font-hind), system-ui, sans-serif;
   }
 
   .badge {
     @apply inline-flex items-center px-2.5 py-1 text-[10px] font-bold uppercase;
     border-radius: 2px; letter-spacing: .09em;
-    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+    font-family: var(--font-chakra), var(--font-hind), system-ui, sans-serif;
   }
 
   /* ═══════════ ★★★ সংকেত-চিপ (`.sig-chip`) ═══════════
@@ -424,7 +470,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     background: var(--v-steel);
     color: var(--v-ice);
     border-bottom: 1px solid var(--v-edge2);
-    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+    font-family: var(--font-chakra), var(--font-hind), system-ui, sans-serif;
   }
   table.tbl tbody td { @apply px-4 py-3.5 align-middle; border-top: 1px solid var(--v-edge); }
   table.tbl tbody tr { transition: background var(--dur-base) var(--ease); }
@@ -550,7 +596,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     flex: 0 0 auto;
     padding-top: .15rem;
     text-align: left;
-    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+    font-family: var(--font-chakra), var(--font-hind), system-ui, sans-serif;
     font-size: 10px; font-weight: 700;
     /* ⚠️ `.08em` — `.hud` এর বাংলা-নিরাপদ মান (নিচে সেই সিদ্ধান্তের
        ব্যাখ্যা)। এখানকার প্রতিটি `data-label` বাংলা, আর বাংলা
@@ -670,7 +716,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     @apply inline-flex items-center px-3 text-sm font-bold uppercase;
     border-radius: 2px; min-height: 40px; letter-spacing: .04em;
     color: var(--v-mut);
-    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+    font-family: var(--font-chakra), var(--font-hind), system-ui, sans-serif;
     transition: color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
   }
   .nav-link:hover { color: var(--violet); background: rgba(109,40,217,.08); }
@@ -682,7 +728,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     min-height: 48px;
     border-bottom: 3px solid transparent;
     color: var(--v-mut);
-    font-family: 'Chakra Petch', 'Hind Siliguri', system-ui, sans-serif;
+    font-family: var(--font-chakra), var(--font-hind), system-ui, sans-serif;
     transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
   }
   .admin-tab:hover { color: var(--v-ink); background: rgba(255,255,255,.05); }
@@ -713,35 +759,54 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 
    ⚠️ নতুন কোডে এই ক্লাসগুলো ব্যবহার করবেন না; `--v-*` টোকেন বা
    কম্পোনেন্ট ক্লাস ব্যবহার করুন। bridge কেবল পুরনো কল-সাইট বাঁচায়। */
-.text-slate-950,.text-slate-900,.text-slate-800,.text-slate-700,.text-gray-900,.text-gray-800,.text-gray-700,.text-black,.text-zinc-900,.text-zinc-800 { color:var(--v-ink) !important; }
-.text-slate-600,.text-slate-500,.text-gray-600,.text-gray-500,.text-zinc-600,.text-zinc-500 { color:var(--v-mut) !important; }
+/* ★★★ M3 ধাপ ১ (২০২৬-০৮-২৮) — **অব্যবহৃত নির্বাচক বাদ দেওয়া হলো**।
+
+   গুনে দেখা গিয়েছিল ব্লকের ১১৪টি নির্বাচকের **৪৮টি (৪২%)** `src/` এ
+   একবারও লেখা হয় না — অর্থাৎ ঐ CSS প্রতিটি ব্যবহারকারীর কাছে যেত
+   অথচ কোনো এলিমেন্টেই বসত না। এখানে কেবল সেগুলোই সরানো হয়েছে;
+   **একটিও কম্পোনেন্ট ছোঁয়া হয়নি, একটিও নতুন `!important` যোগ হয়নি**,
+   আর যে ক্লাস সত্যিই ব্যবহৃত তার আচরণ হুবহু আগের মতোই।
+
+   কী বাদ গেল: পুরো `gray-*` ও `zinc-*` পরিবার (প্রকল্পটি ধারাবাহিকভাবে
+   `slate` লেখে), `text-blue-900/sky-900/indigo-900` নিয়মটি সম্পূর্ণ,
+   আর ছড়িয়ে থাকা কিছু একক শেড (`text-pink-600`, `shadow-xl`,
+   `bg-teal-50`, `bg-violet-*`, `border-sky-200` …)।
+
+   ⚠️ **এর একটি খরচ আছে, জেনে নেওয়া হয়েছে:** bridge একই সাথে একটি
+   সেফটি নেট ছিল। এখন কেউ নতুন করে `text-gray-500` বা `bg-gray-100`
+   লিখলে সেটি আর উদ্ধার পাবে না — গাঢ় পটভূমিতে অপাঠ্য দেখাবে। নিয়মটি
+   আগের মতোই: **নতুন কোডে এই ক্লাসগুলো নয়, `--v-*` টোকেন**।
+
+   মাপ পুনরায় নিতে: `node scripts/audit/m3-bridge-usage.mjs`
+   পরের ধাপ (কম-ব্যবহৃত পরিবার → টোকেন): UIUX_PROBLEM_MAP.md §১০। */
+.text-slate-900,.text-slate-800,.text-slate-700 { color:var(--v-ink) !important; }
+.text-slate-600,.text-slate-500 { color:var(--v-mut) !important; }
 /* ⚠️ ৩০০/৪০০ শেড আগে `--mut` এ যেত (৭.৯:১)। এখন `--v-mut` (৯.২:১) —
    কারণ এই ক্লাসগুলো প্রায়ই সহায়ক লেখায় বসে, সাজসজ্জায় নয়। */
-.text-slate-400,.text-slate-300,.text-gray-400,.text-gray-300 { color:var(--v-mut) !important; }
+.text-slate-400,.text-slate-300 { color:var(--v-mut) !important; }
 /* ★★★ C3 — ভূমিকা-রঙ আলাদা করা হলো।
    আগে success ও warning **দুটোই** `--v-volt`-এ যেত (একই লাইম), আর
    danger ছিল হার্ডকোড `#e11d48` — light/dark দুই থিমে একই মান।
    এখন চারটিই আলাদা `--sem-*` টোকেনে, প্রতিটির দুই থিমে আলাদা শেড। */
-.text-rose-600,.text-rose-700,.text-rose-800,.text-red-600,.text-red-700,.text-red-800,.text-pink-600 { color:var(--sem-danger) !important; }
-.text-purple-600,.text-purple-700,.text-purple-800,.text-violet-700,.text-indigo-700 { color:var(--violet) !important; }
+.text-rose-600,.text-rose-700,.text-rose-800,.text-red-600,.text-red-700,.text-red-800 { color:var(--sem-danger) !important; }
+.text-purple-700,.text-purple-800,.text-indigo-700 { color:var(--violet) !important; }
 .text-emerald-600,.text-emerald-700,.text-emerald-800,.text-green-600,.text-green-700 { color:var(--sem-success) !important; }
-.text-amber-600,.text-amber-700,.text-amber-800,.text-amber-900,.text-yellow-700,.text-orange-800 { color:var(--sem-warning) !important; }
-.text-blue-700,.text-blue-800,.text-sky-700,.text-sky-800 { color:var(--sem-info) !important; }
-.text-blue-900,.text-sky-900,.text-indigo-900 { color:var(--sem-info) !important; }
-.bg-white,.bg-slate-50,.bg-gray-50 { background:var(--v-pit) !important; }
-.bg-slate-100,.bg-gray-100,.bg-slate-200,.bg-gray-200,.bg-zinc-100 { background-color:var(--v-steel) !important; }
-.border-slate-200,.border-slate-300,.border-slate-100,.border-gray-200,.border-gray-100,.border-gray-300,.border-zinc-200 { border-color:var(--v-edge) !important; }
-.divide-slate-100 > :not([hidden]) ~ :not([hidden]),.divide-slate-200 > :not([hidden]) ~ :not([hidden]),.divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color:var(--v-edge) !important; }
-.shadow-sm,.shadow,.shadow-md,.shadow-lg,.shadow-xl { box-shadow:var(--v-shadow-2) !important; }
-.bg-rose-50,.bg-red-50,.bg-pink-50,.bg-red-100,.bg-rose-100 { background-color:rgba(251,113,133,.13) !important; }
-.bg-emerald-50,.bg-green-50,.bg-teal-50,.bg-emerald-100,.bg-green-100 { background-color:rgba(163,230,53,.12) !important; }
-.bg-amber-50,.bg-yellow-50,.bg-orange-50,.bg-amber-100,.bg-yellow-100,.bg-orange-100 { background-color:rgba(251,191,36,.12) !important; }
-.bg-blue-50,.bg-sky-50,.bg-indigo-50,.bg-blue-100,.bg-sky-100,.bg-indigo-100 { background-color:rgba(125,211,252,.12) !important; }
-.bg-purple-50,.bg-violet-50,.bg-purple-100 { background-color:rgba(139,92,246,.15) !important; }
-.bg-purple-600,.bg-purple-500,.bg-violet-600 { background-color:#7c3aed !important; }
-.border-purple-200,.border-purple-300,.border-purple-400,.border-purple-500,.border-purple-600,
-.border-indigo-200,.border-violet-200,.border-amber-200,.border-emerald-200,.border-rose-200,
-.border-red-200,.border-blue-200,.border-sky-200 { border-color:var(--v-edge) !important; }
+.text-amber-600,.text-amber-700,.text-amber-800,.text-amber-900,.text-orange-800 { color:var(--sem-warning) !important; }
+.text-blue-700,.text-blue-800 { color:var(--sem-info) !important; }
+.bg-white,.bg-slate-50 { background:var(--v-pit) !important; }
+.bg-slate-100,.bg-slate-200 { background-color:var(--v-steel) !important; }
+.border-slate-200,.border-slate-300,.border-slate-100 { border-color:var(--v-edge) !important; }
+.divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color:var(--v-edge) !important; }
+.shadow-sm,.shadow,.shadow-md,.shadow-lg { box-shadow:var(--v-shadow-2) !important; }
+.bg-rose-50,.bg-red-50,.bg-red-100,.bg-rose-100 { background-color:rgba(251,113,133,.13) !important; }
+.bg-emerald-50,.bg-green-50,.bg-emerald-100,.bg-green-100 { background-color:rgba(163,230,53,.12) !important; }
+.bg-amber-50,.bg-amber-100,.bg-orange-100 { background-color:rgba(251,191,36,.12) !important; }
+.bg-blue-50,.bg-blue-100 { background-color:rgba(125,211,252,.12) !important; }
+.bg-purple-50,.bg-purple-100 { background-color:rgba(139,92,246,.15) !important; }
+.bg-purple-600,.bg-purple-500 { background-color:#7c3aed !important; }
+.border-purple-200,.border-purple-300,.border-purple-400,.border-purple-500,
+.border-amber-200,.border-emerald-200,.border-rose-200,
+.border-red-200,.border-blue-200 { border-color:var(--v-edge) !important; }
 ::placeholder { color:var(--v-dim) !important; opacity:1; }
 
 
@@ -752,7 +817,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
    সংখ্যা আর বাংলা শব্দ — দুটোই সঠিক ফন্ট পায়। Hind Siliguri
    শেষ ধাপ, কারণ তার সর্বোচ্চ ওজন ৭০০। */
 h1, h2, h3, h4 {
-  font-family: 'Unbounded', 'Anek Bangla', 'Hind Siliguri', system-ui, sans-serif;
+  font-family: var(--font-unbounded), var(--font-anek), var(--font-hind), system-ui, sans-serif;
   /* ★ বাংলা-নিরাপদ: -.03em বাংলা যুক্তাক্ষর/সংখ্যা জড়িয়ে দিত; -.02em
      ল্যাটিনে যথেষ্ট টাইট, বাংলায় নিরাপদ। */
   letter-spacing: -.02em;
@@ -773,9 +838,33 @@ p, li { text-wrap: pretty; }
 .page-y { padding-top: 2.5rem; padding-bottom: 3.5rem; }
 @media (min-width: 640px) { .page-y { padding-top: 3.5rem; padding-bottom: 4.5rem; } }
 
+/* Auth pages (login/register/forgot/reset): the card is centred in the first
+   screen = viewport − sticky header (68px + 1px border) − mobile tab bar
+   (`--tabbar-space`, already reserved by body padding). `svh`, not `dvh`, so
+   the card does not jump while the phone toolbar shows/hides. If the card is
+   taller than the space, the grid simply grows and the page scrolls.
+   Component: src/components/AuthStage.tsx. */
+.auth-stage {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 69px - var(--tabbar-space));
+  min-height: calc(100svh - 69px - var(--tabbar-space));
+  /* 16px breathing room; the card is centred whenever card + 32px fits. */
+  padding: 1rem;
+}
+@media (min-width: 640px) { .auth-stage { padding: 1rem 1.5rem; } }
+/* Phones: `--tabbar-space` includes an 8px gap above the tab bar that is still
+   visible free space, so shift the centre down by half of it. */
+@media (max-width: 767px) { .auth-stage { padding-top: 1rem; padding-bottom: .5rem; } }
+.auth-stage__inner { width: 100%; max-width: 28rem; }
+
+/* Keyboard focus and scroll-into-view never park a field under the sticky
+   header (68px + border) or the mobile tab bar (WCAG 2.4.11 focus not obscured). */
+html { scroll-padding-top: 77px; scroll-padding-bottom: var(--tabbar-space); }
+
 /* সেকশন হেড — eyebrow + শিরোনাম + hairline (এক স্টাইল) */
 .eyebrow { font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:var(--gold); }
-.rule-gold { height:1px; width:6rem; margin-top:.75rem; background:linear-gradient(90deg,rgba(230,197,132,.7),transparent); }
+.rule-gold { height:1px; width:6rem; margin-top:.75rem; background:linear-gradient(90deg,rgba(var(--gold-glow),.7),transparent); }
 
 /* টেবিল সংখ্যা — একই প্রস্থে বসে, কলাম সোজা থাকে */
 .tbl td, .tbl th { font-variant-numeric: tabular-nums; }
@@ -822,12 +911,21 @@ img, video, svg, canvas { max-width:100%; }
 .spin-rev { animation:spin-slow 34s linear infinite reverse; }
 @keyframes halo { 0%,100%{opacity:.6;transform:scale(.95)} 50%{opacity:1;transform:scale(1.08)} }
 .halo-pulse { animation:halo 4.5s ease-in-out infinite; }
-@keyframes glow-pulse { 0%,100%{box-shadow:0 12px 34px rgba(167,219,255,.22)} 50%{box-shadow:0 18px 52px rgba(230,197,132,.4)} }
+@keyframes glow-pulse { 0%,100%{box-shadow:0 12px 34px rgba(167,219,255,.22)} 50%{box-shadow:0 18px 52px rgba(var(--gold-glow),.4)} }
 .glow-pulse { animation:glow-pulse 3.2s ease-in-out infinite; }
 @keyframes shimmer { from{background-position:200% 0} to{background-position:-200% 0} }
 .shimmer-btn { background:linear-gradient(110deg,#f8f5ff 40%,#e6c584 50%,#f8f5ff 60%); background-size:200% 100%; animation:shimmer 3s linear infinite; color:#08070f; }
 @keyframes marq { to{transform:translateX(-50%)} }
 .marquee-track { display:inline-flex; white-space:nowrap; animation:marq 26s linear infinite; }
+/* ★ চলমান নোটিশের জানালা। reduced-motion-এ উপরের বৈশ্বিক নিয়ম চলন থামিয়ে দেয় —
+   তখন লম্বা নোটিশের শেষটুকু চিরতরে কাটা থাকত। তাই জানালাটি আঙুলে আড়াআড়ি
+   সরানো যায়, আর দ্বিতীয় (লুপের) কপিটি লুকায় যাতে একই লেখা দুবার না আসে। */
+.marquee-viewport { overflow:hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .marquee-viewport { overflow-x:auto; scrollbar-width:none; }
+  .marquee-viewport::-webkit-scrollbar { display:none; }
+  .marquee-track > [aria-hidden='true'] { display:none; }
+}
 
 /* scrollbar */
 ::-webkit-scrollbar { width:8px; height:8px; }
@@ -920,6 +1018,59 @@ details > summary::-webkit-details-marker { display:none; }
   --sem-danger:#fb7185;
   --sem-info:#7dd3fc;
 
+  /* ═══════ হিরো-প্যানেলের ইঙ্ক — ইচ্ছাকৃতভাবে থিম-নিরপেক্ষ ═══════
+     ⚠️⚠️ `StorefrontShell` এর হিরো-প্যানেলের পটভূমি **inline
+     হার্ডকোড** ভায়োলেট গ্রেডিয়েন্ট (#4c1d95 → #6d28d9 → #8b5cf6)।
+     থিম বা `data-accent` প্রিসেট সেটিকে ছুঁতে পারে না — অর্থাৎ
+     পৃষ্ঠতলটি সব অবস্থাতেই গাঢ় বেগুনি।
+
+     অথচ শিরোনামের জোর-দেওয়া লাইনটি `var(--accent-2)` ব্যবহার করত,
+     যেটি থিমে **ও** প্রিসেটে বদলায়। ফল: ৫ প্রিসেট × ২ থিম = ১০
+     সমন্বয়ের **৮টি ফেল**। শিরোনাম bold ≥২৩px, অর্থাৎ large text —
+     দরকার ৩:১। নিচের মান ব্রাউজারে মাপা (`storefront-contrast.ts`,
+     ১৩৬৬px, শিরোনামের নিচের প্রকৃত পিক্সেল rgb(126,69,233)):
+         lime   dark ৪.৮৫ PASS · light ২.৬৬ FAIL
+         purple dark ১.২৭ FAIL · light ২.৬৬ FAIL
+         blue   dark ১.০৪ FAIL · light ২.৬৬ FAIL   ← কার্যত অদৃশ্য
+         red    dark ১.১৪ FAIL · light ২.৬৬ FAIL
+         orange dark ৩.১৮ PASS · light ২.৬৬ FAIL
+     অর্থাৎ **লাইট থিমে পাঁচটি প্রিসেটেই** দোকানের প্রধান শিরোনামটি
+     AA ফেল করত, আর ডার্কে তিনটিতে প্রায় মিলিয়ে যেত।
+     এখন দশটিতেই ৪.৮৫:১ (মোবাইলে ৫.১৬:১)।
+
+     পৃষ্ঠতল স্থির, তাই তার ইঙ্কও স্থির হওয়া উচিত। মান দুটি
+     আজকের **ডিফল্ট (lime · dark)** চেহারার হুবহু সমান — অর্থাৎ
+     যে সমন্বয়টি পাস করত সেটির চেহারা এক বিন্দুও বদলায়নি; কেবল
+     ভাঙা ৮টি এখন ওই একই চেহারায় এসেছে।
+     ★ light ব্লকে বা কোনো প্রিসেটে override **করবেন না**। */
+  /* ═══════ ভূমিকা-টিন্ট — কেন আলাদা টোকেন ═══════
+     `color-mix(--sem-* N%, transparent)` দুই থিমে **একই** শতাংশ দেয়,
+     কিন্তু গণিত দুই থিমে সমান নয়। গাঢ় কার্ডে টিন্ট পটভূমিকে *উজ্জ্বল*
+     করে, তাই লেখা-কনট্রাস্ট বাড়ে; সাদা কার্ডে টিন্ট পটভূমিকে *গাঢ়*
+     করে, তাই কমে। মাপা: `--sem-success` সাদা কার্ডে ৫.০২:১, কিন্তু
+     নিজের ১৬% টিন্টের উপর মাত্র **৪.০৩:১** — AA ফেল।
+     তাই টিন্ট থিম-প্রতি আলাদা, ঠিক যেভাবে `.alert-*` আগে থেকেই করে
+     (dark .10 · light .07)। ★ dark মান দুটি আজকের লিটারেলের হুবহু
+     সমান, তাই **টিন্ট-পটভূমি** গাঢ় থিমে অপরিবর্তিত। (ব্যাজের
+     *লেখা* সামান্য বদলায়: `#bef264` → `--sem-success` `#a3e635`,
+     মাপা ৯.৭০ → ৮.৪১:১ — ইচ্ছাকৃত, কারণ রঙটি এখন ভূমিকা থেকে
+     আসে, `--gold` এর মান থেকে নয়।) */
+  --sem-success-tint:rgba(163,230,53,.16);
+  --sem-info-tint:rgba(56,189,248,.14);
+
+  /* ═══════ অস্বচ্ছ status-ব্যাজ (প্রোডাক্ট কার্ড) ═══════
+     পৃষ্ঠতল অস্বচ্ছ ও লেখা সাদা, তাই কনট্রাস্ট থিম-নিরপেক্ষ — এবং
+     সেই কারণেই এগুলো light ব্লকে override করা **হয় না**।
+     লেখা ১০px bold (large text নয়), তাই AA = ৪.৫:১ প্রযোজ্য।
+     দুটি মান বদলেছে, দুটোই একই রঙ-পরিবারে সামান্য গাঢ়: */
+  --badge-sold:#64748b;      /* সোল্ড আউট — ৪.৭৬:১ (অপরিবর্তিত) */
+  --badge-sale:#e11d48;      /* ছাড় — ৪.৭০:১ (অপরিবর্তিত) */
+  --badge-popular:#0369a1;   /* জনপ্রিয় — ৫.৯৩:১ (আগে #0284c7 = ৪.১০, ফেল) */
+  --badge-new:#4d7c0f;       /* নতুন — ৪.৯৯:১ (আগে #65a30d = ৩.০৯, ফেল) */
+
+  --hero-ink:#ffffff;      /* হিরো-প্যানেলে সাধারণ লেখা/লিংক */
+  --hero-accent:#e4ff8c;   /* হিরো-প্যানেলে জোর-দেওয়া লেখা ও ✓ গ্লিফ */
+
   /* ── পাঠ্য (DARK) ── */
   --v-ink:#eef1f6;     /* ১৬.৪:১ — প্রধান */
   --v-mut:#9aa6b8;     /*  ৭.৬:১ — সহায়ক */
@@ -958,6 +1109,11 @@ details > summary::-webkit-details-marker { display:none; }
   --tint-violet:rgba(139,92,246,.16);    /* বেগুনি টিন্ট (আইকন টাইল) */
   --tint-ice:rgba(125,211,252,.12);      /* আইস টিন্ট */
   --tint-volt:rgba(163,230,53,.15);      /* লাইম টিন্ট */
+  /* ★ `--v-heat` (#fb7185) এর টিন্ট। যোগ করা হলো কারণ `PaymentProviders`
+     এর `HEALTH_STYLE` ম্যাপে তিনটি সারি টোকেন ব্যবহার করত কিন্তু
+     `PARTIAL_KEYS` সারিটি হার্ডকোড sand-gold আঁকত — অথচ তার লেখা
+     ইতিমধ্যেই `--v-heat`। ফলে আভা ও লেখা দুই ভিন্ন পরিবারের ছিল। */
+  --tint-heat:rgba(251,113,133,.12);     /* হিট/সতর্কতা টিন্ট */
 
   /* ── স্বাক্ষর জ্যামিতি ── */
   --nc:14px;
@@ -980,6 +1136,8 @@ details > summary::-webkit-details-marker { display:none; }
   --bg:#f6f7f9; --bg2:#ffffff;
   --glass:rgba(15,23,41,.03); --hair:rgba(15,23,41,.09);
   --violet:#6d28d9; --ice:#0284c7; --gold:#5a8a00; --rose:#e11d48;
+  --gold-glow:90,138,0;               /* = --gold (#5a8a00) এর ট্রিপল */
+  --gold-ink:#0a1200;                 /* অলিভ পৃষ্ঠতলে ৪.৬৩:১ (dark-এর #1a1408 এখানে ৪.৪২) */
   --ink:#0f1729; --mut:#525f70; --line:rgba(15,23,41,.10); --red:#e11d48;
 
   /* ═══════ §5.1 — অ্যাকসেন্ট পৃষ্ঠতল (option A: premium) ═══════
@@ -1023,6 +1181,11 @@ details > summary::-webkit-details-marker { display:none; }
   --sem-warning:#b45309;
   --sem-danger:#be123c;
   --sem-info:#0369a1;
+  /* ★ সাদা কার্ডে টিন্ট পটভূমিকে গাঢ় করে, তাই dark-এর ১৬%/১৪%
+     এখানে লেখাকে AA-র নিচে নামায় (৪.০৩ ও ৪.৬৮)। কমিয়ে ৬%/১০% —
+     মাপা ৪.৬৩:১ ও ৫.১৩:১। `.alert-*` এর নজিরই অনুসরণ করা হলো। */
+  --sem-success-tint:rgba(21,128,61,.06);
+  --sem-info-tint:rgba(3,105,161,.10);
   /* §5.4 — `--v-mut` আগে #5a6a82 ছিল, একটু বেশি নীলচে; #525f70
      নিরপেক্ষ ও সাদার উপর সামান্য গাঢ়। `--v-edge2` .20 → .16 —
      ছায়া দুর্বল হলে বর্ডারই কাঠামো ধরে, কিন্তু .20 কঠিন লাগত। */
@@ -1059,6 +1222,7 @@ details > summary::-webkit-details-marker { display:none; }
   --tint-violet:rgba(109,40,217,.10);
   --tint-ice:rgba(2,132,199,.10);
   --tint-volt:rgba(77,124,15,.12);   /* নতুন --accent-text (#4d7c0f) এর সাথে মিলিয়ে */
+  --tint-heat:rgba(225,29,72,.10);   /* light `--v-heat` (#e11d48) এর সাথে মিলিয়ে */
 }
 
 /* ── §5.4 — পরিবেশ-ধোয়া (ambient wash) ──
@@ -1195,14 +1359,14 @@ details > summary::-webkit-details-marker { display:none; }
    • Chakra Petch — HUD/যান্ত্রিক লেখা।
    • Hind Siliguri— বাংলা বডি (অপরিবর্তিত)। */
 .v-dsp {
-  font-family:'Unbounded','Anek Bangla','Hind Siliguri',system-ui,sans-serif;
+  font-family:var(--font-unbounded),var(--font-anek),var(--font-hind),system-ui,sans-serif;
   /* ★ বাংলা-নিরাপদ tracking; proportional সংখ্যা (tabular নয়) — নাহলে
      বাংলা অঙ্ক সমান-প্রস্থে বসে জড়িয়ে যেত। */
   letter-spacing:-.02em;
   font-variant-numeric:proportional-nums;
 }
 .v-hud {
-  font-family:'Chakra Petch','Hind Siliguri',system-ui,sans-serif;
+  font-family:var(--font-chakra),var(--font-hind),system-ui,sans-serif;
   font-variant-numeric:tabular-nums;
 }
 
@@ -1250,7 +1414,7 @@ details > summary::-webkit-details-marker { display:none; }
 .v-btn {
   display:inline-flex; align-items:center; justify-content:center; gap:.6rem;
   min-height:52px; padding:0 1.7rem;
-  font-family:'Chakra Petch','Hind Siliguri',system-ui,sans-serif;
+  font-family:var(--font-chakra),var(--font-hind),system-ui,sans-serif;
   font-weight:700; font-size:.9rem; letter-spacing:.045em; line-height:1;
   --nc:12px;
   transition:transform var(--dur-base) var(--ease), filter var(--dur-base) var(--ease);
@@ -1278,7 +1442,7 @@ details > summary::-webkit-details-marker { display:none; }
    পর্দায় "গ্যা রা ন্টি" হয়ে ভেঙে যায়। এই সাইটের প্রায় সব লেবেল
    বাংলা, তাই ডিফল্টই বাংলা-নিরাপদ; চওড়া ব্যবধান opt-in। */
 .hud {
-  font-family:'Chakra Petch','Hind Siliguri',system-ui,sans-serif;
+  font-family:var(--font-chakra),var(--font-hind),system-ui,sans-serif;
   font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
   color:var(--v-ice);
 }
@@ -1287,12 +1451,16 @@ details > summary::-webkit-details-marker { display:none; }
 .hud-mut  { color:var(--v-mut); }
 
 /* ─────────── চিপ ─────────── */
+/* ⚠️ ৩৬px ছিল — অডিটে ধরা পড়ে (`/admin/integrations` ৩৬×৬৭,
+   `/admin/media` ৩৬×৭৫)। চিপগুলো **বোতাম**, লেখার ভেতরের লিংক নয়,
+   তাই এদের জন্য প্রকল্পের নিয়ম ৪০px (globals.css §ট্যাপ-টার্গেট,
+   CLAUDE.md §17)। চার পিক্সেল — ঘনত্বে চোখে পড়ে না, আঙুলে পড়ে। */
 .v-chip {
   display:inline-flex; align-items:center; gap:.5rem;
-  min-height:36px; padding:0 .85rem;
+  min-height:40px; padding:0 .85rem;
   border:1px solid var(--v-edge); border-radius:2px;
   background:var(--v-fill);
-  font-family:'Chakra Petch','Hind Siliguri',system-ui,sans-serif;
+  font-family:var(--font-chakra),var(--font-hind),system-ui,sans-serif;
   font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--v-mut);
   transition:border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
 }
@@ -1303,7 +1471,7 @@ details > summary::-webkit-details-marker { display:none; }
   position:relative;
   display:inline-flex; align-items:center;
   min-height:42px; padding:0 .6875rem;
-  font-family:'Chakra Petch','Hind Siliguri',system-ui,sans-serif;
+  font-family:var(--font-chakra),var(--font-hind),system-ui,sans-serif;
   font-size:.8125rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
   color:var(--v-mut);
   /* ★★★ ROOT-CAUSE ফিক্স — নেভ আইটেম কখনো দুই লাইনে ভাঙবে না।
@@ -1416,8 +1584,10 @@ details > summary::-webkit-details-marker { display:none; }
       color-mix(in srgb, var(--v-void) 42%, transparent) 62%,
       color-mix(in srgb, var(--v-void) 72%, transparent) 100%),
     color-mix(in srgb, var(--v-void) var(--v-ovl-scrim, 88%), transparent);
-  -webkit-backdrop-filter:blur(16px) saturate(.85);
-  backdrop-filter:blur(16px) saturate(.85);
+  /* 2026-10-31: 16px blur over the whole page was the most expensive
+     paint on low-end phones; 6px reads the same behind the dense scrim. */
+  -webkit-backdrop-filter:blur(6px) saturate(.9);
+  backdrop-filter:blur(6px) saturate(.9);
 }
 /* ⚠️ হালকা থিমে পর্দা **আরও ঘন** হতে হয়। কারণটি বিপরীতমুখী মনে হলেও
    সরল: গাঢ় থিমে ৮৮% কালো পর্দার নিচে উজ্জ্বল লেখা ১২% এ নেমে
@@ -1428,7 +1598,7 @@ details > summary::-webkit-details-marker { display:none; }
    ⚠️ এটি কেবল অস্বচ্ছতা — ম্যাসকটের বার্তা পর্দার **উপরে**, তাই
    তার কনট্রাস্ট এতে একটুও কমে না। */
 :root[data-theme='light'] .v-ovl { --v-ovl-scrim:96%; }
-.v-ovl--out { animation:v-ovl-out .22s var(--ease) both; }
+.v-ovl--out { animation:v-ovl-out .18s var(--ease) both; }
 
 /* ওভারলে ওঠা অবস্থায় পাতা স্ক্রল হবে না — ব্লারের নিচে কনটেন্ট
    সরতে থাকলে দৃশ্যটি ভেঙে যায়।
@@ -1478,8 +1648,10 @@ body:has(.v-ovl) .v-flow-line { animation-play-state:paused !important; }
   display:grid; place-items:center;
   background:var(--v-void);
   opacity:0;
-  animation:v-boot-in .28s var(--ease) .18s forwards,
-            v-boot-safety 0s linear 8s forwards;
+  /* 2026-10-31: appears only if the page is still not interactive after
+     .65s — fast loads never flash the mascot; safety cut at 6s. */
+  animation:v-boot-in .25s var(--ease) .65s forwards,
+            v-boot-safety 0s linear 6s forwards;
 }
 @keyframes v-boot-in     { to { opacity:1 } }
 @keyframes v-boot-safety { to { opacity:0; visibility:hidden; pointer-events:none } }
@@ -1576,7 +1748,38 @@ body:has(.v-ovl) .v-flow-line { animation-play-state:paused !important; }
   /* গাঢ় থিম কাগজে অপাঠ্য — সাদা-কালোয় ফেরানো হয় */
   body { background:#fff !important; color:#000 !important; padding-bottom:0 !important; }
   body::before, body::after { display:none !important; }
-  header, footer, nav, .skip-link { display:none !important; }
+  /**
+   * ★★★ সাইটের নেভবার/ফুটার কাগজে যায় না — **কিন্তু চালানের নিজের
+   *   `<header>`/`<footer>` যেতেই হবে**।
+   *
+   *   ২০২৬-০৮-২৬ এ কাগজে মেপে ধরা পড়ল: নিয়মটি আগে নিরঙ্কুশ ছিল
+   *   (`header, footer { display:none !important }`), আর
+   *   `.invoice-sheet` এর ভিতরের শিরোনাম-পাদটীকাও একই ট্যাগ — তাই
+   *   ছাপা চালানে **বিক্রেতার নাম, "চালান" শিরোনাম, চালান-নম্বর ও
+   *   তারিখ কিছুই আসত না**, এমনকি পাদটীকার সেই লাইনটিও না যেখানে
+   *   লেখা "অসঙ্গতি থাকলে চালান নং উল্লেখ করে জানান"। নম্বরবিহীন
+   *   চালান বিরোধ নিষ্পত্তিতে অকেজো — এটি সাজসজ্জা নয়, নথির পরিচয়।
+   *
+   *   ⚠️ ব্যতিক্রমটি `:not()` দিয়ে **লুকানোর নিয়মেই** বসানো হয়েছে,
+   *   পরে আরেকটি `!important` দিয়ে ফিরিয়ে আনা হয়নি — নাহলে §5.5 এর
+   *   "নতুন !important নয়" গার্ডটি ভাঙত, আর দুটি নিয়ম পরস্পরের সাথে
+   *   লড়ত। ভিতরের flex বিন্যাসও তাতে অক্ষত থাকে।
+   */
+  header:not(.invoice-sheet header),
+  footer:not(.invoice-sheet footer),
+  nav, .skip-link { display:none !important; }
+  /**
+   * ★ সাজসজ্জার পুরো স্তরটি কাগজে যায় না।
+   *
+   *   `body::before/::after` আগেই লুকানো ছিল, কিন্তু ছোপগুলো আসলে
+   *   আসত `SiteBackground.tsx` এর **আসল উপাদান** থেকে — একটি conic
+   *   `.v-breathe` ও একটি radial স্তর (২০২৬-০৮-২৬ এ print মিডিয়ায়
+   *   মেপে বের করা)। ক্লাস ধরে ধরে লুকানো ভঙ্গুর; সবগুলোই একটি
+   *   `aria-hidden` মোড়কের ভিতরে থাকে, তাই মোড়কটিই লুকানো হয় —
+   *   কম্পোনেন্টে নতুন স্তর যোগ হলেও নিয়মটি আর হালনাগাদ লাগবে না।
+   *   (Tailwind এখানে `display` বসায় না, তাই গুরুত্ব-চিহ্ন লাগে না।)
+   */
+  .site-bg { display:none; }
   .card {
     background:#fff !important; border:1px solid #ccc !important;
     box-shadow:none !important; break-inside:avoid;
@@ -1629,8 +1832,32 @@ input[type='checkbox']::after, input[type='radio']::after {
   content: ''; position: absolute; inset: -9px;
 }
 
-/* টেবিল/লেখার ভেতরের লিংক — ২৪px মেঝে (WCAG 2.5.8 AA) */
-table.tbl td a, td a, .card a.underline { display: inline-flex; align-items: center; min-height: 24px; }
+/**
+ * টেবিল/লেখার ভেতরের লিংক — ২৪px **মেঝে** (WCAG 2.5.8 AA)
+ *
+ * ★★★ নির্বাচক থেকে `table.tbl td a` **সরানো হয়েছে** — এটি প্রসাধনী
+ *   পরিবর্তন নয়, আচরণগত।
+ *
+ *   ⚠️ নির্বাচক-তালিকায় প্রতিটি নির্বাচকের নির্দিষ্টতা **আলাদা করে**
+ *   গোনা হয়। `table.tbl td a` = (0,1,3), আর Tailwind এর
+ *   `.min-h-[40px]` = (0,1,0)। ফলে `.tbl` টেবিলের ঘরের ভিতরে কেউ
+ *   স্পষ্ট করে `min-h-[40px]` লিখলেও সেটি **নীরবে হেরে যেত** — মেঝেটি
+ *   ছাদ হয়ে দাঁড়াত।
+ *
+ *   ২০২৬-০৮-২৬ এ মাপা প্রমাণ: `account/orders/page.tsx:166` এর
+ *   "দেখুন →" লিংকে ক্লাসটি আছে (`classList.contains` = true), অথচ
+ *   computed `min-height` **২৪px**। লেখকের স্পষ্ট ইচ্ছা কাজ করেনি, আর
+ *   কোড পড়ে তা বোঝার উপায়ও ছিল না — সবচেয়ে খারাপ ধরনের নীরবতা।
+ *
+ *   ⚠️ অংশটি **অতিরিক্তও** ছিল: `td a` এমনিতেই `.tbl` এর ঘরগুলো ধরে,
+ *   তাই সরানোয় কোনো কভারেজ হারায়নি — কেবল নির্দিষ্টতা (0,0,2) এ নেমে
+ *   আসে, অর্থাৎ অর্থ দাঁড়ায় ঠিক যা চাওয়া: **ডিফল্ট ২৪px, কিন্তু
+ *   কম্পোনেন্ট স্পষ্ট করে বেশি চাইলে সেটিই পায়।** ঘনত্ব অক্ষত।
+ *
+ *   (প্রথমে ভেবেছিলাম কারণটি ক্যাসকেড-লেয়ার; মেপে দেখা গেল বিল্ডে
+ *   কোনো `@layer` অবশিষ্টই থাকে না — কারণটি বিশুদ্ধ নির্দিষ্টতা।)
+ */
+td a, .card a.underline { display: inline-flex; align-items: center; min-height: 24px; }
 
 /* ═══════════════════════════════════════════════════════════
    ★ টেলিগ্রাম Connection Wizard — গেমিং-ধাঁচের মাইক্রো-ইন্টারঅ্যাকশন
@@ -2241,3 +2468,277 @@ table.tbl td a, td a, .card a.underline { display: inline-flex; align-items: cen
 :root[data-theme='light'] .alert-error   { --alert-tint:rgba(190,18,60,.06); }
 :root[data-theme='light'] .alert-success { --alert-tint:rgba(21,128,61,.07); }
 :root[data-theme='light'] .alert-warn    { --alert-tint:rgba(180,83,9,.07); }
+
+/* ═══════════════════════════════════════════════════════════
+   STOREFRONT — PREMIUM LAYER (2026-10-31)
+   Classes: .sf-*  (StorefrontShell, /tutorial)
+   Colours come only from tokens, so both themes and all five
+   accent presets follow automatically. The hero / pay band are
+   fixed deep-violet surfaces with fixed white ink (like the old
+   hero), so their contrast does not depend on the theme.
+   ═══════════════════════════════════════════════════════════ */
+
+.sf-card {
+  background: var(--v-pit);
+  border: 1px solid var(--v-edge);
+  border-radius: 20px;
+  box-shadow: var(--v-shadow-2);
+}
+
+/* ── hero ── */
+.sf-hero,
+.tut-hero {
+  border-radius: 24px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(167,139,250,.55) 0%, transparent 52%),
+    radial-gradient(90% 120% at 0% 100%, rgba(14,165,233,.30) 0%, transparent 55%),
+    linear-gradient(125deg, #1e1048 0%, #3b1a8f 45%, #5b21b6 100%);
+  box-shadow: 0 24px 60px -28px rgba(76,29,149,.75), inset 0 1px 0 rgba(255,255,255,.12);
+  isolation: isolate;
+}
+.sf-hero-grid {
+  position: absolute; inset: 0; z-index: -1; opacity: .35;
+  background-image:
+    linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(ellipse 80% 90% at 70% 40%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 90% at 70% 40%, #000 30%, transparent 75%);
+}
+.sf-hero-glow {
+  position: absolute; z-index: -1; right: -60px; top: -80px; width: 360px; height: 360px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(190,242,100,.28), transparent 65%);
+  filter: blur(6px);
+}
+.sf-hero-accent {
+  background: linear-gradient(90deg, #ecfccb, #bef264 45%, #67e8f9);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.sf-hero-cta {
+  display: inline-flex; align-items: center; gap: .5rem; min-height: 46px; padding: 0 1.25rem;
+  border-radius: 14px; font-size: 14px; font-weight: 800;
+  background: linear-gradient(135deg, #ecfccb, #bef264 55%, #a3e635);
+  color: #1a2e05;
+  box-shadow: 0 10px 26px -10px rgba(163,230,53,.75), inset 0 1px 0 rgba(255,255,255,.6);
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-base) var(--ease);
+}
+.sf-hero-cta:hover { transform: translateY(-2px); box-shadow: 0 16px 32px -12px rgba(163,230,53,.85), inset 0 1px 0 rgba(255,255,255,.6); }
+.sf-hero-link {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 .9rem; border-radius: 14px;
+  font-size: 13px; font-weight: 700; color: #fff;
+  background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.22);
+  transition: background var(--dur-fast) var(--ease);
+}
+.sf-hero-link:hover { background: rgba(255,255,255,.18); }
+
+.sf-gem { transform-box: fill-box; transform-origin: center; animation: sf-float 6s var(--ease) infinite; }
+.sf-gem--a { filter: drop-shadow(0 18px 24px rgba(30,16,72,.55)); }
+.sf-gem--b { animation-delay: -2s; animation-duration: 5s; }
+.sf-gem--c { animation-delay: -3.5s; animation-duration: 7s; }
+.sf-spark { animation: sf-twinkle 2.6s ease-in-out infinite; }
+.sf-spark--2 { animation-delay: -.9s; }
+.sf-spark--3 { animation-delay: -1.7s; }
+@keyframes sf-float { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-8px) rotate(-2deg); } }
+@keyframes sf-twinkle { 0%,100% { opacity: .2; } 50% { opacity: 1; } }
+
+/* ── category rail ── */
+.sf-rail ul { scrollbar-width: none; scroll-snap-type: x proximity; }
+.sf-rail ul::-webkit-scrollbar { display: none; }
+.sf-chip {
+  display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: .3rem .8rem .3rem .35rem;
+  border-radius: 999px; scroll-snap-align: start;
+  background: var(--v-pit); border: 1px solid var(--v-edge); box-shadow: var(--v-shadow-1);
+  font-size: 13px; font-weight: 700; color: var(--v-ink);
+  transition: border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.sf-chip:hover { border-color: var(--v-focus-ring-soft); transform: translateY(-1px); }
+.sf-chip-dot { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; color: #fff; font-size: 13px; font-weight: 800; }
+.sf-chip-n { font-size: 11px; font-weight: 800; color: var(--v-mut); background: var(--v-fill2); border-radius: 999px; padding: .1rem .45rem; }
+
+/* ── quick actions ── */
+.sf-qa {
+  position: relative; display: flex; align-items: center; gap: .75rem; min-height: 64px; padding: .7rem .85rem;
+  border-radius: 18px; background: var(--v-pit); border: 1px solid var(--v-edge); box-shadow: var(--v-shadow-1);
+  transition: transform var(--dur-fast) var(--ease), border-color var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
+}
+.sf-qa:hover { transform: translateY(-2px); border-color: var(--v-edge2); box-shadow: var(--v-shadow-2); }
+.sf-qa-icon { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 14px; }
+.sf-qa-kicker { display: block; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--v-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sf-qa-label { display: block; font-size: 13.5px; font-weight: 800; color: var(--v-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sf-qa-arrow { margin-left: auto; flex-shrink: 0; color: var(--v-dim); }
+@media (max-width: 380px) { .sf-qa-arrow { display: none; } }
+
+/* ── section head ── */
+.sf-kicker { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--violet); }
+.sf-sec-title {
+  display: flex; align-items: center; gap: .6rem; min-width: 0;
+  font-size: 19px; font-weight: 800; letter-spacing: -.015em; color: var(--v-ink);
+}
+@media (min-width: 640px) { .sf-sec-title { font-size: 24px; } }
+.sf-sec-bar { flex-shrink: 0; width: 5px; height: 1.1em; border-radius: 99px; background: linear-gradient(180deg, var(--v-plasma), var(--v-ice-surf)); }
+.sf-count { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--v-mut); }
+
+/* ── product tile ── */
+.sf-tile {
+  display: flex; flex-direction: column; min-width: 0; padding: 6px;
+  border-radius: 18px; background: var(--v-pit); border: 1px solid var(--v-edge); box-shadow: var(--v-shadow-1);
+  transition: transform var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
+}
+.sf-tile:hover { transform: translateY(-4px); border-color: var(--v-focus-ring-soft); box-shadow: var(--v-shadow-3), 0 0 0 1px var(--v-focus-ring-soft); }
+.sf-tile[data-soldout] { opacity: .65; }
+.sf-tile-media { position: relative; aspect-ratio: 1 / 1; overflow: hidden; border-radius: 13px; background: var(--v-steel); }
+.sf-badge {
+  position: absolute; left: 6px; top: 6px; z-index: 2; border-radius: 7px; padding: 2px 6px;
+  font-size: 9.5px; font-weight: 800; color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25);
+}
+@media (min-width: 640px) { .sf-badge { font-size: 10.5px; left: 8px; top: 8px; } }
+.sf-tile-body { padding: 8px 3px 3px; text-align: center; }
+.sf-tile-name {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: calc(2 * 1.35em); line-height: 1.35;
+  font-size: 12px; font-weight: 700; color: var(--v-ink);
+}
+@media (min-width: 640px) { .sf-tile-name { font-size: 13.5px; } }
+.sf-tile-price { margin-top: 4px; display: flex; align-items: baseline; justify-content: center; gap: 4px; flex-wrap: wrap; }
+.sf-tile-from { font-size: 10.5px; color: var(--v-mut); }
+.sf-tile-amt {
+  font-size: 13px; font-weight: 800; color: var(--accent-text);
+  font-family: var(--font-unbounded), var(--font-anek), sans-serif;
+}
+@media (min-width: 640px) { .sf-tile-amt { font-size: 14.5px; } }
+
+/* ── live orders ── */
+.sf-live-orb {
+  width: 38px; height: 38px; border-radius: 14px; flex-shrink: 0;
+  background: radial-gradient(circle at 35% 30%, #d9f99d, #65a30d 70%);
+  box-shadow: 0 0 0 4px var(--sem-success-tint);
+}
+.sf-live-pill {
+  display: inline-flex; align-items: center; gap: .4rem; padding: .25rem .65rem; border-radius: 999px;
+  font-size: 12px; font-weight: 800; color: var(--sem-success); background: var(--sem-success-tint);
+}
+
+/* ── payment band ── */
+.sf-band {
+  position: relative; overflow: hidden; border-radius: 24px; padding: 1.5rem 1.25rem; color: #fff;
+  background:
+    radial-gradient(80% 120% at 100% 100%, rgba(14,165,233,.35), transparent 55%),
+    linear-gradient(125deg, #160b36 0%, #2e1270 55%, #4c1d95 100%);
+  box-shadow: 0 24px 60px -30px rgba(46,18,112,.8), inset 0 1px 0 rgba(255,255,255,.1);
+}
+@media (min-width: 640px) { .sf-band { padding: 2.25rem 2.25rem; } }
+.sf-pay-chip {
+  display: inline-flex; align-items: center; gap: .45rem; min-height: 36px; padding: 0 .8rem; border-radius: 12px;
+  font-size: 13px; font-weight: 700; color: #fff; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16);
+}
+.sf-band-btn {
+  display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; padding: 0 1.1rem; border-radius: 13px;
+  font-size: 13.5px; font-weight: 800; background: #fff; color: #1e1048;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.sf-band-btn:hover { transform: translateY(-2px); }
+.sf-band-btn--ghost { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.24); }
+.sf-fact {
+  display: flex; align-items: center; gap: .9rem; padding: .85rem 1rem; border-radius: 16px;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+}
+.sf-fact-n {
+  display: grid; place-items: center; flex-shrink: 0; width: 38px; height: 38px; border-radius: 12px;
+  font-size: 12px; font-weight: 800; color: #1a2e05; background: linear-gradient(135deg, #ecfccb, #a3e635);
+}
+
+.sf-app { transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-base) var(--ease); }
+.sf-app:hover { transform: translateY(-2px); box-shadow: var(--v-shadow-3); }
+
+/* light theme: keep the deep hero/band, soften the drop shadows */
+:root[data-theme='light'] .sf-hero,
+:root[data-theme='light'] .tut-hero { box-shadow: 0 18px 44px -24px rgba(76,29,149,.45); }
+:root[data-theme='light'] .sf-band { box-shadow: 0 18px 44px -26px rgba(46,18,112,.45); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-gem, .sf-spark { animation: none; }
+  .sf-tile, .sf-qa, .sf-chip, .sf-hero-cta, .sf-band-btn, .sf-app { transition: none; }
+  .sf-tile:hover, .sf-qa:hover, .sf-chip:hover, .sf-hero-cta:hover, .sf-band-btn:hover, .sf-app:hover { transform: none; }
+}
+
+/* hero art: tucked top-right on phones (behind a narrower text column), centred right on larger screens */
+.sf-hero-art { right: -14px; top: -6px; width: 112px; height: 102px; opacity: .55; }
+@media (min-width: 640px) { .sf-hero-art { right: 24px; top: 50%; width: 250px; height: 230px; opacity: .95; transform: translateY(-50%); } }
+@media (min-width: 1024px) { .sf-hero-art { right: 56px; } }
+@media (max-width: 639px) {
+  .sf-hero h1, .sf-hero > .relative > span:first-child { max-width: 80%; }
+  .sf-qa { min-height: 60px; padding: .6rem .65rem; gap: .55rem; }
+  .sf-qa-icon { width: 36px; height: 36px; border-radius: 12px; }
+  .sf-qa-label { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 12.5px; line-height: 1.3; }
+  .sf-qa-arrow { display: none; }
+}
+
+/* product page — package cards: 2-up grid on phones (name on top, price below),
+   rounded like the storefront tiles */
+.pkg-grid .pkg-card { border-radius: 14px; }
+@media (max-width: 639px) {
+  .pkg-grid .pkg-card { flex-direction: column; align-items: stretch; gap: .45rem; padding: .75rem .7rem; min-height: 88px; }
+  .pkg-grid .pkg-price { display: flex; align-items: baseline; gap: .4rem; flex-wrap: wrap; text-align: left; margin-top: auto; padding-left: 26px; }
+}
+@media (max-width: 639px) { .pkg-grid .pkg-card > span:first-child > svg:last-child { display: none; } }
+
+/* 2026-10-31 performance — the four background blobs sit under a 100px
+   blur; animating them forces the blur to be recomputed every frame.
+   On touch devices and narrow screens they hold still (same look). */
+@media (hover: none), (max-width: 767px) {
+  .site-bg .v-lift, .site-bg .v-breathe { animation: none; }
+}
+
+/* developer docs — code blocks stay dark in both themes */
+.dev-code { border-radius: 14px; overflow: hidden; background: #0b0d16; border: 1px solid rgba(255,255,255,.08); }
+.dev-code-label { padding: .45rem .9rem; font: 700 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: #9aa6b8; border-bottom: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.03); }
+.dev-code pre { margin: 0; padding: .9rem; overflow-x: auto; font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: #e5e7eb; }
+.dev-method { display: inline-flex; align-items: center; padding: .15rem .55rem; border-radius: 8px; font: 800 12px/1.6 ui-monospace, monospace; }
+.dev-method--get { background: rgba(34,197,94,.14); color: var(--sem-success); }
+.dev-method--post { background: rgba(139,92,246,.16); color: var(--violet); }
+
+/* ═══ premium motion (2026-10-31) — transform/opacity only (GPU) ═══ */
+.sf-rv {
+  transition: opacity .6s var(--ease), transform .55s var(--ease), border-color var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
+  /* stagger only the fade-in; hover (transform/shadow) reacts instantly */
+  transition-delay: calc(var(--i, 0) * 45ms), 0s, 0s, 0s;
+}
+.sf-rv[data-rv='wait'] { opacity: 0; transform: translateY(18px) scale(.985); }
+
+/* tile: light sweep across the image on hover */
+.sf-tile-media::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.38) 48%, transparent 66%);
+  transform: translateX(-120%);
+}
+@media (hover: hover) {
+  .sf-tile:hover .sf-tile-media::after { transform: translateX(120%); transition: transform .8s var(--ease); }
+}
+
+/* hero CTA: a slow shimmer every few seconds */
+.sf-hero-cta { position: relative; overflow: hidden; }
+.sf-hero-cta::after {
+  content: ''; position: absolute; inset: -2px; pointer-events: none;
+  background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.75) 50%, transparent 65%);
+  transform: translateX(-130%); animation: sf-shimmer 4.2s var(--ease) 1.2s infinite;
+}
+@keyframes sf-shimmer { 0%, 62% { transform: translateX(-130%); } 100% { transform: translateX(130%); } }
+
+/* live orb: soft radar pulse */
+.sf-live-orb { position: relative; }
+.sf-live-orb::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(163,230,53,.55); animation: sf-radar 2.4s ease-out infinite;
+}
+@keyframes sf-radar { 0% { box-shadow: 0 0 0 0 rgba(163,230,53,.5); } 100% { box-shadow: 0 0 0 14px rgba(163,230,53,0); } }
+
+/* quick actions: icon lifts on hover */
+.sf-qa-icon { transition: transform var(--dur-base) var(--ease); }
+.sf-qa:hover .sf-qa-icon { transform: translateY(-2px) rotate(-4deg) scale(1.06); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-rv { transition: none; }
+  .sf-rv[data-rv='wait'] { opacity: 1; transform: none; }
+  .sf-hero-cta::after, .sf-live-orb::after { animation: none; }
+  .sf-tile:hover .sf-tile-media::after { transition: none; transform: translateX(-120%); }
+}

@@ -1,10 +1,16 @@
 import { prisma } from '@/lib/prisma';
 import UserTable from '@/components/admin/UserTable';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'ইউজার' };
 
-export default async function AdminUsers({ searchParams }: { searchParams: { q?: string } }) {
+export default async function AdminUsers(props: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const q = searchParams.q?.trim().slice(0, 60);
 
   const users = await prisma.user.findMany({

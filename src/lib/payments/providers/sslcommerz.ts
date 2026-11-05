@@ -4,6 +4,7 @@ import type {
 } from '../types';
 import { logger } from '../../logger';
 import { resolveKey, getProviderConfig } from '../config';
+import { isPreviewDeployment } from '../../deploymentEnv';
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -67,6 +68,8 @@ export type SslczValidation = {
  *   পথেই পরীক্ষা হয়, ফাংশন stub করে নয়।
  */
 async function baseUrl(): Promise<string> {
+  // ★ O-15 — Preview সবসময় sandbox; live গেটওয়েতে কখনো নয় (override-ও নয়)
+  if (isPreviewDeployment()) return HOSTS.test;
   const override = process.env.SSLCZ_BASE_URL;
   if (override) return override.replace(/\/$/, '');
   const cfg = await getProviderConfig('sslcommerz');
@@ -245,3 +248,6 @@ export function sslcommerzProvider(): PaymentProvider {
     },
   };
 }
+
+/** ★ O-15 টেস্টের জন্য — কোন হোস্টে কল যায় */
+export const sslcommerzBaseUrl = baseUrl;

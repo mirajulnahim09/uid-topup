@@ -1,11 +1,10 @@
 import Link from 'next/link';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireUserPage } from '@/lib/pageGuard';
 import { bdt } from '@/lib/money';
 import { fmtDate } from '@/lib/date';
 import {
-  getWithdrawalConfig, withdrawableAmount, listUserWithdrawals,
+  getWithdrawalConfig, withdrawableAmount, listUserWithdrawals, REFERRAL_HOLD_HOURS,
 } from '@/lib/services/withdrawal';
 import WithdrawForm from '@/components/wallet/WithdrawForm';
 
@@ -26,20 +25,31 @@ const STATUS_BN: Record<string, string> = {
 };
 
 export default async function WithdrawPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)।
+  //   নাম `viewer` — নিচে `me` নামটি ব্যালেন্সের কোয়েরির জন্য আগেই ব্যবহৃত।
+  const viewer = await requireUserPage();
 
   const cfg = await getWithdrawalConfig();
   const [me, history] = await Promise.all([
-    prisma.user.findUnique({ where: { id: session.user.id }, select: { balance: true } }),
-    listUserWithdrawals(session.user.id),
+    prisma.user.findUnique({ where: { id: viewer.id }, select: { balance: true } }),
+    listUserWithdrawals(viewer.id),
   ]);
-  const usable = await withdrawableAmount(prisma, session.user.id, me?.balance ?? 0, cfg.holdHours);
+  const usable = await withdrawableAmount(prisma, viewer.id, me?.balance ?? 0, cfg.holdHours);
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      <Link href="/account/wallet" className="text-sm font-semibold" style={{ color: 'var(--v-mut)' }}>
-        ← ওয়ালেট
+      {/* ★★★ আগে এই লিংকটি `/account/wallet` এ যেত — **সেই রুটটি নেই**
+          (কেবল `wallet/deposit` ও `wallet/withdraw` আছে)। অর্থাৎ টাকা
+          তোলার পাতা থেকে ফেরার একমাত্র লিংকটি গ্রাহককে **৪০৪**-এ
+          ফেলত; অডিটে ১৪ বার ধরা পড়েছে। ব্যালেন্স ও লেনদেন যেখানে
+          আসলে দেখা যায় সেটি `/account`, তাই লিংক ও লেখা দুটোই সেখানে।
+          ★ `min-h-[40px]` — আগে উচ্চতা ছিল ২৩px (ছোট ট্যাপ-টার্গেট)। */}
+      <Link
+        href="/account"
+        className="inline-flex min-h-[40px] items-center text-sm font-semibold"
+        style={{ color: 'var(--v-mut)' }}
+      >
+        ← অ্যাকাউন্ট
       </Link>
 
       <div>
@@ -59,6 +69,8 @@ export default async function WithdrawPage() {
           min={cfg.min}
           methods={cfg.methods}
           holdHours={cfg.holdHours}
+          // ★ FIN-01 — সার্ভারের একই ধ্রুবক; পর্দার লেখা আলাদা হয়ে যেতে পারে না
+          referralHoldHours={REFERRAL_HOLD_HOURS}
         />
       )}
 

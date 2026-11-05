@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
+import AuthStage from '@/components/AuthStage';
 
 export default function ForgotPasswordPage() {
   const toast = useToast();
@@ -37,7 +38,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md page-x page-y">
+    <AuthStage>
       <div className="card p-6 sm:p-7">
         <h1 className="mb-1 text-2xl font-bold text-slate-900">পাসওয়ার্ড ভুলে গেছেন?</h1>
         <p className="mb-6 text-sm text-slate-400">
@@ -79,6 +80,6 @@ export default function ForgotPasswordPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </AuthStage>
   );
 }

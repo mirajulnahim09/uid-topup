@@ -25,6 +25,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${base}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${base}/refund`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${base}/tutorial`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${base}/developers`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${base}/about`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${base}/delete-account`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${base}/login`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${base}/register`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
   ];
@@ -36,7 +40,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       select: { id: true, slug: true },
     });
     productRoutes = products.map((p: { id: number; slug: string }) => ({
-      url: `${base}/product/${p.id}/${p.slug}`,
+      // ★ sitemap-এ URL অবশ্যই RFC-3986 এস্কেপড — বাংলা slug কাঁচা থাকলে সার্চ-ইঞ্জিন বাতিল করে
+      url: `${base}/product/${p.id}/${encodeURIComponent(p.slug)}`,
       lastModified: now,
       changeFrequency: 'weekly' as const,
       priority: 0.8,

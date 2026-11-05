@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { bdt } from '@/lib/money';
 import { fmtDate } from '@/lib/date';
 import { buildAuditWhere } from '@/lib/auditFilter';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'অ্যাক্টিভিটি টাইমলাইন' };
@@ -25,15 +26,20 @@ const LABEL: Record<string, { text: string; cls: string }> = {
   SETTINGS_CHANGE:  { text: '⚙ সেটিংস',        cls: 'bg-slate-100 text-slate-700' },
   MEDIA_UPLOAD:     { text: '🖼 মিডিয়া আপলোড',  cls: 'bg-blue-100 text-blue-700' },
   MEDIA_DELETE:     { text: '🗑 মিডিয়া মুছল',   cls: 'bg-red-100 text-red-700' },
+  // ★ জরুরি রিকভারি — নিরাপত্তা-সংবেদনশীল, তাই আলাদা করে চোখে পড়ে
+  ACCOUNT_RECOVERY_LINK: { text: '🔑 রিকভারি-লিংক', cls: 'bg-amber-100 text-amber-700' },
+  PASSWORD_RESET:   { text: '🔑 পাসওয়ার্ড রিসেট', cls: 'bg-amber-100 text-amber-700' },
+  PASSWORD_CHANGE:  { text: '🔑 পাসওয়ার্ড বদল', cls: 'bg-amber-100 text-amber-700' },
 };
 
 const ACTOR_LABEL: Record<string, string> = { ADMIN: 'অ্যাডমিন', CUSTOMER: 'গ্রাহক', SYSTEM: 'সিস্টেম' };
 
-export default async function AdminLogs({
-  searchParams,
-}: {
-  searchParams: { q?: string; actor?: string; action?: string; from?: string; to?: string };
+export default async function AdminLogs(props: {
+  searchParams: Promise<{ q?: string; actor?: string; action?: string; from?: string; to?: string }>;
 }) {
+  const searchParams = await props.searchParams;
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const where = buildAuditWhere(searchParams);
   const logs = await prisma.adminLog.findMany({ where, orderBy: { createdAt: 'desc' }, take: 300 });
   const qs = new URLSearchParams(Object.entries(searchParams).filter(([, v]) => v) as [string, string][]).toString();

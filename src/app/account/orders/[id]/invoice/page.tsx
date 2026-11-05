@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireUserPage } from '@/lib/pageGuard';
 import { bdt, round2 } from '@/lib/money';
 import { fmtDate } from '@/lib/date';
 import { getSettings } from '@/lib/settings';
@@ -55,9 +54,13 @@ const STATUS_BN: Record<string, string> = {
   FAILED: 'সম্পন্ন হয়নি',
 };
 
-export default async function InvoicePage({ params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null;
+export default async function InvoicePage(props: {
+  params: Promise<{ id: string }>;
+}) {
+  const params = await props.params;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)।
+  //   নাম `viewer` — নিচে `me` নামটি ক্রেতার তথ্যের কোয়েরির জন্য আগেই ব্যবহৃত।
+  const viewer = await requireUserPage();
 
   const [order, settings, me] = await Promise.all([
     prisma.order.findUnique({
@@ -82,13 +85,13 @@ export default async function InvoicePage({ params }: { params: { id: string } }
     }),
     getSettings(),
     prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: viewer.id },
       select: { name: true, email: true },
     }),
   ]);
 
   // ★ শুধু নিজের চালান — অন্যের ID দিলে ৪০৪ (enumeration বন্ধ)
-  if (!order || order.userId !== session.user.id) notFound();
+  if (!order || order.userId !== viewer.id) notFound();
 
   const refunded = Number(order.refundedAmount);
   // ★ একমাত্র গণনা, এবং round2() দিয়ে — বাকি সব snapshot
@@ -104,9 +107,11 @@ export default async function InvoicePage({ params }: { params: { id: string } }
     <div className="mx-auto max-w-3xl">
       {/* ── পর্দার নিয়ন্ত্রণ (কাগজে যায় না) ── */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+        {/* ★ `min-h-[40px]` — মাপা ২০px (২০২৬-০৮-২৬)। ব্লকটি
+            `print:hidden`, তাই কাগজে এর কোনো প্রভাব নেই। */}
         <Link
           href={`/account/orders/${order.id}`}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold"
+          className="inline-flex min-h-[40px] items-center gap-1.5 text-sm font-semibold"
           style={{ color: 'var(--v-mut)' }}
         >
           ← অর্ডারে ফিরুন

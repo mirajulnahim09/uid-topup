@@ -15,6 +15,7 @@
  * ═══════════════════════════════════════════════════════════
  */
 import { APP_TIME_ZONE } from './date';
+import { toBengaliDigits } from './money';
 
 export type SlaConfig = {
   /** সাধারণত কত মিনিটে ডেলিভারি হয় */
@@ -101,7 +102,13 @@ export function nextOpening(cfg: SlaConfig, now: Date = new Date()): Date {
 
 /** গ্রাহককে দেখানোর জন্য মানুষ-পাঠযোগ্য বাক্য (কেনার আগে) */
 export function slaPromiseText(cfg: SlaConfig): string {
-  return `সাধারণত ${cfg.typicalMinutes} মিনিটে — সর্বোচ্চ ${formatDuration(cfg.maxMinutes)}`;
+  /**
+   * ⚠️ "…মিনিটে" এর মতো প্রত্যয় বসানো যায় না, কারণ এককটি বদলায়:
+   *   অ্যাডমিন `sla_typical_minutes` ৬০ বা তার বেশি দিলে
+   *   `formatDuration` "২ ঘন্টা" ফেরত দেয়, আর তাতে "ে" জুড়লে
+   *   দাঁড়াত **"২ ঘন্টাে"** — বাংলায় এমন শব্দ নেই। ড্যাশেই যথেষ্ট।
+   */
+  return `সাধারণত ${formatDuration(cfg.typicalMinutes)} — সর্বোচ্চ ${formatDuration(cfg.maxMinutes)}`;
 }
 
 /**
@@ -125,19 +132,27 @@ export function slaExplanationForOrder(
 
   if (deferred) {
     return (
-      `অর্ডারের সময় অফিস বন্ধ ছিল, তাই সকাল ${cfg.openHour}টা থেকে প্রসেস শুরু হবে — ` +
+      `অর্ডারের সময় অফিস বন্ধ ছিল, তাই সকাল ${toBengaliDigits(cfg.openHour)}টা থেকে প্রসেস শুরু হবে — ` +
       `এরপর সর্বোচ্চ ${formatDuration(cfg.maxMinutes)}।`
     );
   }
   return `${slaPromiseText(cfg)}।`;
 }
 
-/** মিনিটকে বাংলা-বান্ধব সময়ে রূপান্তর (৯০ → "১ ঘন্টা ৩০ মিনিট") */
+/**
+ * মিনিটকে বাংলা-বান্ধব সময়ে রূপান্তর (৯০ → "১ ঘন্টা ৩০ মিনিট")
+ *
+ * ⚠️ ফাংশনের নামে "বাংলা-বান্ধব" লেখা ছিল, কিন্তু অঙ্কগুলো ল্যাটিনই
+ *   থাকত — হোমপেজে মাপা: *"আনুমানিক 2 ঘন্টা পর্যন্ত"*, ঠিক তার নিচেই
+ *   "২০ মিনিটের ভিতরে" ও "১০০% ফেরত"। এক বাক্যে দুই লিপি।
+ *   টাকার অঙ্ক অপরিবর্তিত — কারণ money.ts এ লেখা আছে।
+ */
 export function formatDuration(totalMinutes: number): string {
   const m = Math.max(0, Math.round(totalMinutes));
   const h = Math.floor(m / 60);
   const rem = m % 60;
-  if (h === 0) return `${m} মিনিট`;
-  if (rem === 0) return `${h} ঘন্টা`;
-  return `${h} ঘন্টা ${rem} মিনিট`;
+  const bn = toBengaliDigits;
+  if (h === 0) return `${bn(m)} মিনিট`;
+  if (rem === 0) return `${bn(h)} ঘন্টা`;
+  return `${bn(h)} ঘন্টা ${bn(rem)} মিনিট`;
 }

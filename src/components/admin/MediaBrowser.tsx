@@ -246,11 +246,11 @@ export default function MediaBrowser({
 
             {/* SEO/a11y মেটাডেটা */}
             <label className="label mt-4">Alt টেক্সট (SEO/অ্যাক্সেসিবিলিটি)</label>
-            <input className="input" value={sel.alt || ''} onChange={(e) => setSel({ ...sel, alt: e.target.value })} placeholder="ছবিটি কী দেখাচ্ছে" />
+            <input aria-label="Alt টেক্সট" className="input" value={sel.alt || ''} onChange={(e) => setSel({ ...sel, alt: e.target.value })} placeholder="ছবিটি কী দেখাচ্ছে" />
             <label className="label mt-3">টাইটেল</label>
-            <input className="input" value={sel.title || ''} onChange={(e) => setSel({ ...sel, title: e.target.value })} placeholder="সংক্ষিপ্ত নাম" />
+            <input aria-label="টাইটেল" className="input" value={sel.title || ''} onChange={(e) => setSel({ ...sel, title: e.target.value })} placeholder="সংক্ষিপ্ত নাম" />
             <label className="label mt-3">বিবরণ</label>
-            <textarea className="input min-h-[70px]" value={sel.description || ''} onChange={(e) => setSel({ ...sel, description: e.target.value })} placeholder="ঐচ্ছিক বিবরণ" />
+            <textarea aria-label="বিবরণ" className="input min-h-[70px]" value={sel.description || ''} onChange={(e) => setSel({ ...sel, description: e.target.value })} placeholder="ঐচ্ছিক বিবরণ" />
 
             <div className="mt-3 flex items-center gap-2">
               <button onClick={saveMeta} disabled={busy} className="btn-primary flex-1">সংরক্ষণ</button>

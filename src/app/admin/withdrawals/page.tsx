@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import WithdrawalQueue, { type Row } from '@/components/admin/WithdrawalQueue';
 import { listAdminWithdrawals, getWithdrawalConfig } from '@/lib/services/withdrawal';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const metadata: Metadata = { title: 'টাকা তোলার অনুরোধ' };
 export const dynamic = 'force-dynamic';
@@ -22,11 +23,12 @@ const FILTERS = [
  *   তবুও দেখায়, কারণ বন্ধ করার আগে জমা পড়া অনুরোধগুলোর নিষ্পত্তি
  *   করতেই হবে (নাহলে গ্রাহকের টাকা কাটা অবস্থায় আটকে থাকত)।
  */
-export default async function AdminWithdrawalsPage({
-  searchParams,
-}: {
-  searchParams: { status?: string };
+export default async function AdminWithdrawalsPage(props: {
+  searchParams: Promise<{ status?: string }>;
 }) {
+  const searchParams = await props.searchParams;
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const raw = searchParams.status;
   const status =
     raw === 'PENDING' || raw === 'HELD' || raw === 'APPROVED' || raw === 'REJECTED' ? raw : undefined;
@@ -64,7 +66,13 @@ export default async function AdminWithdrawalsPage({
       {!cfg.enabled && (
         <div className="card p-4 text-sm" style={{ color: 'var(--v-mut)' }}>
           ⚠️ টাকা তোলার সুবিধা এখন <b>বন্ধ</b> — নতুন অনুরোধ আসবে না।
-          সেটিংসে <code>withdrawal_enabled</code> = <code>1</code> দিলে চালু হবে।
+          {/* ★ `break-all` — ৩২০px-এ লম্বা কী-নাম wrap না করলে পাতা অনুভূমিকভাবে
+              বেরিয়ে যেত (responsive অডিটে মাপা: overhang ৩২px)। */}
+          চালু করতে সাইট-সেটিংসে <code className="break-all">withdrawal_enabled</code> ={' '}
+          <code>1</code> দিন (সাথে <code className="break-all">withdrawal_min</code>,{' '}
+          <code className="break-all">withdrawal_daily_cap</code>,{' '}
+          <code className="break-all">withdrawal_hold_hours</code>)। পরিবর্তন কার্যকর হতে
+          সর্বোচ্চ ৩০ সেকেন্ড লাগে।
           {' '}জমা পড়া অনুরোধ থাকলে সেগুলো নিচে নিষ্পত্তি করা যাবে।
         </div>
       )}

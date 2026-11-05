@@ -1,4 +1,4 @@
-import { requireUser, apiError, ApiError } from '@/lib/guard';
+import { requireUser, apiError, ApiError, readForm } from '@/lib/guard';
 import { rateLimit } from '@/lib/rateLimit';
 import { uploadImage, UploadError, isBlobConfigured } from '@/lib/upload';
 
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
     if (!isBlobConfigured()) throw new ApiError('ছবি আপলোড এখন চালু নেই', 503);
 
-    const form = await req.formData();
+    const form = await readForm(req);
     const file = form.get('file');
     if (!(file instanceof File)) throw new ApiError('কোনো ফাইল পাওয়া যায়নি', 400);
 

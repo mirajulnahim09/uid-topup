@@ -5,7 +5,10 @@ import { bdt } from '@/lib/money';
 import QuickActions from '@/components/admin/QuickActions';
 import SetupChecklist from '@/components/admin/SetupChecklist';
 import OpsMetricsPanel from '@/components/admin/OpsMetrics';
+import Icon from '@/components/fx/Icon';
 import { getOpsMetrics } from '@/lib/opsMetrics';
+import { dhakaDayStart } from '@/lib/date';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'ড্যাশবোর্ড' };
@@ -16,12 +19,14 @@ const SEED_NAGAD = '01700000002';
 const SEED_SOCIAL = ['https://facebook.com', 'https://m.me', 'https://wa.me/8801700000000'];
 
 export default async function AdminDashboard() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
+  // ★ "আজ" = ঢাকার আজ (Vercel-এ `setHours` মানে ঢাকার সকাল ৬টা ছিল) — `lib/date.ts`
+  const today = dhakaDayStart();
 
   const [
     pendingDeposits, pendingOrders, users, todayOrders, completedOrders,
-    depositSum, revenue, walletSum, completedWithCost,
+    depositSum, revenue, walletSum,
     payments, socials, bannerCount, productImgCount, settings, ops,
   ] = await Promise.all([
     prisma.deposit.findMany({
@@ -40,12 +45,14 @@ export default async function AdminDashboard() {
     prisma.order.count({ where: { createdAt: { gte: today } } }),
     prisma.order.count({ where: { status: 'COMPLETED' } }),
     prisma.deposit.aggregate({ where: { status: 'APPROVED' }, _sum: { amount: true } }),
-    prisma.order.aggregate({ where: { status: 'COMPLETED' }, _sum: { price: true } }),
-    prisma.user.aggregate({ _sum: { balance: true } }),
-    prisma.order.findMany({
+    // ★ লাভের উপাদানও একই aggregate-এ (বিক্রি, অর্ডার-সময়ের খরচ, ফেরত) —
+    //   আগে সব সম্পন্ন অর্ডার (findMany, সীমাহীন) মেমরিতে এনে JS-এ যোগ হতো:
+    //   মাপা ৪২k অর্ডারে পাতা ৮৯৯ms, ২.৮ লাখে ৫১৯০ms (সরলরেখায় বাড়ে)।
+    prisma.order.aggregate({
       where: { status: 'COMPLETED' },
-      select: { price: true, variant: { select: { costPrice: true } } },
+      _sum: { price: true, costPrice: true, refundedAmount: true },
     }),
+    prisma.user.aggregate({ _sum: { balance: true } }),
     prisma.paymentChannel.findMany({ select: { accountNo: true } }),
     prisma.socialLink.findMany({ select: { url: true } }),
     prisma.banner.count({ where: { isActive: true } }),
@@ -55,11 +62,18 @@ export default async function AdminDashboard() {
     getOpsMetrics(),
   ]);
 
-  const profit = completedWithCost.reduce(
-    (sum: number, o: (typeof completedWithCost)[number]) =>
-      sum + Number(o.price) - Number(o.variant.costPrice),
-    0
-  );
+  /**
+   * ★★★ লাভ = বিক্রি − অর্ডারের সময়ের খরচ (snapshot) − ফেরত — `lib/analytics.ts`-এর
+   *   হুবহু একই সংজ্ঞা (মালিকের সিদ্ধান্ত, ২০২৬-০৯-১৭)। আগে এখানে প্যাকেজের
+   *   **বর্তমান** খরচ বিয়োগ হতো ও আংশিক ফেরত ধরা হতো না — তাই ড্যাশবোর্ড ও
+   *   Analytics দুটি ভিন্ন "লাভ" দেখাত, আর খরচ বদলালে পুরনো অর্ডারের লাভও বদলে যেত।
+   */
+  const profit =
+    Math.round(
+      (Number(revenue._sum.price ?? 0) -
+        Number(revenue._sum.costPrice ?? 0) -
+        Number(revenue._sum.refundedAmount ?? 0)) * 100,
+    ) / 100;
 
   // ── সেটআপ চেকলিস্ট ──
   const payChanged = payments.length > 0 && !payments.some(
@@ -178,13 +192,13 @@ export default async function AdminDashboard() {
               উচ্চারণ (Phase 6)। আগে ছিল উজ্জ্বল বেগুনি প্যানেল। */}
           <div
             className="card p-5"
-            style={{ background: 'linear-gradient(140deg, rgba(230,197,132,.15), var(--v-void))' }}
+            style={{ background: 'linear-gradient(140deg, rgba(var(--gold-glow),.15), var(--v-void))' }}
           >
             <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>
               আনুমানিক লাভ
             </p>
             <p className="dsp mt-1 text-2xl font-extrabold" style={{ color: 'var(--ink)' }}>{bdt(profit)}</p>
-            <p className="mt-0.5 text-[10px]" style={{ color: 'var(--mut)' }}>বিক্রি − ক্রয়মূল্য</p>
+            <p className="mt-0.5 text-[10px]" style={{ color: 'var(--mut)' }}>বিক্রি − অর্ডারের সময়ের ক্রয়মূল্য − ফেরত</p>
           </div>
 
           <div className="card border-2 border-amber-200 bg-amber-50 p-5">
@@ -213,22 +227,27 @@ export default async function AdminDashboard() {
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">
           দ্রুত যান
         </h2>
+        {/* ★ ইমোজির বদলে একই লাইন-আইকন সেট (২.৫) — AdminNav-এর সাথে
+            মিলিয়ে, যাতে এক পাতায় দুই রকম চিহ্ন-ভাষা না থাকে। */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {[
-            { href: '/admin/banners', icon: '🖼️', label: 'ব্যানার ছবি' },
-            { href: '/admin/products', icon: '🏷️', label: 'দাম বদলান' },
-            { href: '/admin/coupons', icon: '🎟️', label: 'কুপন' },
-            { href: '/admin/users', icon: '👤', label: 'ইউজার' },
-            { href: '/admin/site', icon: '⚙️', label: 'সেটিংস' },
-          ].map((l) => (
+          {([
+            { href: '/admin/banners', icon: 'image' as const, label: 'ব্যানার ছবি' },
+            { href: '/admin/products', icon: 'tag' as const, label: 'দাম বদলান' },
+            { href: '/admin/coupons', icon: 'gift' as const, label: 'কুপন' },
+            { href: '/admin/users', icon: 'user' as const, label: 'ইউজার' },
+            { href: '/admin/site', icon: 'gear' as const, label: 'সেটিংস' },
+          ]).map((l) => (
             <Link
               key={l.href}
               href={l.href}
               prefetch
               className="card p-4 text-center transition hover:-translate-y-1 hover:border-purple-300 hover:shadow-md"
             >
-              <p className="text-2xl" aria-hidden="true">{l.icon}</p>
-              <p className="mt-1 text-xs font-bold text-slate-700">{l.label}</p>
+              <span className="mx-auto grid h-10 w-10 place-items-center rounded-[11px]"
+                style={{ background: 'var(--v-fill2)', color: 'var(--violet)' }}>
+                <Icon name={l.icon} size={19} />
+              </span>
+              <p className="mt-1.5 text-xs font-bold text-slate-700">{l.label}</p>
             </Link>
           ))}
         </div>

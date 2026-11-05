@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
 import { logger } from '../logger';
 import { scrub } from './api';
@@ -181,6 +182,45 @@ export async function ensureJobsSeeded(): Promise<number> {
 
 export type RunResult = { ok: boolean; detail?: string; error?: string };
 
+/**
+ * ★★★ পরিত্যক্ত RUNNING-এর মেয়াদ (lease)
+ *
+ *   status=RUNNING একটি "দাবি" — কিন্তু দাবিদার প্রসেস মাঝপথে মরে গেলে
+ *   (serverless টাইমআউট, ডিপ্লয়, বা DB বিচ্ছিন্ন হয়ে `runJob`-এর catch-এর
+ *   update-ও ব্যর্থ) দাবিটি আর কেউ ছাড়ত না। ফল: জবটি **চিরতরে** বন্ধ —
+ *   tick ও "এখনই চালান" দুটোই RUNNING দেখে ফিরে যেত, আর প্যানেলে "চলছে"
+ *   দেখাত। নীরব ব্যর্থতা (EXTREME অডিট ২০২৬-০৯-১৯, রানটাইমে পুনরুৎপাদিত)।
+ *
+ *   এখন ৩০ মিনিটের বেশি পুরনো RUNNING পরিত্যক্ত ধরা হয়। ৩০ মিনিট যেকোনো
+ *   বৈধ রানের চেয়ে অনেক বেশি (Vercel ফাংশনের সর্বোচ্চ সময়ও এর কম), তাই
+ *   সত্যিই চলমান জব ছিনিয়ে নেওয়ার ঝুঁকি নেই।
+ *
+ *   ⚠️ দাবি এখনো পরমাণু: দাবির সময় `updatedAt` স্পষ্টভাবে নতুন করা হয়,
+ *      তাই একই মুহূর্তে আসা দ্বিতীয় টিকের "পুরনো" শর্ত আর মেলে না।
+ */
+const STALE_RUNNING_MS = 30 * 60 * 1000;
+
+function claimableWhere(now: Date): Prisma.TelegramJobWhereInput {
+  return {
+    OR: [
+      { status: { not: 'RUNNING' } },
+      { status: 'RUNNING', updatedAt: { lt: new Date(now.getTime() - STALE_RUNNING_MS) } },
+    ],
+  };
+}
+
+/** পরিত্যক্ত রানের ইতিহাস-সারি — নাহলে ইতিহাসে চিরকাল "চলছে" দেখাত */
+async function releaseOrphanRuns(now: Date): Promise<void> {
+  await prisma.telegramJobRun.updateMany({
+    where: { status: 'RUNNING', startedAt: { lt: new Date(now.getTime() - STALE_RUNNING_MS) } },
+    data: {
+      status: 'FAILED',
+      finishedAt: now,
+      error: 'মাঝপথে থেমে গিয়েছিল (প্রসেস বন্ধ/টাইমআউট) — পরিত্যক্ত',
+    },
+  });
+}
+
 /** হ্যান্ডলার রেজিস্ট্রি — `handlers.ts` এটি পূরণ করে (বৃত্তাকার import এড়াতে) */
 const handlers = new Map<string, () => Promise<RunResult>>();
 export function registerJobHandler(key: string, fn: () => Promise<RunResult>): void {
@@ -212,9 +252,10 @@ export async function runJob(
     //   SCHEDULE trigger tick থেকে আসে (ইতিমধ্যে claimed), তাই তাকে
     //   আবার claim করানো লাগে না — নাহলে নিজের claim-এই আটকে যেত।
     if (trigger !== 'SCHEDULE') {
+      const now = new Date();
       const claimed = await prisma.telegramJob.updateMany({
-        where: { key, status: { not: 'RUNNING' } },
-        data: { status: 'RUNNING' },
+        where: { key, ...claimableWhere(now) },
+        data: { status: 'RUNNING', updatedAt: now },
       });
       if (claimed.count === 0) {
         return { ok: false, error: 'জবটি এখন চলছে — একটু পরে দেখুন' };
@@ -294,20 +335,27 @@ export async function tick(): Promise<{ ran: string[]; skipped: number }> {
   let skipped = 0;
   try {
     const now = new Date();
+    await releaseOrphanRuns(now);
     const due = await prisma.telegramJob.findMany({
-      where: { enabled: true, status: { not: 'RUNNING' }, nextRunAt: { lte: now } },
-      select: { key: true },
+      where: { enabled: true, nextRunAt: { lte: now }, ...claimableWhere(now) },
+      select: { key: true, status: true },
       take: 10, // এক টিকে সর্বোচ্চ ১০টি — বাকিগুলো পরের টিকে
     });
 
     for (const j of due) {
       // ★★★ পরমাণু দাবি — দুটি টিক একসাথে চললেও একজনই জিতবে।
       //   `updateMany` শর্ত না মিললে count 0 দেয়, তখন অন্যজন ধরে নিয়েছে।
+      // ⚠️ দাবির মুহূর্তের তাজা ঘড়ি — লুপে আগের জব দীর্ঘ চললে টিক-শুরুর `now`
+      //    পুরনো হয়ে যায়, আর সেটি `updatedAt`-এ বসালে lease অকালে "পুরনো" দেখাত
+      const claimAt = new Date();
       const claimed = await prisma.telegramJob.updateMany({
-        where: { key: j.key, status: { not: 'RUNNING' }, nextRunAt: { lte: now } },
-        data: { status: 'RUNNING' },
+        where: { key: j.key, nextRunAt: { lte: now }, ...claimableWhere(claimAt) },
+        data: { status: 'RUNNING', updatedAt: claimAt },
       });
       if (claimed.count === 0) { skipped++; continue; }
+      if (j.status === 'RUNNING') {
+        logger.warn('telegram', 'পরিত্যক্ত RUNNING জব পুনরুদ্ধার করা হলো', { job: j.key });
+      }
       await runJob(j.key, 'SCHEDULE');
       ran.push(j.key);
     }

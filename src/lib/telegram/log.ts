@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { scrub } from './api';
+import { dhakaDayStart } from '../date';
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -108,7 +109,7 @@ export async function getAnalytics(): Promise<Analytics> {
   const empty: UsageBucket = { sent: 0, failed: 0, successRate: 100 };
   try {
     const now = Date.now();
-    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    const startOfToday = dhakaDayStart(); // ★ ঢাকার আজ (`lib/date.ts`)
     const week = new Date(now - 7 * 86400_000);
     const month = new Date(now - 30 * 86400_000);
 
@@ -130,8 +131,9 @@ export async function getAnalytics(): Promise<Analytics> {
           by: ['botId', 'ok'], _count: { _all: true }, _avg: { latencyMs: true },
         }),
         // ★ দৈনিক ভাঙা — SQL-এ গোষ্ঠীবদ্ধ, কারণ ১৪টি আলাদা কোয়েরি অপচয়
+        //   ⚠️ `createdAt` UTC-তে রাখা; +৬ ঘণ্টা সরিয়ে কাটলে ঢাকার দিন (DST নেই)
         prisma.$queryRaw<{ day: Date; ok: boolean; n: bigint }[]>`
-          SELECT date_trunc('day', "createdAt") AS day, "ok", COUNT(*) AS n
+          SELECT date_trunc('day', "createdAt" + INTERVAL '6 hours') AS day, "ok", COUNT(*) AS n
           FROM "TelegramMessageLog"
           WHERE "createdAt" >= NOW() - INTERVAL '14 days'
           GROUP BY 1, 2 ORDER BY 1

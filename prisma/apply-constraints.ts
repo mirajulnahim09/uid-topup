@@ -70,6 +70,21 @@ const GUARDS: Guard[] = [
     violationSql: `SELECT COUNT(*)::int AS n FROM "Coupon" WHERE value <= 0 OR "minOrder" < 0 OR "usageCount" < 0 OR (type = 'PERCENT' AND value > 100)`,
     addSql: `ALTER TABLE "Coupon" ADD CONSTRAINT coupon_value_valid CHECK (value > 0 AND "minOrder" >= 0 AND "usageCount" >= 0 AND (type != 'PERCENT' OR value <= 100))`,
   },
+  // Same as migration 20261031130000 — kept here for `db:setup` (db push) databases.
+  {
+    name: 'order_refund_valid',
+    table: 'Order',
+    why: 'ফেরতের মোট অঙ্ক কখনো অর্ডারের দামের বেশি বা ঋণাত্মক হবে না',
+    violationSql: `SELECT COUNT(*)::int AS n FROM "Order" WHERE "refundedAmount" < 0 OR "refundedAmount" > price`,
+    addSql: `ALTER TABLE "Order" ADD CONSTRAINT order_refund_valid CHECK ("refundedAmount" >= 0 AND "refundedAmount" <= price)`,
+  },
+  {
+    name: 'withdrawal_amount_positive',
+    table: 'Withdrawal',
+    why: 'উইথড্রর পরিমাণ ধনাত্মক',
+    violationSql: `SELECT COUNT(*)::int AS n FROM "Withdrawal" WHERE amount <= 0`,
+    addSql: `ALTER TABLE "Withdrawal" ADD CONSTRAINT withdrawal_amount_positive CHECK (amount > 0)`,
+  },
 ];
 
 async function countViolations(sql: string): Promise<number> {

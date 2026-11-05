@@ -277,6 +277,41 @@ export async function resetRateLimit(key: string): Promise<void> {
 }
 
 /**
+ * ★★★ একটি গণনা ফেরত (−১) — সফল লগইনের **নিজের** গণনাটুকু।
+ *     (চূড়ান্ত মাস্টার অডিট, ২০২৬-০৯-১৭ · মালিকের সিদ্ধান্ত)
+ *
+ *   `login:ip:*` আগে সফল লগইনও গুনত। বাংলাদেশে বহু মোবাইল গ্রাহক একই
+ *   carrier-IP (CGNAT) ভাগ করেন — ভিড়ের সময় একই IP-র পেছনের ১১তম **সফল**
+ *   লগইনকারীও ১০ মিনিট আটকে যেতেন।
+ *
+ *   ⚠️ কেন `resetRateLimit` (পুরো মোছা) নয়: তাহলে আক্রমণকারী অন্যদের
+ *   পাসওয়ার্ড অনুমানের ফাঁকে নিজের অ্যাকাউন্টে একবার লগইন করে IP-গণনা শূন্য
+ *   করে ফেলত। −১ কেবল সেই সফল চেষ্টারই গণনা ফেরায়; ব্যর্থগুলো গোনা থাকে।
+ *   গণনা এখনো চেষ্টার **আগেই** বাড়ে (`rateLimit`), তাই একসাথে অনেক
+ *   অনুরোধের (burst) সুরক্ষা অক্ষত।
+ */
+export async function refundRateLimit(key: string): Promise<void> {
+  if (isRedisConfigured()) {
+    const rk = redisKey(key);
+    const current = Number(await redisCmd(['GET', rk]));
+    if (Number.isFinite(current) && current > 0) {
+      const after = Number(await redisCmd(['DECR', rk]));
+      // ★ সমান্তরাল দুটি ফেরতে শূন্যের নিচে নামলে ফিরিয়ে আনা
+      if (Number.isFinite(after) && after < 0) await redisCmd(['INCR', rk]);
+    }
+  }
+  try {
+    await prisma.$executeRaw`
+      UPDATE "RateLimitBucket" SET "count" = GREATEST("count" - 1, 0)
+      WHERE "key" = ${key} AND "resetAt" > NOW()
+    `;
+  } catch (e) {
+    // ★ ফেরত ব্যর্থ হলে ক্ষতি কেবল আগের (কড়া) আচরণ — তাই throw নয়
+    logger.error('rateLimit', 'refund failed', { key: key.split(':').slice(0, 2).join(':'), err: e });
+  }
+}
+
+/**
  * ═══════════════════════════════════════════════════════════
  * ★★★ H2 — ক্লায়েন্টের পাঠানো হেডার বিশ্বাস করা যাবে না
  *
@@ -324,7 +359,84 @@ export function pickIp(get: (name: string) => string | null | undefined): string
     if (fwd) return fwd;
   }
 
-  return get('x-real-ip')?.trim() || get('cf-connecting-ip')?.trim() || 'unknown';
+  const ip = get('x-real-ip')?.trim() || get('cf-connecting-ip')?.trim();
+  if (ip) return ip;
+  reportMissingClientIp();
+  return 'unknown';
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════
+ * ★★★ CFG-01 — ক্লায়েন্ট-IP না পাওয়া **নীরব** থাকবে না
+ *
+ *   `pickIp()` কোনো বিশ্বস্ত হেডার না পেলে `'unknown'` ফেরায় — তখন **সব**
+ *   দর্শনার্থী একটিই IP-বাকেট ভাগ করেন: সারা সাইটে ১০টি ভুল লগইনে সবার
+ *   লগইন বন্ধ, রেজিস্ট্রেশন সারা সাইটে ঘণ্টায় ৫টি, ট্র্যাকিং ৫ মিনিটে ১০টি।
+ *   আগে এটি কোথাও জানা যেত না (স্থাপনা/প্রক্সি-কনফিগের ভুল)।
+ *
+ *   ⚠️ সীমাগুলো **অপরিবর্তিত** — IP না পেলে সীমা তুলে দেওয়া (স্প্যাম সীমাহীন)
+ *   বা বদলানো একটি ব্যবসায়িক/নিরাপত্তা সিদ্ধান্ত, নীরবে নেওয়ার নয়। এখানে কেবল
+ *   সমস্যাটি **দৃশ্যমান**: error-লগ + টেলিগ্রাম সতর্কতা (১০ মিনিটে একবার,
+ *   প্রতি ইনস্ট্যান্স) ও `/api/admin/readiness`-এ অবস্থা।
+ * ═══════════════════════════════════════════════════════════
+ */
+const MISSING_IP_WARN_THROTTLE_MS = 10 * 60 * 1000;
+export const CLIENT_IP_MISSING_KEY = 'ops:client_ip_missing';
+let missingIpCount = 0;
+let lastMissingIpAt: number | null = null;
+let lastMissingIpWarnAt = 0;
+
+function reportMissingClientIp(): void {
+  const now = Date.now();
+  missingIpCount++;
+  lastMissingIpAt = now;
+  // ★ থ্রটল env দিয়ে বদলানো যায় — টেস্ট-সার্ভার ০ দেয় (প্রতিটি টেস্টের আগে
+  //   টেবিল খালি হয়, ১০ মিনিটের থ্রটল থাকলে চিহ্ন আর লেখা হতো না)। প্রোডাকশনে ডিফল্ট।
+  const throttle = Number(process.env.CLIENT_IP_WARN_THROTTLE_MS ?? MISSING_IP_WARN_THROTTLE_MS);
+  if (now - lastMissingIpWarnAt < (Number.isFinite(throttle) ? throttle : MISSING_IP_WARN_THROTTLE_MS)) return;
+  lastMissingIpWarnAt = now;
+
+  logger.error('rateLimit', 'client IP header missing — all IP-based limits now share one bucket', {
+    trustedProxy: Boolean((process.env.TRUSTED_PROXY || '').trim()),
+  });
+  // ★ readiness-এর জন্য **DB-তে** চিহ্ন — মডিউল-ভেরিয়েবল যথেষ্ট নয়: Next-এ
+  //   প্রতিটি route আলাদা বান্ডল (মাপা: লগইন-রুটের গণনা readiness-রুটে ০ দেখাত),
+  //   serverless-এ ইনস্ট্যান্সও আলাদা। থ্রটলের ভেতরে, তাই বড়জোর ১০ মিনিটে একবার
+  //   লেখা। কী-তে ':' — সেটিংস-ক্যাশে ঢোকে না (settings.ts), ক্লায়েন্টে যায় না।
+  prisma.setting
+    .upsert({
+      where: { key: CLIENT_IP_MISSING_KEY },
+      create: { key: CLIENT_IP_MISSING_KEY, value: new Date(now).toISOString() },
+      update: { value: new Date(now).toISOString() },
+    })
+    .catch(() => { /* চিহ্ন লেখা ব্যর্থ হলেও অনুরোধ চলে */ });
+  // ★ গতিশীল import — guard.ts-এর warnOpsAboutServerError-এর মতোই (চক্রাকার import নয়)
+  import('./telegram')
+    .then(({ telegramEvent }) => telegramEvent(
+      'server_warning',
+      '⚠️ ক্লায়েন্ট-IP পাওয়া যাচ্ছে না',
+      'অনুরোধে x-real-ip / cf-connecting-ip নেই — সব দর্শনার্থী একই IP-সীমা ভাগ করছেন (লগইন/রেজিস্ট্রেশন সারা সাইটে আটকে যেতে পারে)। প্রক্সি/TRUSTED_PROXY কনফিগ দেখুন।',
+      '/admin/tools',
+    ))
+    .catch(() => { /* সতর্কতা ব্যর্থ হলেও অনুরোধ চলে */ });
+}
+
+/** ★ CFG-01 — **এই মডিউল-ইনস্ট্যান্সের** গণনা (ইউনিট-টেস্ট ও লগের জন্য) */
+export function clientIpStatus(): { missingCount: number; lastMissingAt: string | null } {
+  return {
+    missingCount: missingIpCount,
+    lastMissingAt: lastMissingIpAt ? new Date(lastMissingIpAt).toISOString() : null,
+  };
+}
+
+/** ★ CFG-01 — সব রুট/ইনস্ট্যান্স মিলিয়ে সর্বশেষ কখন IP পাওয়া যায়নি (DB থেকে) */
+export async function lastClientIpMissingAt(): Promise<string | null> {
+  try {
+    const row = await prisma.setting.findUnique({ where: { key: CLIENT_IP_MISSING_KEY } });
+    return row?.value ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function getIp(req: Request): string {
@@ -386,6 +498,14 @@ export const LIMITS = {
    */
   otpSend: { limit: 5, window: 900 },
   /**
+   * ★★★ AUTH-07 — **গন্তব্য-ভিত্তিক** সীমা (IP-সীমার পাশাপাশি)।
+   *   কেবল IP-সীমা থাকলে IP বদলে বদলে একজনের ইনবক্স রিসেট/OTP মেইলে ভরিয়ে
+   *   দেওয়া যেত (প্রেরক-খ্যাতিরও ক্ষতি)। সীমা পেরোলে উত্তর **হুবহু এক**
+   *   থাকে, কেবল পাঠানো হয় না — enumeration বা "আটকে গেছে" সংকেত ফাঁস নয়।
+   */
+  forgotDest: { limit: 3, window: 3600 },
+  otpDest: { limit: 5, window: 900 },
+  /**
    * ★ কোড যাচাই। DB-তে ৫ চেষ্টার সীমা আছেই (গন্তব্য-ভিত্তিক);
    *   এটি IP-ভিত্তিক দ্বিতীয় স্তর, একাধিক গন্তব্যে ছড়িয়ে চেষ্টা ঠেকাতে।
    */
@@ -408,4 +528,11 @@ export const LIMITS = {
    *   অপব্যবহার ঠেকায়; এটি ব্যর্থ চেষ্টার বন্যা ঠেকানোর জন্য।
    */
   withdraw: { limit: 5, window: 3600 },
+  /**
+   * ★ OPS-01 — সব ইউজারকে ঘোষণা (প্রতি অ্যাডমিন)। প্রতিটি ঘোষণা হাজারো
+   *   নোটিফিকেশন-সারি লেখে; ভুলে বারবার পাঠানো বা আপোসকৃত অ্যাডমিন-সেশন
+   *   যেন সারা ইউজারবেসকে স্প্যাম করে DB ভরিয়ে দিতে না পারে। একই
+   *   `requestId`-এর পুনরাবৃত্তি এই সীমায় গোনা হয় না।
+   */
+  announce: { limit: 5, window: 3600 },
 } as const;

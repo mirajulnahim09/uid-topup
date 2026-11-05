@@ -24,7 +24,11 @@ export function localDriver(): StorageDriver {
     async del(url: string): Promise<void> {
       if (!url.startsWith('/uploads/')) return;
       const rel = url.slice('/uploads/'.length);
-      await unlink(path.join(root, rel)).catch(() => {});
+      // Admin image fields accept any "/..." path, so "/uploads/../x" can
+      // reach here; never unlink anything that resolves outside the root.
+      const full = path.resolve(root, rel);
+      if (!full.startsWith(root + path.sep)) return;
+      await unlink(full).catch(() => {});
     },
     owns(url: string): boolean {
       return url.startsWith('/uploads/');

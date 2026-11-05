@@ -20,16 +20,30 @@ export default function SearchBox({
   initial = '',
   autoFocus = false,
   compact = false,
+  onNavigate,
 }: {
   initial?: string;
   autoFocus?: boolean;
   compact?: boolean;
+  /** ★ নেভিগেশনের মুহূর্তে — মোবাইল মেনু এটি দিয়ে নিজেকে বন্ধ করে */
+  onNavigate?: () => void;
 }) {
   const router = useRouter();
   const [q, setQ] = useState(initial);
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * ★★★ সার্চ জমা দেওয়ার পর সাজেশন আর ফিরে আসবে না।
+   *
+   *   ব্রাউজারে ধরা পড়া বাগ (৩৯০px, চূড়ান্ত অডিট): লিখে সাথে সাথে Enter
+   *   চাপলে `submit()` ড্রপডাউন বন্ধ করত, কিন্তু ২৫০ms debounce-এর ঝুলে
+   *   থাকা অনুরোধটি পরে ফিরে `setOpen(true)` করত — ফলাফল-পাতায় পুরনো
+   *   সাজেশন আবার খুলে আসল ফলাফল ঢেকে দিত। এখন জমা/বাছাইয়ের পর দেরিতে
+   *   আসা উত্তর উপেক্ষিত; নতুন করে টাইপ করলেই আবার চালু।
+   */
+  const settled = useRef(false);
 
   /**
    * ★★★ ব্যবহারকারী **নিজে** কিছু টাইপ করেছেন কি না।
@@ -72,6 +86,7 @@ export default function SearchBox({
         const res = await fetch(`/api/search?q=${encodeURIComponent(term)}`, { signal: ac.signal });
         if (!res.ok) return;
         const data = (await res.json()) as { results?: SearchHit[] };
+        if (settled.current) return; // ★ ইতিমধ্যে জমা/বাছাই হয়ে গেছে
         setHits(Array.isArray(data.results) ? data.results.slice(0, 6) : []);
         setOpen(true);
       } catch {
@@ -89,13 +104,22 @@ export default function SearchBox({
     e.preventDefault();
     const term = q.trim();
     if (term.length < SEARCH_MIN_LEN) return;
+    settled.current = true;
     setOpen(false);
+    onNavigate?.();
     router.push(`/search?q=${encodeURIComponent(term)}`);
   }
 
   return (
     <div ref={boxRef} className="relative w-full">
       {/* ★ আসল `form` + `action` — JS ছাড়াও কাজ করে */}
+      {/* ★★★ সার্চ-বাক্সে আগে ইনলাইন `fontSize: 13` ছিল। ইনলাইন স্টাইল
+          যেকোনো মিডিয়া-কোয়েরিকে হারায়, তাই `.input` এর টাচ-নিরাপদ
+          ১৬px নিয়মটি এই বাক্সে পৌঁছাতই না — ফোন ল্যান্ডস্কেপে ও
+          ট্যাবলেটে হেডারের সার্চে ট্যাপ করলেই iOS পুরো পাতা জুম করে
+          দিত (এবং নিজে থেকে ফিরত না)। ঘন চেহারাটি এখন
+          `.input-compact` ক্লাসে, যা কেবল মাউস-চালিত পর্দায় ছোট
+          ফন্ট বসায় — দেখতে আগের মতোই, টাচে নিরাপদ। */}
       <form onSubmit={submit} action="/search" method="get" role="search">
         <input
           type="search"
@@ -103,6 +127,7 @@ export default function SearchBox({
           value={q}
           onChange={(e) => {
             typed.current = true;
+            settled.current = false;
             setQ(e.target.value);
           }}
           onFocus={() => hits.length > 0 && setOpen(true)}
@@ -110,8 +135,7 @@ export default function SearchBox({
           autoFocus={autoFocus}
           placeholder="প্রোডাক্ট খুঁজুন…"
           aria-label="প্রোডাক্ট খুঁজুন"
-          className="input w-full"
-          style={compact ? { minHeight: 40, fontSize: 13 } : undefined}
+          className={`input w-full${compact ? ' input-compact' : ''}`}
         />
       </form>
 
@@ -129,7 +153,9 @@ export default function SearchBox({
               <button
                 type="button"
                 onClick={() => {
+                  settled.current = true;
                   setOpen(false);
+                  onNavigate?.();
                   router.push(`/product/${h.productId}/${h.slug}`);
                 }}
                 className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-[var(--v-steel)]"

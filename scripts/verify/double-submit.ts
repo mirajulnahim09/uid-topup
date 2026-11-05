@@ -23,9 +23,8 @@
  */
 import { db, dbLabel } from './_db';
 
-import { chromium, type Browser, type Page } from 'playwright-core';
-import { existsSync, readFileSync } from 'node:fs';
-import path from 'node:path';
+import { type Page } from 'playwright-core';
+import { openBrowser } from './_browser';
 import { issueOtp } from '../../src/lib/otp/core';
 
 const BASE = process.env.VERIFY_BASE || 'https://localhost:3443';
@@ -84,13 +83,8 @@ async function twice(page: Page, url: string, body: unknown) {
   console.log('═══ দুইবার জমা — ডুপ্লিকেট প্রতিরোধ ═══');
   console.log(`  সার্ভার: ${BASE} · DB: ${dbLabel()}\n`);
 
-  const wsPath = path.join(process.cwd(), 'ws.txt');
-  let browser: Browser;
-  if (existsSync(wsPath)) browser = await chromium.connect(readFileSync(wsPath, 'utf8').trim());
-  else browser = await chromium.launch({
-    headless: true,
-    executablePath: ['C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'].find(existsSync),
-  });
+  // Shared helper: tries ws.txt, falls back to a local headless browser when it is stale.
+  const browser = await openBrowser();
 
   const cust = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 390, height: 844 } });
   const adm = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1440, height: 900 } });

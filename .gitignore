@@ -1,5 +1,7 @@
 node_modules
 .next
+# Vitest harness production build (tests/globalSetup.ts, NEXT_DIST_DIR)
+/.next-test/
 out
 # ★★★ সিক্রেট — C1।
 #   আগে ছিল শুধু `.env` ও `.env*.local`। সেই দুটির কোনোটিই
@@ -40,10 +42,15 @@ ws.txt
 .certs/
 .prod-server.log
 .prod-https.log
+# সিম রিগের প্রতি-রানের ক্রন-সিক্রেট ও লগ (scripts/sim/sim-rig.mjs)
+.sim/
 
 # ★ vitest এর JSON ফলাফল — test-run.mjs ব্যর্থ টেস্টের নাম ছাপতে ও
 #   test-flaky.mjs বহু রানের ফল জড়ো করতে এটি পড়ে। প্রতি রানে নতুন।
 .vitest-results.json
+
+# coverage reports from `npm run test:coverage` (regenerated each run)
+/coverage/
 
 # ★ scripts/package-release.mjs এর আউটপুট zip — বিতরণের জিনিস, সোর্স নয়
 release/
@@ -73,3 +80,7 @@ p6-*.png
 #   ⚠️ কেবল সাব-ফোল্ডার (`*/`) — `audit/shots/` এর সরাসরি ভিতরে থাকা
 #      ৮টি তুলনামূলক PNG আগে থেকেই ট্র্যাক করা, সেগুলো অক্ষত থাকে।
 audit/shots/*/
+
+# ★ `npm run typecheck/lint/build` এর একত্রিত আউটপুট — ফল টার্মিনালে,
+#   এটি কেবল লগ।
+.verify.log

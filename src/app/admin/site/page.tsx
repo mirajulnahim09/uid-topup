@@ -3,11 +3,14 @@ import { prisma } from '@/lib/prisma';
 import { getSettings, toClientSettings } from '@/lib/settings';
 import SiteManager from '@/components/admin/SiteManager';
 import { isEmailConfigured } from '@/lib/email';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'সেটিংস' };
 
 export default async function AdminSite() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const [rawSettings, socials, payments] = await Promise.all([
     getSettings(),
     prisma.socialLink.findMany({ orderBy: { sortOrder: 'asc' } }),

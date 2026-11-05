@@ -1,4 +1,7 @@
 import { z } from 'zod';
+// ★ side-effect: বার্তাহীন ভ্যালিডেশনের ডিফল্ট বাংলা বার্তা (`lib/zodBangla.ts`)
+import './zodBangla';
+import { ownBlobHost } from './blobHost';
 
 // ★ দুর্বল পাসওয়ার্ড — সবচেয়ে বেশি ব্যবহৃত, ব্রুট-ফোর্সে প্রথমেই চেষ্টা হয়
 const WEAK_PASSWORDS = new Set([
@@ -39,6 +42,49 @@ export const registerSchema = z.object({
   code: z.string().trim().regex(/^\d{6}$/, 'কোড ৬ অঙ্কের হতে হবে').optional().or(z.literal('')),
 });
 
+/**
+ * ★★★ গ্রাহকের দেওয়া ছবির URL — কেবল **আমাদের নিজের স্টোরেজে আপলোড করা**।
+ *
+ *   আগে ডিপোজিটের `screenshot` ও রিভিউর `photoUrl` ছিল `z.string().url()`।
+ *   ব্রাউজারে মাপা দুটি ত্রুটি (`scripts/verify/security-probes.ts`):
+ *   ১. যেকোনো URL যেত — `javascript:alert(document.cookie)` ও বাইরের
+ *      সাইট সহ। রিভিউ ডিফল্টে প্রকাশিত, আর ছবিটি **পাবলিক প্রোডাক্ট-পাতায়**
+ *      `<a href>` হয়ে বসে — অর্থাৎ যেকোনো গ্রাহক API সরাসরি ডেকে আমাদের
+ *      পাতায় ফিশিং-লিংক বসাতে পারতেন।
+ *   ২. উল্টোদিকে আমাদের নিজের লোকাল-স্টোরেজের `/uploads/…` পথ `url()`
+ *      **প্রত্যাখ্যান** করত (relative) — স্ক্রিনশট দিলেই "Invalid url"।
+ *
+ *   `/api/upload` যে আকারে key বানায় (`upload.ts`: `<folder>/<সময়>-<র‍্যান্ডম>.<ext>`)
+ *   ঠিক সেটিই মেলানো হয়, তিনটি ড্রাইভারের যেকোনোটির ভিত্তি-URL সহ।
+ *   ⚠️ `..`, query, hash বা credential কখনো পার হয় না।
+ */
+const UPLOAD_KEY_PATH = /^\/[a-z0-9_-]+\/\d+-[a-z0-9]*\.(?:jpg|png|webp|gif)$/;
+
+export function isOwnUploadUrl(raw: string): boolean {
+  if (raw.startsWith('/')) {
+    return raw.startsWith('/uploads/') && UPLOAD_KEY_PATH.test(raw.slice('/uploads'.length));
+  }
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== 'https:' || u.username || u.password || u.search || u.hash) return false;
+  // ★★★ UPL-01 — কেবল **আমাদের** স্টোরের হুবহু হোস্ট; আগে `endsWith(...)` মানে
+  //   যে কেউ নিজের Blob স্টোর খুলে তার ছবি "আমাদের আপলোড" হিসেবে চালাতে পারত।
+  const blobHost = ownBlobHost();
+  if (blobHost && u.hostname === blobHost) return UPLOAD_KEY_PATH.test(u.pathname);
+  // S3/R2 — ভিত্তি-URL কেবল সার্ভারে জানা (এই ফাইল ক্লায়েন্টে import হয় না)
+  const s3 = (process.env.S3_PUBLIC_URL || '').replace(/\/$/, '');
+  if (s3 && raw.startsWith(`${s3}/`)) return UPLOAD_KEY_PATH.test(raw.slice(s3.length));
+  return false;
+}
+
+const uploadedImageUrl = z
+  .string().trim().max(500)
+  .refine(isOwnUploadUrl, 'ছবিটি আবার আপলোড করুন');
+
 export const forgotSchema = z.object({
   email: z.string().trim().toLowerCase().email('সঠিক ইমেইল দিন').max(120),
 });
@@ -48,15 +94,33 @@ export const resetSchema = z.object({
   password: passwordSchema,
 });
 
+/**
+ * ★★★ টাকার অঙ্কে সর্বোচ্চ ২ দশমিক।
+ *
+ *   কেন: `balance` ও `LedgerEntry.amount` দুটোই `numeric(12,2)`, আর Postgres
+ *   বাড়তি দশমিক গোল করে **দুই জায়গায় আলাদাভাবে** — ব্যালেন্সে যোগফলের উপর,
+ *   খতিয়ানে অঙ্কটির উপর। মাপা (EXTREME অডিট, ২০২৬-০৯-২১,
+ *   `tests/money-precision`): ৳10.00 থেকে 0.125 কাটলে ব্যালেন্স 9.88 কিন্তু
+ *   খতিয়ানের যোগফল 9.87 — "যোগফল = ব্যালেন্স" invariant এক কর্তনেই ভাঙে।
+ *   নীরবে গোল না করে পরিষ্কারভাবে ফেরত দেওয়া হয় — টাকার অঙ্ক অনুমান নয়।
+ *   ⚠️ `* 100` ভাসমান-বিন্দুতে 0.1 → 10.000000000000002 দেয়, তাই সহনশীলতা।
+ *
+ *   ⚠️ এখানে (ব্যবহারের **আগে**) সংজ্ঞায়িত — `const` TDZ: স্কিমা মডিউল-লোডেই
+ *   তৈরি হয়, পরে সংজ্ঞায়িত হলে `.refine(atMost2dp)` লোডের সময়ই ভেঙে পড়ত।
+ */
+const atMost2dp = (n: number) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6;
+
 export const depositSchema = z.object({
-  method: z.enum(['BKASH', 'NAGAD', 'ROCKET', 'UPAY']),
-  amount: z.coerce.number().positive('সঠিক পরিমাণ দিন').max(1_000_000, 'পরিমাণ অনেক বড়'),
+  method: z.enum(['BKASH', 'NAGAD', 'ROCKET', 'UPAY', 'BANGLA_QR']),
+  amount: z.coerce.number().positive('সঠিক পরিমাণ দিন').max(1_000_000, 'পরিমাণ অনেক বড়')
+    // ★ F3 — ২০.০০৫ আগে গৃহীত হতো আর Postgres নীরবে ২০.০১ বানাত (মাপা: chaos-cross-action)
+    .refine(atMost2dp, 'দশমিকের পরে সর্বোচ্চ ২ অঙ্ক দিন (যেমন ১০.৫০)'),
   trxId: z
     .string().trim().toUpperCase()
     .min(6, 'সঠিক ট্রানজেকশন আইডি দিন').max(30, 'ট্রানজেকশন আইডি অনেক বড়')
     .regex(/^[A-Z0-9]+$/, 'TrxID তে শুধু অক্ষর ও সংখ্যা থাকবে'),
   senderNo: z.string().trim().regex(/^01[3-9]\d{8}$/, 'যে নাম্বার থেকে পাঠিয়েছেন সেটি দিন'),
-  screenshot: z.string().url().max(500).optional().or(z.literal('')),
+  screenshot: uploadedImageUrl.optional().or(z.literal('')),
 });
 
 export const orderSchema = z.object({
@@ -87,6 +151,13 @@ export const orderSchema = z.object({
     .string().trim().min(1).max(64)
     .regex(/^[a-zA-Z0-9._:\-]+$/, 'clientRef এ অবৈধ অক্ষর আছে')
     .optional(),
+  /** ★ নিশ্চিতকরণে দেখানো মোট দাম — কেবল সীমা, কখনো কাটা দাম নয় (`services/order.ts`) */
+  //   ⚠️ `coerce` নয় — `null`/`""` কে ০ বানিয়ে প্রতিটি অর্ডার ৪০৯ করে দিত
+  //   `null` = পাঠানো হয়নি (আগের আচরণ)
+  expectedPrice: z
+    .number({ invalid_type_error: 'দামের মান সঠিক নয়' })
+    .nonnegative('দামের মান সঠিক নয়').max(1_000_000, 'দামের মান সঠিক নয়')
+    .nullable().optional(),
 });
 
 /**
@@ -121,14 +192,16 @@ export const bulkOrderSchema = z.object({
 
 /** ★ ডাইরেক্ট পে — অর্ডারের তথ্য + পেমেন্টের দাবি একসাথে */
 export const directOrderSchema = orderSchema.extend({
-  method: z.enum(['BKASH', 'NAGAD', 'ROCKET', 'UPAY']),
-  amount: z.coerce.number().positive('সঠিক পরিমাণ দিন').max(1_000_000, 'পরিমাণ অনেক বড়'),
+  method: z.enum(['BKASH', 'NAGAD', 'ROCKET', 'UPAY', 'BANGLA_QR']),
+  amount: z.coerce.number().positive('সঠিক পরিমাণ দিন').max(1_000_000, 'পরিমাণ অনেক বড়')
+    // ★ F3 — ২০.০০৫ আগে গৃহীত হতো আর Postgres নীরবে ২০.০১ বানাত (মাপা: chaos-cross-action)
+    .refine(atMost2dp, 'দশমিকের পরে সর্বোচ্চ ২ অঙ্ক দিন (যেমন ১০.৫০)'),
   trxId: z
     .string().trim().toUpperCase()
     .min(6, 'সঠিক ট্রানজেকশন আইডি দিন').max(30, 'ট্রানজেকশন আইডি অনেক বড়')
     .regex(/^[A-Z0-9]+$/, 'TrxID তে শুধু অক্ষর ও সংখ্যা থাকবে'),
   senderNo: z.string().trim().regex(/^01[3-9]\d{8}$/, 'যে নাম্বার থেকে পাঠিয়েছেন সেটি দিন'),
-  screenshot: z.string().url().max(500).optional().or(z.literal('')),
+  screenshot: uploadedImageUrl.optional().or(z.literal('')),
 });
 
 /**
@@ -158,7 +231,7 @@ export const reviewSchema = z.object({
   rating: z.coerce.number().int().min(1, 'রেটিং দিন').max(5, 'রেটিং ১–৫ এর মধ্যে'),
   body: z.string().trim().max(500, 'মন্তব্য অনেক বড়').optional().or(z.literal('')),
   // ★ ঐচ্ছিক স্ক্রিনশট — গ্রাহক চাইলে দেবে, না চাইলে নয়
-  photoUrl: z.string().url().max(500).optional().or(z.literal('')),
+  photoUrl: uploadedImageUrl.optional().or(z.literal('')),
 });
 
 export const uidVerifySchema = z.object({
@@ -245,14 +318,26 @@ export const adminPartialRefundSchema = z.object({
   orderId: z.string().min(1).max(40),
   amount: z.number().positive('অঙ্ক শূন্যের বেশি হতে হবে').max(1_000_000),
   reason: z.string().trim().min(3, 'কারণ লিখুন — কেন ফেরত দেওয়া হচ্ছে').max(300),
+  /**
+   * ★★★ idempotency key — **বাধ্যতামূলক**। UI প্রতিটি ফেরত-ডায়ালগে একটি বানায়।
+   *   এটি ছাড়া "একই অনুরোধ দুবার পৌঁছেছে" আর "ইচ্ছাকৃত দ্বিতীয় ফেরত" আলাদা করার
+   *   কোনো উপায় নেই (`api/admin/order/refund` দেখুন)। পুরনো খোলা ট্যাব এটি পাঠায়
+   *   না — তাই বার্তায় রিফ্রেশ করতে বলা।
+   */
+  requestId: z.string({ required_error: 'পাতাটি রিফ্রেশ করে আবার চেষ্টা করুন' })
+    .trim().regex(/^[A-Za-z0-9_-]{8,64}$/, 'পাতাটি রিফ্রেশ করে আবার চেষ্টা করুন'),
 });
+
 
 export const adminAdjustSchema = z.object({
   userId: z.string().min(1).max(40),
   amount: z.coerce.number()
     .refine((n) => n !== 0, 'পরিমাণ ০ হতে পারে না')
-    .refine((n) => Math.abs(n) <= 500_000, 'পরিমাণ অনেক বড়'),
+    .refine((n) => Math.abs(n) <= 500_000, 'পরিমাণ অনেক বড়')
+    .refine(atMost2dp, 'দশমিকের পরে সর্বোচ্চ ২ অঙ্ক দিন (যেমন ১০.৫০)'),
   note: z.string().trim().min(2, 'কারণ লিখুন').max(300),
+  /** ★ idempotency key — প্রতিবার ডায়ালগ খুললে নতুন (ঐচ্ছিক; `api/admin/user` দেখুন) */
+  requestId: z.string().trim().regex(/^[A-Za-z0-9_-]{8,64}$/, 'অনুরোধ-আইডি সঠিক নয়').optional(),
 });
 
 export const adminCouponSchema = z.object({

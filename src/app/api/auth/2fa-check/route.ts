@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { apiError, ApiError, readJson } from '@/lib/guard';
-import { rateLimit, getIp } from '@/lib/rateLimit';
+import { rateLimit, refundRateLimit, getIp, LOGIN_LIMITS } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +21,18 @@ export const dynamic = 'force-dynamic';
  *      প্রতিরোধ: (a) IP+email rate limit (login route-এর মতোই), (b) timing-
  *      safe (ইউজার না থাকলেও bcrypt চালানো)। এটি login-এর অতিরিক্ত ধাপ নয় —
  *      login route নিজেও একই যাচাই করে; এটি কেবল UI-কে জানায় কী দেখাতে হবে।
- *   ⚠️ কখনো সেশন তৈরি করে না; শুধু `{ needsTotp: boolean }` ফেরায়।
+ *   ⚠️ কখনো সেশন তৈরি করে না; শুধু `{ needsTotp, credentialsOk? }` ফেরায়।
+ *
+ *   ★★★ AUTH-03 — লগইনের সাথে **একই** বাজেট।
+ *   আগে এর নিজস্ব বাকেট (`2fa-precheck:*`) ছিল, অথচ 2FA-অ্যাকাউন্টে
+ *   `needsTotp: true` মানেই "পাসওয়ার্ড ঠিক" — ফলে আক্রমণকারী এখানে ৫টি ও
+ *   লগইনে আরও ৫টি, অর্থাৎ **দ্বিগুণ** অনুমান পেত। এখন প্রতিটি অনুরোধ লগইনের
+ *   `login:ip`/`login:email` বাকেট থেকে **আগেই** একটি চেষ্টা খরচ করে (atomic —
+ *   সমান্তরাল অনুমান সীমা পেরোতে পারে না); পাসওয়ার্ড ঠিক হলে খরচটুকু ফেরত।
+ *   পাসওয়ার্ড ভুল হলে `credentialsOk: false` — লগইন পাতা তখন `signIn` না
+ *   ডেকে একই "ভুল" বার্তা দেখায়, তাই একটি ব্যর্থ চেষ্টা **একবারই** গোনা হয়
+ *   (বৈধ ব্যবহারকারীর ৫টি সুযোগ কমে না)। লগইন নিজেও সঠিক/ভুল জানায়, আর
+ *   বাজেট এখন একটিই — নতুন কোনো তথ্য ফাঁস হয় না।
  * ═══════════════════════════════════════════════════════════
  */
 
@@ -42,17 +53,21 @@ export async function POST(req: Request) {
     const { email, password } = parsed.data;
     const ip = getIp(req);
 
-    // ★ login route-এর সমান rate limit — oracle অপব্যবহার ঠেকায়
-    //   C4: fail-closed। এই endpoint **পাসওয়ার্ড যাচাই করে**, তাই সীমা
-    //   ছাড়া এটি একটি নিখুঁত ব্রুট-ফোর্স oracle হয়ে যেত।
-    //   ⚠️ ব্যর্থ হলেও `needsTotp: false` ফেরত যায় (৫০৩ নয়) — এই
-    //   endpoint কেবল UI-কে বলে কী দেখাতে হবে; আসল গেট `authorize()`,
-    //   যা নিজেও fail-closed। এখানে ত্রুটি ছুঁড়লে DB হেঁচকিতে লগইন
-    //   ফর্মই ভেঙে যেত, অথচ নিরাপত্তা কিছুই বাড়ত না।
-    const ipLimit = await rateLimit(`2fa-precheck:ip:${ip}`, 10, 600, { failClosed: true });
+    // ★ লগইনের **একই** বাকেট (AUTH-03) — C4: fail-closed।
+    //   ⚠️ সীমা/লিমিটার-ব্যর্থতায় `needsTotp: false` (৫০৩ নয়, `credentialsOk` নেই) —
+    //   পাতা তখন `signIn` ডাকে, আর `authorize()` (নিজেও fail-closed) সঠিক
+    //   "সাময়িক বন্ধ" বার্তার পথে নেয়। এখানে ত্রুটি ছুঁড়লে লগইন ফর্মই ভাঙত।
+    const ipKey = `login:ip:${ip}`;
+    const emailKey = `login:email:${email}`;
+    const ipLimit = await rateLimit(ipKey, LOGIN_LIMITS.ip.limit, LOGIN_LIMITS.ip.window, { failClosed: true });
     if (!ipLimit.ok) return Response.json({ needsTotp: false });
-    const emailLimit = await rateLimit(`2fa-precheck:email:${email}`, 5, 900, { failClosed: true });
-    if (!emailLimit.ok) return Response.json({ needsTotp: false });
+    const emailLimit = await rateLimit(emailKey, LOGIN_LIMITS.email.limit, LOGIN_LIMITS.email.window, { failClosed: true });
+    if (!emailLimit.ok) {
+      await refundRateLimit(ipKey);
+      return Response.json({ needsTotp: false });
+    }
+    // ★ পাসওয়ার্ড ঠিক হলে খরচ ফেরত — এরপর `signIn` নিজে গুনবে ও সফল হলে ফেরত দেবে
+    const refund = async () => { await refundRateLimit(ipKey); await refundRateLimit(emailKey); };
 
     const user = await prisma.user.findUnique({
       where: { email },
@@ -62,12 +77,15 @@ export async function POST(req: Request) {
     // ★ timing-safe — ইউজার না থাকলেও bcrypt চালাই
     if (!user) {
       await bcrypt.compare(password, DUMMY_HASH);
-      return Response.json({ needsTotp: false });
+      return Response.json({ needsTotp: false, credentialsOk: false });
     }
 
     const ok = await bcrypt.compare(password, user.password);
-    // ★ পাসওয়ার্ড ভুল বা ban — 2FA প্রশ্নই আসে না; login route সামলাবে
-    if (!ok || user.isBanned) return Response.json({ needsTotp: false });
+    // ★ পাসওয়ার্ড ভুল — গোনা থাকে; পাতা `signIn` না ডেকে সরাসরি "ভুল" দেখায়
+    if (!ok) return Response.json({ needsTotp: false, credentialsOk: false });
+    await refund();
+    // ★ ban — 2FA প্রশ্নই আসে না; `authorize()` সামলাবে (আগের মতো)
+    if (user.isBanned) return Response.json({ needsTotp: false });
 
     return Response.json({ needsTotp: Boolean(user.twoFactorEnabled) });
   } catch (e) {

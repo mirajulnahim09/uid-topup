@@ -3,6 +3,7 @@ import { getSettings, toClientSettings } from '@/lib/settings';
 import { isBlobConfigured } from '@/lib/upload';
 import CampaignManager, { type CampaignRow } from '@/components/admin/CampaignManager';
 import HomeConfigForm from '@/components/admin/HomeConfigForm';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'হোমপেজ ব্যবস্থাপনা' };
@@ -13,6 +14,9 @@ export const metadata = { title: 'হোমপেজ ব্যবস্থাপ
  *   পপআপ · হিরো · ব্যানার · নোটিশ · স্ট্রিপ · প্রচারণা + সেকশন টগল।
  */
 export default async function AdminHomepage() {
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড। ⚠️ নিচের try/catch-এর **বাইরে** —
+  //   ভেতরে থাকলে catch `redirect()`-কে গিলে ফেলত।
+  await requireAdminPage();
   let items: CampaignRow[] = [];
   let settings: Record<string, string> = {};
   try {

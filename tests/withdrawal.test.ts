@@ -10,16 +10,18 @@
  *   `SUM(LedgerEntry.amount) === User.balance`।
  * ═══════════════════════════════════════════════════════════
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db } from '../vitest.setup';
 import { createUser, balanceOf, ledgerSum } from './helpers/factories';
-import { client, signedInUser } from './helpers/app';
+import { client, signedInUser, signedInAdmin } from './helpers/app';
 import {
   requestWithdrawal, approveWithdrawal, rejectWithdrawal,
   withdrawableAmount, WITHDRAWAL_KEYS,
 } from '../src/lib/services/withdrawal';
-import { creditWallet } from '../src/lib/services/wallet';
+import { creditWallet, debitWallet } from '../src/lib/services/wallet';
+import { payReferralBonus } from '../src/lib/referral';
 import { invalidateSettings } from '../src/lib/settings';
+import { issueOtp } from '../src/lib/otp/core';
 
 /** ★ ফিচারটি ডিফল্টে বন্ধ — প্রতিটি টেস্টের আগে স্পষ্ট করে চালু করি */
 async function enable(over: Record<string, string> = {}) {
@@ -37,8 +39,32 @@ async function enable(over: Record<string, string> = {}) {
   invalidateSettings();
 }
 
+/**
+ * For tests that hit the server over HTTP: save the same settings through the
+ * real admin route, which also invalidates the server process's 30 s settings
+ * cache (`enable()` alone only clears this process's cache). Under `next dev`
+ * every route had its own module copy, so a stale cache never surfaced; the
+ * production build shares one, as a real single instance does.
+ */
+async function enableOnServer(over: Record<string, string> = {}) {
+  await enable(over);
+  const { client: admin } = await signedInAdmin(db);
+  const res = await admin.post('/api/admin/settings', {
+    [WITHDRAWAL_KEYS.enabled]: '1',
+    [WITHDRAWAL_KEYS.min]: '100',
+    [WITHDRAWAL_KEYS.dailyCap]: '50000',
+    [WITHDRAWAL_KEYS.holdHours]: '0',
+    ...over,
+  });
+  expect(res.status).toBe(200);
+}
+
 /** ★ ব্যালেন্স বসানো — খতিয়ানসহ, যাতে invariant অর্থবহ থাকে */
-async function fund(userId: string, amount: number, type: 'DEPOSIT' | 'REFUND' = 'DEPOSIT') {
+async function fund(
+  userId: string,
+  amount: number,
+  type: 'DEPOSIT' | 'REFUND' | 'REFERRAL_BONUS' | 'ADMIN_ADJUST' = 'DEPOSIT',
+) {
   await db.$transaction(async (tx) => {
     await creditWallet({ tx, userId, amount, type, note: 'টেস্ট তহবিল' });
   });
@@ -115,6 +141,41 @@ describe('প্রত্যাহার — অনুরোধে টাকা 
     await expect(
       requestWithdrawal({ userId: u.id, amount: 200, method: 'BKASH', accountNumber: '01712345678' }),
     ).rejects.toThrow();
+  });
+
+  /**
+   * ★★★ দৈনিক সীমা **ঢাকার** মধ্যরাতে নতুন হয় — সার্ভার UTC হলেও (মালিকের
+   *   সিদ্ধান্ত, চূড়ান্ত মাস্টার অডিট ২০২৬-০৯-১৭)। আগে `setHours` সার্ভারের ঘড়ি
+   *   ধরত: Vercel-এ দিন বদলাত ঢাকার সকাল ৬টায়, তাই রাত ১১:৩০-এর তোলা টাকা
+   *   পরদিন রাত ১২:৩০-এও "আজকের" হিসেবে গোনা হতো।
+   */
+  it('দৈনিক সীমা ঢাকার মধ্যরাতে নতুন হয় (সার্ভার UTC)', async () => {
+    const prevTz = process.env.TZ;
+    process.env.TZ = 'UTC';
+    try {
+      await enable({ [WITHDRAWAL_KEYS.dailyCap]: '1000' });
+      const yesterdayUser = await newFundedUser(5000);
+      const todayUser = await newFundedUser(5000);
+      const past = { amount: 900, method: 'BKASH', accountNumber: '01712345678', status: 'APPROVED' as const };
+      // ঢাকা ১৭ তারিখ ২৩:৩০ (= ১৭:৩০Z) — "গতকাল"
+      await db.withdrawal.create({ data: { ...past, userId: yesterdayUser.id, createdAt: new Date('2026-09-17T17:30:00Z') } });
+      // ঢাকা ১৮ তারিখ ০০:১০ (= ১৮:১০Z) — "আজ"
+      await db.withdrawal.create({ data: { ...past, userId: todayUser.id, createdAt: new Date('2026-09-17T18:10:00Z') } });
+
+      // এখন: ঢাকা ১৮ তারিখ ০০:৩০ (= ১৮:৩০Z) — UTC-তে এখনো ১৭ তারিখ
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-09-17T18:30:00Z'));
+
+      await expect(
+        requestWithdrawal({ userId: yesterdayUser.id, amount: 200, method: 'BKASH', accountNumber: '01712345678' }),
+      ).resolves.toBeTruthy();
+      await expect(
+        requestWithdrawal({ userId: todayUser.id, amount: 200, method: 'BKASH', accountNumber: '01712345678' }),
+      ).rejects.toThrow(/দৈনিক সর্বোচ্চ/);
+    } finally {
+      vi.useRealTimers();
+      process.env.TZ = prevTz;
+    }
   });
 
   /** ★★★ একই ব্যালেন্সে দুটি অনুরোধ — সমান্তরালে */
@@ -263,6 +324,244 @@ describe('প্রত্যাহার — সাম্প্রতিক জ�
   });
 });
 
+/** ★ খতিয়ানের সারি পিছিয়ে দেওয়া — "N ঘণ্টা আগের" ক্রেডিট বানাতে */
+async function ageLedger(userId: string, type: 'DEPOSIT' | 'REFERRAL_BONUS' | 'ADMIN_ADJUST', hours: number) {
+  await db.ledgerEntry.updateMany({
+    where: { userId, type },
+    data: { createdAt: new Date(Date.now() - hours * 3600_000) },
+  });
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════
+ * ★★★ FIN-01 (মালিকের সিদ্ধান্ত, ২০২৬-০৯-২৭)
+ *
+ *   ১. রেফারেল বোনাস ৭২ ঘণ্টা তোলা যায় না — ডিপোজিট-hold সেটিং ০ হলেও।
+ *   ২. অ্যাডমিনের ধনাত্মক সমন্বয় কখনো নিজে থেকে তোলার যোগ্য নয়।
+ *
+ *   আগে দুটোই সাথে সাথে পুরোপুরি তোলা যেত (hold শুধু DEPOSIT/REFUND ধরত)।
+ * ═══════════════════════════════════════════════════════════
+ */
+describe('FIN-01 — রেফারেল বোনাস ৭২ ঘণ্টা আটকে', () => {
+  it('সদ্য পাওয়া বোনাস তোলা যায় না — ডিপোজিট-hold ০ হলেও', async () => {
+    await enable(); // holdHours = 0
+    const u = await createUser(db, {});
+    await fund(u.id, 1000);
+    await ageLedger(u.id, 'DEPOSIT', 96);
+    await fund(u.id, 200, 'REFERRAL_BONUS');
+
+    expect(await withdrawableAmount(db, u.id, 1200, 0)).toBe(1000);
+    await expect(
+      requestWithdrawal({ userId: u.id, amount: 1100, method: 'BKASH', accountNumber: '01712345678' }),
+    ).rejects.toThrow();
+    expect(Number(await balanceOf(db, u.id))).toBe(1200);
+    expect(await db.withdrawal.count({ where: { userId: u.id } })).toBe(0);
+  });
+
+  /**
+   * ★★★ সীমানা — নকল ঘড়িতে, ঘুমিয়ে নয়। সার্ভারের ঘড়ি `T0`-এ স্থির, বোনাস-সারির
+   *   `createdAt` ঠিক কতটা পিছনে তা হাতে বসানো। তাই ফল মিলিসেকেন্ডে নির্ধারিত।
+   */
+  const T0 = new Date('2026-10-01T06:00:00.000Z');
+  const H = 3600_000;
+
+  async function withClock<T>(fn: () => Promise<T>): Promise<T> {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(T0);
+    try { return await fn(); } finally { vi.useRealTimers(); }
+  }
+
+  // ★ প্রতিটি সারি নিজের অনন্য note দিয়ে ধরা — "সর্বশেষ সারি" ধরলে আগে পিছিয়ে
+  //   দেওয়া সারিটিই আবার ধরা পড়তে পারে (T0 আসল সময়ের পরে বলে)
+  let seq = 0;
+  async function bonusAged(userId: string, amount: number, ageMs: number) {
+    const note = `টেস্ট বোনাস #${++seq}`;
+    await db.$transaction((tx) => creditWallet({ tx, userId, amount, type: 'REFERRAL_BONUS', note }));
+    const e = await db.ledgerEntry.findFirstOrThrow({ where: { userId, type: 'REFERRAL_BONUS', note } });
+    await db.ledgerEntry.update({ where: { id: e.id }, data: { createdAt: new Date(T0.getTime() - ageMs) } });
+  }
+
+  it('সীমানা: ৭১ঘ ৫৯মি → আটকে · ঠিক ৭২ঘ → মুক্ত · ৭২ঘ − ১ms → আটকে', async () => {
+    await enable();
+    const a = await createUser(db, {});
+    const b = await createUser(db, {});
+    const c = await createUser(db, {});
+    await withClock(async () => {
+      await bonusAged(a.id, 150, 71 * H + 59 * 60_000);
+      await bonusAged(b.id, 150, 72 * H);
+      await bonusAged(c.id, 150, 72 * H - 1);
+      expect(await withdrawableAmount(db, a.id, 150, 0)).toBe(0);
+      expect(await withdrawableAmount(db, b.id, 150, 0)).toBe(150);
+      expect(await withdrawableAmount(db, c.id, 150, 0)).toBe(0);
+    });
+  });
+
+  it('ঠিক ৭২ ঘণ্টায় আসল অনুরোধ সফল, খতিয়ান অটুট', async () => {
+    await enable();
+    const u = await createUser(db, {});
+    await withClock(async () => {
+      await bonusAged(u.id, 150, 72 * H);
+      await expect(
+        requestWithdrawal({ userId: u.id, amount: 150, method: 'BKASH', accountNumber: '01712345678' }),
+      ).resolves.toBeTruthy();
+    });
+    expect(Number(await balanceOf(db, u.id))).toBe(0);
+    expect(await ledgerSum(db, u.id)).toBe(0);
+  });
+
+  it('একাধিক বোনাস — প্রতিটির hold আলাদা হিসাব হয়', async () => {
+    await enable();
+    const u = await createUser(db, {});
+    await withClock(async () => {
+      await bonusAged(u.id, 100, 80 * H); // মুক্ত
+      await bonusAged(u.id, 40, 50 * H);  // আটকে (আরও ২২ঘ)
+      await bonusAged(u.id, 25, 1 * H);   // আটকে (আরও ৭১ঘ)
+      expect(await withdrawableAmount(db, u.id, 165, 0)).toBe(100);
+    });
+    // ★ ২৩ ঘণ্টা পরে: মাঝেরটিও মুক্ত, সবশেষটি নয়
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(T0.getTime() + 23 * H));
+    try {
+      expect(await withdrawableAmount(db, u.id, 165, 0)).toBe(140);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('ডিপোজিটের টাকা বোনাসের hold পায় না (holdHours ০-তে সদ্য জমাও পুরো তোলা যায়)', async () => {
+    await enable();
+    const u = await createUser(db, {});
+    await fund(u.id, 700);          // সদ্য জমা — ডিপোজিট-hold ০
+    await fund(u.id, 50, 'REFERRAL_BONUS');
+    expect(await withdrawableAmount(db, u.id, 750, 0)).toBe(700);
+  });
+
+  it('সমান্তরাল অনুরোধ: আটকে থাকা বোনাস খরচ হয় না, দ্বিগুণ কাটা নেই', async () => {
+    await enable();
+    const u = await createUser(db, {});
+    await fund(u.id, 1000);
+    await ageLedger(u.id, 'DEPOSIT', 96);
+    await fund(u.id, 200, 'REFERRAL_BONUS'); // ব্যালেন্স ১২০০, তোলার যোগ্য ১০০০
+
+    // ★ বোনাসসহ অঙ্ক — দুটোই প্রত্যাখ্যাত
+    const over = await Promise.allSettled([1100, 1100].map((amount) =>
+      requestWithdrawal({ userId: u.id, amount, method: 'BKASH', accountNumber: '01712345678' })));
+    expect(over.every((r) => r.status === 'rejected')).toBe(true);
+    expect(Number(await balanceOf(db, u.id))).toBe(1200);
+
+    // ★ বৈধ অঙ্কে দুটি একসাথে — ঠিক একটি
+    const rs = await Promise.allSettled([600, 600].map((amount) =>
+      requestWithdrawal({ userId: u.id, amount, method: 'BKASH', accountNumber: '01712345678' })));
+    expect(rs.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const w = await db.withdrawal.findFirstOrThrow({ where: { userId: u.id } });
+    await approveWithdrawal({ id: w.id, payoutRef: 'FIN01-C1', adminId: 'a', adminName: 'অ্যাডমিন' });
+
+    // ★ বাকি ৬০০-র মধ্যে ২০০ বোনাস — তাই এখন সর্বোচ্চ ৪০০
+    expect(await withdrawableAmount(db, u.id, 600, 0)).toBe(400);
+    await expect(
+      requestWithdrawal({ userId: u.id, amount: 500, method: 'BKASH', accountNumber: '01712345678' }),
+    ).rejects.toThrow();
+    expect(Number(await balanceOf(db, u.id))).toBe(600);
+    expect(await ledgerSum(db, u.id)).toBe(600);
+  });
+
+  it('বোনাস অর্ডারে খরচ → রিফান্ড: ৭২ ঘণ্টার আগে তবুও তোলা যায় না, খতিয়ান অটুট', async () => {
+    await enable(); // রিফান্ড-hold ০ — তবু বোনাসের hold বহাল
+    const u = await createUser(db, {});
+    await fund(u.id, 200, 'REFERRAL_BONUS');
+    await db.$transaction((tx) => debitWallet({ tx, userId: u.id, amount: 200, type: 'ORDER', note: 'টেস্ট অর্ডার' }));
+    await fund(u.id, 200, 'REFUND');
+
+    expect(Number(await balanceOf(db, u.id))).toBe(200);
+    expect(await withdrawableAmount(db, u.id, 200, 0)).toBe(0);
+    await expect(
+      requestWithdrawal({ userId: u.id, amount: 200, method: 'BKASH', accountNumber: '01712345678' }),
+    ).rejects.toThrow();
+    expect(await ledgerSum(db, u.id)).toBe(200);
+  });
+
+  it('আসল পথ: payReferralBonus-এর বোনাস রেফারারের তোলার যোগ্য অঙ্কে পড়ে না', async () => {
+    await enable();
+    const referrer = await createUser(db, {});
+    const friend = await createUser(db, {});
+    await db.user.update({ where: { id: friend.id }, data: { referredById: referrer.id } });
+
+    const paid = await db.$transaction((tx) => payReferralBonus(tx, friend.id, 500));
+    expect(paid?.referrerId).toBe(referrer.id);
+
+    const bal = Number(await balanceOf(db, referrer.id));
+    expect(bal).toBeGreaterThan(0);
+    expect(await withdrawableAmount(db, referrer.id, bal, 0)).toBe(0);
+    expect(await ledgerSum(db, referrer.id)).toBe(bal);
+  });
+});
+
+describe('FIN-01 — অ্যাডমিনের ধনাত্মক সমন্বয় তোলা যায় না', () => {
+  it('অ্যাডমিন রুটে দেওয়া ক্রেডিট — এক বছর পরেও তোলার যোগ্য নয়', async () => {
+    await enable(); // holdHours = 0
+    const u = await createUser(db, {});
+    await fund(u.id, 1000);
+    await ageLedger(u.id, 'DEPOSIT', 96);
+
+    const { client: a } = await signedInAdmin(db);
+    const res = await a.post('/api/admin/user', {
+      userId: u.id, amount: 300, note: 'ক্ষতিপূরণ', requestId: 'fin01-adj-0001',
+    });
+    expect(res.status).toBe(200);
+    await ageLedger(u.id, 'ADMIN_ADJUST', 24 * 365);
+
+    expect(Number(await balanceOf(db, u.id))).toBe(1300);
+    expect(await withdrawableAmount(db, u.id, 1300, 0)).toBe(1000);
+    await expect(
+      requestWithdrawal({ userId: u.id, amount: 1100, method: 'BKASH', accountNumber: '01712345678' }),
+    ).rejects.toThrow();
+    // ★ নিজের জমা টাকা আগের মতোই তোলা যায়
+    await expect(
+      requestWithdrawal({ userId: u.id, amount: 1000, method: 'BKASH', accountNumber: '01712345678' }),
+    ).resolves.toBeTruthy();
+    expect(Number(await balanceOf(db, u.id))).toBe(300);
+    expect(await ledgerSum(db, u.id)).toBe(300);
+  });
+
+  it('খরচ করে রিফান্ড হয়ে এলেও অ্যাডমিনের অংশটুকু আটকে থাকে', async () => {
+    await enable();
+    const u = await createUser(db, {});
+    await fund(u.id, 500, 'ADMIN_ADJUST');
+    // অর্ডারে খরচ → পুরো রিফান্ড (hold ০, তাই রিফান্ড নিজে আটকায় না)
+    await db.$transaction((tx) => debitWallet({ tx, userId: u.id, amount: 500, type: 'ORDER', note: 'টেস্ট অর্ডার' }));
+    await fund(u.id, 500, 'REFUND');
+
+    expect(await withdrawableAmount(db, u.id, 500, 0)).toBe(0);
+  });
+
+  it('ভুল ক্রেডিট ডেবিটে শুধরে দিলে গ্রাহকের নিজের টাকা আটকায় না (নিট)', async () => {
+    await enable();
+    const u = await createUser(db, {});
+    await fund(u.id, 1000);
+    await fund(u.id, 400, 'ADMIN_ADJUST');
+    await db.$transaction((tx) => debitWallet({ tx, userId: u.id, amount: 400, type: 'ADMIN_ADJUST', note: 'ভুল শুধরানো' }));
+
+    expect(Number(await balanceOf(db, u.id))).toBe(1000);
+    expect(await withdrawableAmount(db, u.id, 1000, 0)).toBe(1000);
+  });
+
+  it('শুধু ডেবিট-সমন্বয় (জরিমানা) তোলার যোগ্য অঙ্ক ব্যালেন্সের বেশি বানায় না', async () => {
+    await enable();
+    const u = await createUser(db, {});
+    await fund(u.id, 1000);
+    await db.$transaction((tx) => debitWallet({ tx, userId: u.id, amount: 200, type: 'ADMIN_ADJUST', note: 'জরিমানা' }));
+
+    expect(await withdrawableAmount(db, u.id, 800, 0)).toBe(800);
+  });
+
+  it('অপরিবর্তিত: ধনাত্মক সমন্বয় কেনাকাটায় খরচ করা যায় (ব্যালেন্স কমে না)', async () => {
+    await enable();
+    const u = await createUser(db, {});
+    await fund(u.id, 300, 'ADMIN_ADJUST');
+    await db.$transaction((tx) => debitWallet({ tx, userId: u.id, amount: 250, type: 'ORDER', note: 'টেস্ট অর্ডার' }));
+    expect(Number(await balanceOf(db, u.id))).toBe(50);
+    expect(await ledgerSum(db, u.id)).toBe(50);
+  });
+});
+
 /**
  * ═══════════════════════════════════════════════════════════
  * ★★★ খতিয়ান invariant — এই ফাইলের সবচেয়ে গুরুত্বপূর্ণ টেস্ট
@@ -347,7 +646,7 @@ describe('প্রত্যাহার — পাতা ও গার্ড', 
 
   /** ★★★ কোড ছাড়া টাকা বেরোতে পারবে না */
   it('OTP ছাড়া অনুরোধ প্রত্যাখ্যাত ও ব্যালেন্স অক্ষত', async () => {
-    await enable();
+    await enableOnServer();
     const { user, client: c } = await signedInUser(db, {});
     await fund(user.id, 2000);
 
@@ -360,7 +659,39 @@ describe('প্রত্যাহার — পাতা ও গার্ড', 
     expect(await db.withdrawal.count()).toBe(0);
   });
 
+  /**
+   * ★★★ চূড়ান্ত অডিট (২০২৬-০৯-১৭) — আগে OTP আগে খরচ হতো, তারপর অঙ্ক/
+   *   নাম্বার যাচাই। ভুল অঙ্ক দিলেই কোড নষ্ট, গ্রাহককে নতুন কোড চাইতে হতো।
+   */
+  it('ভুল অঙ্ক বা নাম্বারে OTP খরচ হয় না — একই কোডে পরে সঠিক অনুরোধ চলে', async () => {
+    await enableOnServer();
+    const { user, client: c } = await signedInUser(db, {});
+    await fund(user.id, 2000);
+    const { code } = await issueOtp({ channel: 'EMAIL', purpose: 'WITHDRAW', destination: user.email });
+
+    const low = await c.post('/api/account/withdraw', {
+      amount: 50, method: 'BKASH', accountNumber: '01712345678', code,
+    });
+    expect(low.status).toBe(400);
+    const badNo = await c.post('/api/account/withdraw', {
+      amount: 500, method: 'BKASH', accountNumber: '01112345678', code,
+    });
+    expect(badNo.status).toBe(400);
+    expect(Number(await balanceOf(db, user.id))).toBe(2000);
+
+    const ok = await c.post('/api/account/withdraw', {
+      amount: 500, method: 'BKASH', accountNumber: '01712345678', code,
+    });
+    expect(ok.status).toBe(200);
+    expect(Number(await balanceOf(db, user.id))).toBe(1500);
+    expect(await ledgerSum(db, user.id)).toBe(1500);
+  });
+
   it('ফিচার বন্ধ থাকলে গ্রাহকের পাতা সেটিই বলে', async () => {
+    // the DB has no withdrawal row (truncated); drop whatever an earlier test left
+    // in the server's settings cache so the page reads that state
+    const { client: admin } = await signedInAdmin(db);
+    expect((await admin.post('/api/admin/settings', {})).status).toBe(200);
     const { client: c } = await signedInUser(db, {});
     const html = await (await c.raw('/account/wallet/withdraw')).text();
     expect(html).toContain('এখনো চালু হয়নি');

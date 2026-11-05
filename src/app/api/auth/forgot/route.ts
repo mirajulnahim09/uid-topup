@@ -1,9 +1,15 @@
 import { prisma } from '@/lib/prisma';
 import { forgotSchema } from '@/lib/validation';
 import { apiError, ApiError, readJson } from '@/lib/guard';
-import { rateLimit, getIp, RATE_LIMIT_UNAVAILABLE_MSG } from '@/lib/rateLimit';
+import { rateLimit, getIp, LIMITS, RATE_LIMIT_UNAVAILABLE_MSG } from '@/lib/rateLimit';
 import { makeResetToken } from '@/lib/passwordReset';
 import { emailPasswordReset } from '@/lib/email';
+
+/** ★ সব পথে একই উত্তর — enumeration ও সীমা-সংকেত বন্ধ */
+const SAME_ANSWER = {
+  success: true,
+  message: 'যদি এই ইমেইলে অ্যাকাউন্ট থাকে, রিসেট লিংক পাঠানো হয়েছে। ইনবক্স (ও স্প্যাম) দেখুন।',
+};
 
 export async function POST(req: Request) {
   try {
@@ -25,6 +31,14 @@ export async function POST(req: Request) {
 
     const { email } = parsed.data;
 
+    // ★★★ AUTH-07 — প্রতি ইমেইলে ঘণ্টায় ৩টি। পেরোলে নীরবে পাঠানো বাদ, উত্তর একই
+    //   (অ্যাকাউন্ট আছে কি না বা সীমা ছুঁয়েছে কি না — কিছুই ফাঁস নয়)।
+    const destRl = await rateLimit(`forgot:email:${email}`, LIMITS.forgotDest.limit, LIMITS.forgotDest.window, {
+      failClosed: true,
+    });
+    if (destRl.failed) throw new ApiError(RATE_LIMIT_UNAVAILABLE_MSG, 503);
+    if (!destRl.ok) return Response.json(SAME_ANSWER);
+
     const user = await prisma.user.findUnique({
       where: { email },
       select: { id: true, name: true, email: true, password: true, isBanned: true },
@@ -41,11 +55,7 @@ export async function POST(req: Request) {
       emailPasswordReset(user.email, user.name, url).catch(() => {});
     }
 
-    return Response.json({
-      success: true,
-      message:
-        'যদি এই ইমেইলে অ্যাকাউন্ট থাকে, রিসেট লিংক পাঠানো হয়েছে। ইনবক্স (ও স্প্যাম) দেখুন।',
-    });
+    return Response.json(SAME_ANSWER);
   } catch (e) {
     return apiError(e);
   }

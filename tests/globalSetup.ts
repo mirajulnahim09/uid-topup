@@ -9,12 +9,26 @@
  *   সরাসরি ডাকলে ঠিক সেই স্তরগুলোই বাদ পড়ত যেগুলো পরীক্ষা করার জন্য
  *   টেস্টটি লেখা। ধীর হলেও এটিই সঠিক।
  *
- *   ── `next dev`, `next start` নয় ──
- *   ⚠️ প্রোডাকশন বিল্ডে কুকির নাম `__Secure-next-auth.session-token`
- *   এবং `secure: true` (auth.ts)। `__Secure-` উপসর্গ ও secure পতাকা
- *   দুটোই HTTPS বাধ্যতামূলক করে, তাই http://127.0.0.1-এ ব্রাউজার/fetch
- *   কুকিটি রাখেই না — প্রতিটি অথ-নির্ভর টেস্ট **মিথ্যা** ফেল করত।
- *   `next dev`-এ NODE_ENV=development, কুকি সাধারণ ও non-secure।
+ *   ── `next build` + `next start`, not `next dev` (Next 15 upgrade) ──
+ *   The suite runs against a production build, i.e. what Vercel serves.
+ *   Measured on Next 15.5 / React 19.2: `next dev` embeds RSC debug info
+ *   (the resolved value of every awaited server promise) in page HTML, so
+ *   a page that loads a row and then calls notFound()/redirect() ships that
+ *   row to the client in dev only. The HTML-leak assertions (IDOR, invoice,
+ *   settings-leak, revoked-session pages) then fail on dev-only output and
+ *   cannot tell a real leak from a dev artefact. Production output is what
+ *   they are meant to judge (audit/runs/leak-probe.ts: start 18/19, dev 2/6).
+ *
+ *   Cookies: the build writes `__Secure-next-auth.session-token` with the
+ *   Secure flag (authCookies.ts). The test Client's jar ignores cookie
+ *   attributes and sends it over http, which is what a browser does on the
+ *   https production site; `SESSION_COOKIE` (helpers/http.ts) is that name.
+ *
+ *   Build output goes to `.next-test` (NEXT_DIST_DIR), never `.next`.
+ *   Build reuse: the build is skipped when `.next-test` was produced by this
+ *   harness from byte-identical inputs (`buildFingerprint()`); any source,
+ *   config, lockfile, .env or build-env change rebuilds. TEST_FORCE_BUILD=1
+ *   always rebuilds.
  *
  *   ── সবচেয়ে বড় ঝুঁকি ও তার প্রমাণ ──
  *   ⚠️⚠️ সার্ভার ভুল করে **লাইভ Neon**-এ চললে আসল গ্রাহকের অর্ডার ও
@@ -28,20 +42,128 @@
  * ═══════════════════════════════════════════════════════════
  */
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { TEST_DATABASE_URL, assertSafeTestUrl } from './helpers/testEnv';
+import {
+  TEST_DATABASE_URL, TEST_BACKUP_SIGNING_KEY, TEST_NEXTAUTH_SECRET, TEST_ISOLATED_ENV, assertSafeTestUrl,
+  applyIsolatedEnv, assertNoLiveEnv,
+} from './helpers/testEnv';
+import { SESSION_COOKIE } from './helpers/http';
 
 const ROOT = path.resolve(__dirname, '..');
 const NEXT_BIN = path.join(ROOT, 'node_modules', 'next', 'dist', 'bin', 'next');
-
-/** ★ টেস্টে ব্যবহৃত স্থির secret — প্রোডাকশনের `NEXTAUTH_SECRET` নয়।
- *  আসল secret টেস্ট-প্রসেসে টানা CLAUDE.md §2.3 এর বিপরীত। */
-const TEST_NEXTAUTH_SECRET = 'test-only-nextauth-secret-not-a-real-key-000000';
+/**
+ * The harness builds into its own folder (`distDir` from NEXT_DIST_DIR in
+ * next.config.js), never `.next`: a `npm run dev` started from this folder
+ * rewrites `.next` (measured 2026-10-31: a dev server deleted BUILD_ID and the
+ * stamp of a harness build), and a harness build there would break that dev
+ * server in turn. ROOT is this repository, so no other project's folder is reachable.
+ */
+const DIST_NAME = '.next-test';
+const DIST = path.join(ROOT, DIST_NAME);
+const BUILD_STAMP = path.join(DIST, 'test-harness-build.json');
+const NEXT_ENV_DTS = path.join(ROOT, 'next-env.d.ts');
 
 let server: ChildProcess | null = null;
+
+/** Build inputs: tracked + untracked (not ignored) files that reach the bundle. */
+const BUILD_INPUT = /^(src\/|public\/|prisma\/schema\.prisma$|package(-lock)?\.json$|next\.config\.js$|tsconfig\.json$|(tailwind|postcss)\.config\.[cm]?[jt]s$|\.env$)/;
+/** Env that is fixed per run but changes per port; read at runtime, not inlined. */
+const PER_RUN_ENV = new Set(['NEXTAUTH_URL', 'SSLCZ_BASE_URL', 'GAME_API_URL']);
+
+/**
+ * Hash of everything that can change the build output: the content of every
+ * build input file plus the build env (minus per-run ports and process noise).
+ * A mismatch, a missing BUILD_ID or a missing stamp means rebuild.
+ */
+function buildFingerprint(env: NodeJS.ProcessEnv): string {
+  const h = createHash('sha256');
+  const ls = spawnSync('git', ['ls-files', '-z', '-co', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' });
+  if (ls.status !== 0) throw new Error(`git ls-files failed: ${ls.stderr}`);
+  const files = ls.stdout.split('\0').filter((f) => BUILD_INPUT.test(f)).sort();
+  for (const f of files) {
+    const abs = path.join(ROOT, f);
+    if (!existsSync(abs)) continue; // deleted in the working tree
+    h.update(f).update('\0').update(readFileSync(abs)).update('\0');
+  }
+  // `.env` is git-ignored, so `ls-files` never lists it; hash it explicitly
+  for (const f of ['.env', '.env.production', '.env.local', '.env.production.local']) {
+    const abs = path.join(ROOT, f);
+    if (existsSync(abs)) h.update(f).update('\0').update(readFileSync(abs)).update('\0');
+  }
+  const keys = [...Object.keys(TEST_ISOLATED_ENV), 'STORAGE_DRIVER', 'TRUSTED_PROXY', 'STREAM_ENABLED', 'NEXT_DIST_DIR']
+    .concat(Object.keys(env).filter((k) => k.startsWith('NEXT_PUBLIC_')))
+    .filter((k) => !PER_RUN_ENV.has(k))
+    .sort();
+  for (const k of keys) h.update(`${k}=${env[k] ?? ''}\0`);
+  return h.digest('hex');
+}
+
+/** Spawn and wait; on failure print the tail of the output (no secrets: build logs only). */
+function run(args: string[], env: NodeJS.ProcessEnv, label: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const p = spawn(process.execPath, [NEXT_BIN, ...args], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    p.stdout?.on('data', (b: Buffer) => { out += b.toString(); });
+    p.stderr?.on('data', (b: Buffer) => { out += b.toString(); });
+    p.on('error', reject);
+    p.on('exit', (code) => {
+      if (code === 0) return resolve();
+      process.stderr.write(`[${label}] last output:\n${out.split('\n').slice(-60).join('\n')}\n`);
+      reject(new Error(`${label} failed (exit ${code})`));
+    });
+  });
+}
+
+/**
+ * What the build folder holds right now. Anything that writes into it after
+ * our build (a `next dev`/`next build` given the same NEXT_DIST_DIR) rewrites
+ * these manifests without touching our stamp, so a fingerprint match alone
+ * could reuse a clobbered tree.
+ */
+function distState(): string | null {
+  const files = ['BUILD_ID', 'build-manifest.json', 'prerender-manifest.json', 'server/app-paths-manifest.json'];
+  const parts: string[] = [];
+  for (const f of files) {
+    const abs = path.join(DIST, f);
+    if (!existsSync(abs)) return null;
+    parts.push(`${f}:${statSync(abs).mtimeMs}`);
+  }
+  return `${readFileSync(path.join(DIST, 'BUILD_ID'), 'utf8').trim()}|${parts.join('|')}`;
+}
+
+/** `next build` with the test env, unless the build folder already holds this exact build. */
+async function buildForTests(env: NodeJS.ProcessEnv): Promise<void> {
+  const fingerprint = buildFingerprint(env);
+  if (!process.env.TEST_FORCE_BUILD && existsSync(BUILD_STAMP)) {
+    try {
+      const stamp = JSON.parse(readFileSync(BUILD_STAMP, 'utf8'));
+      const state = distState();
+      if (stamp.fingerprint === fingerprint && state !== null && stamp.dist === state) {
+        console.log('  ✓ production build is current for these inputs — reusing .next-test');
+        return;
+      }
+    } catch { /* unreadable stamp → rebuild */ }
+  }
+  console.log(`  next build → ${DIST_NAME} (test env, test DB) …`);
+  const t0 = Date.now();
+  // `next build` points the git-ignored next-env.d.ts at its distDir; put back
+  // whatever the developer's `.next` setup had
+  const nextEnvBefore = existsSync(NEXT_ENV_DTS) ? readFileSync(NEXT_ENV_DTS) : null;
+  try {
+    await run(['build'], env, 'next build');
+  } finally {
+    if (nextEnvBefore) writeFileSync(NEXT_ENV_DTS, nextEnvBefore);
+  }
+  const dist = distState();
+  if (dist === null) throw new Error('next build finished but .next is incomplete');
+  writeFileSync(BUILD_STAMP, JSON.stringify({ fingerprint, dist, builtAt: new Date().toISOString() }));
+  console.log(`  ✓ next build done in ${Math.round((Date.now() - t0) / 1000)}s`);
+}
 
 /** ★ ০ পোর্টে bind করে OS-কেই একটি ফাঁকা পোর্ট বেছে নিতে দিই —
  *  হার্ডকোড করলে ডেভের চলমান `npm run dev` এর সাথে সংঘাত হতো। */
@@ -85,12 +207,20 @@ async function waitForReady(baseUrl: string, timeoutMs = 120_000): Promise<void>
  *   কোনো ডাটাবেসে (যেমন প্রোডাকশন Neon) থাকত, সেখানে এই ইমেইল নেই —
  *   লগইন ব্যর্থ হতো এবং আমরা সাথে সাথেই থামতাম, একটি সারিও লেখার আগে।
  */
-async function proveTestDatabase(baseUrl: string): Promise<void> {
+async function proveTestDatabase(
+  baseUrl: string,
+  PrismaClient: new (o: { datasources: { db: { url: string } } }) => PrismaClientType,
+): Promise<void> {
   const db = new PrismaClient({ datasources: { db: { url: TEST_DATABASE_URL } } });
   const email = `canary-${Date.now()}@test.local`;
   const password = 'CanaryPass!234';
 
   try {
+    // ★ আগের রানের শেষ টেস্টের rate-limit বাকেট টেস্ট DB-তে থেকে যায় (truncate হয়
+    //   প্রতিটি টেস্টের **আগে**, রানের শেষে নয়)। মাপা: `login:ip:unknown` = ১৩ > ১০ —
+    //   পরের রানের canary লগইন আটকে পুরো রান "no tests" হয়ে থামত। কেবল টেস্ট DB।
+    await db.rateLimitBucket.deleteMany({});
+
     await db.user.create({
       data: {
         email,
@@ -124,7 +254,7 @@ async function proveTestDatabase(baseUrl: string): Promise<void> {
     });
 
     const gotSession = (res.headers.getSetCookie?.() ?? []).some(
-      (c) => c.startsWith('next-auth.session-token=') && !c.startsWith('next-auth.session-token=;'),
+      (c) => c.startsWith(`${SESSION_COOKIE}=`) && !c.startsWith(`${SESSION_COOKIE}=;`),
     );
 
     if (!gotSession) {
@@ -146,6 +276,13 @@ async function proveTestDatabase(baseUrl: string): Promise<void> {
 
 export async function setup({ provide }: { provide: (k: string, v: unknown) => void }) {
   assertSafeTestUrl();
+
+  // ★★★ গোপন-মান বিচ্ছিন্নতা (helpers/testEnv.ts): `@prisma/client` import-এর
+  //   আগেই এই প্রসেসের গোপন কী টেস্ট-মানে — নাহলে Prisma `.env` থেকে লাইভ মান
+  //   বসাত আর নিচের `...rest` সেগুলো টেস্ট-সার্ভারে পৌঁছে দিত। লিক হলে থামে।
+  const envBeforePrisma = applyIsolatedEnv();
+  const { PrismaClient } = await import('@prisma/client');
+  assertNoLiveEnv(envBeforePrisma);
 
   const port = await freePort();
   const baseUrl = `http://127.0.0.1:${port}`;
@@ -180,8 +317,19 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
   const { DATABASE_URL: _prod, ...rest } = process.env;
   const env: NodeJS.ProcessEnv = {
     ...rest,
+    // ★ `...rest`-এ Prisma-র বসানো লাইভ `.env` কী থাকে (এই ফাইলের PrismaClient
+    //   import-এ) — সব গোপন/ইন্টিগ্রেশন কী এখানে টেস্ট-মানে ঢেকে দিই
+    //   (helpers/testEnv.ts)। নিচের নির্দিষ্ট মানগুলো (mock URL ইত্যাদি) পরে বসে।
+    ...TEST_ISOLATED_ENV,
     DATABASE_URL: TEST_DATABASE_URL,
+    // O-15 — schema `directUrl`; never inherited from the shell or `.env`
+    DIRECT_URL: TEST_DATABASE_URL,
     TEST_DATABASE_URL,
+    // `next start` loads `.env`, not `.env.development`; keep the local driver
+    // the dev harness had (uploads never reach Blob from tests)
+    STORAGE_DRIVER: 'local',
+    // isolated build folder (see DIST above) — same value for build and start
+    NEXT_DIST_DIR: DIST_NAME,
     NEXTAUTH_URL: baseUrl,
     NEXTAUTH_SECRET: TEST_NEXTAUTH_SECRET,
     RESEND_API_KEY: '',
@@ -193,6 +341,11 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
     // ★ TRUSTED_PROXY ফাঁকা — তাই `pickIp()` ক্লায়েন্টের
     //   x-forwarded-for উপেক্ষা করে (H2 এর আচরণ, যেমন প্রোডাকশনে)
     TRUSTED_PROXY: '',
+    // ★ BKP-01 — ব্যাকআপ-স্বাক্ষর চাবি (টেস্ট-কেবল); টেস্ট-প্রসেসও একই মান জানে
+    BACKUP_SIGNING_KEY: TEST_BACKUP_SIGNING_KEY,
+    // ★ CFG-01 — প্রতিটি টেস্টের আগে টেবিল খালি হয়; থ্রটল ০ হলে IP-অনুপস্থিতির
+    //   DB-চিহ্ন প্রতিবার লেখা হয় (প্রোডাকশনে ১০ মিনিটে একবার)
+    CLIENT_IP_WARN_THROTTLE_MS: '0',
     // ★ SSLCommerz ড্রাইভার আসল গেটওয়ের বদলে mock-এ কল করবে।
     //   ⚠️ টেস্ট কখনো sandbox.sslcommerz.com-এ পৌঁছাবে না।
     SSLCZ_BASE_URL: `http://127.0.0.1:${sslczMockPort}`,
@@ -201,47 +354,69 @@ export async function setup({ provide }: { provide: (k: string, v: unknown) => v
     GAME_API_KEY: 'test-fulfill-key',
     // ★ ৩s — টাইমআউট-টেস্ট যেন ১৫ সেকেন্ড ধরে ঝুলে না থাকে
     GAME_API_TIMEOUT_MS: '3000',
+    // ★ RT-01 — SSE-স্ট্রিমের প্রমাণীকরণ/সীমা পরীক্ষার জন্য কেবল টেস্ট-সার্ভারে চালু
+    //   (প্রোডাকশনের ডিফল্ট বন্ধই — কোনো ক্লায়েন্ট এখনো স্ট্রিম ব্যবহার করে না)
+    STREAM_ENABLED: '1',
   };
 
-  server = spawn(process.execPath, [NEXT_BIN, 'dev', '-p', String(port)], {
-    cwd: ROOT,
-    env,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  // ★ টেস্ট-সার্ভারের চূড়ান্ত env-ও একই গার্ডে — কেবল mock ডেলিভারি কী ইচ্ছাকৃত
+  assertNoLiveEnv(new Set(Object.keys(env)), env, ['GAME_API_URL', 'GAME_API_KEY']);
+  // O-15 — both URLs Prisma can use, checked on the env the build and server get
+  assertSafeTestUrl(env.DATABASE_URL);
+  assertSafeTestUrl(env.DIRECT_URL);
 
-  // ★ সার্ভারের ত্রুটি গিলে ফেলা যাবে না — টেস্ট ফেল করলে কারণ
-  //   সাধারণত এখানেই থাকে। শুধু error/warn ছাপি, নাহলে dev-এর
-  //   compile লগে আসল বার্তা হারিয়ে যায়।
-  server.stderr?.on('data', (b: Buffer) => {
-    const s = b.toString();
-    if (/error|Error|unhandled/.test(s)) process.stderr.write(`[next] ${s}`);
-  });
-  server.stdout?.on('data', (b: Buffer) => {
-    const s = b.toString();
-    if (/Error|error:/.test(s)) process.stdout.write(`[next] ${s}`);
-  });
+  try {
+    await buildForTests(env);
 
-  console.log(`  Next dev চালু হচ্ছে → ${baseUrl} (টেস্ট DB)`);
-  await waitForReady(baseUrl);
-  await proveTestDatabase(baseUrl);
-  console.log('  ✓ প্রমাণিত: সার্ভার টেস্ট ডাটাবেস পড়ছে');
+    server = spawn(process.execPath, [NEXT_BIN, 'start', '-p', String(port), '-H', '127.0.0.1'], {
+      cwd: ROOT,
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    // never leave a server holding the port if vitest exits without teardown
+    process.once('exit', killServer);
+
+    // ★ সার্ভারের ত্রুটি গিলে ফেলা যাবে না — টেস্ট ফেল করলে কারণ
+    //   সাধারণত এখানেই থাকে। শুধু error/warn ছাপি।
+    server.stderr?.on('data', (b: Buffer) => {
+      const s = b.toString();
+      if (/error|Error|unhandled/.test(s)) process.stderr.write(`[next] ${s}`);
+    });
+    server.stdout?.on('data', (b: Buffer) => {
+      const s = b.toString();
+      if (/Error|error:/.test(s)) process.stdout.write(`[next] ${s}`);
+    });
+
+    console.log(`  next start → ${baseUrl} (test DB)`);
+    await waitForReady(baseUrl);
+    await proveTestDatabase(baseUrl, PrismaClient);
+    console.log('  ✓ প্রমাণিত: সার্ভার টেস্ট ডাটাবেস পড়ছে');
+  } catch (e) {
+    killServer();
+    throw e;
+  }
 
   provide('baseUrl', baseUrl);
   provide('sslczMockPort', sslczMockPort);
   provide('fulfillMockPort', fulfillMockPort);
 }
 
-export async function teardown() {
+/** Synchronous so it also works from `process.on('exit')`. Only our own child tree. */
+function killServer(): void {
   if (!server || server.exitCode !== null) return;
   const pid = server.pid;
+  server = null;
   if (!pid) return;
 
-  // ★ `next dev` কর্মী-প্রসেস তৈরি করে। উইন্ডোজে শুধু parent kill করলে
+  // ★ Next কর্মী-প্রসেস তৈরি করে। উইন্ডোজে শুধু parent kill করলে
   //   সেগুলো বেঁচে থাকে ও পোর্ট ধরে রাখে — তাই পুরো গাছ (/T) kill।
   if (process.platform === 'win32') {
     spawnSync('taskkill', ['/pid', String(pid), '/T', '/F'], { stdio: 'ignore' });
   } else {
-    server.kill('SIGTERM');
+    process.kill(pid, 'SIGTERM');
   }
-  server = null;
+}
+
+export async function teardown() {
+  killServer();
 }

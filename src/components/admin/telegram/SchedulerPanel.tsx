@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useToast } from '@/components/Toast';
+import LoadFailedCard from '@/components/admin/LoadFailedCard';
 
 /** ★ শিডিউলার ড্যাশবোর্ড — আসন্ন/চলমান/সম্পন্ন/ব্যর্থ জব ও ইতিহাস। */
 
@@ -60,14 +61,16 @@ export default function SchedulerPanel() {
   const toast = useToast();
   const [d, setD] = useState<Data | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState<Job | null>(null);
 
   const load = useCallback(async () => {
+    setFailed(false);
     try {
       const r = await fetch('/api/admin/telegram/scheduler');
       if (!r.ok) throw new Error();
       setD(await r.json());
-    } catch { toast.error('শিডিউলার তথ্য আনা যায়নি'); }
+    } catch { setFailed(true); toast.error('শিডিউলার তথ্য আনা যায়নি'); }
   }, [toast]);
 
   useEffect(() => { void load(); }, [load]);
@@ -90,7 +93,7 @@ export default function SchedulerPanel() {
     } finally { setBusy(null); }
   }
 
-  if (!d) return <div className="card p-5 text-[13px]" style={{ color: 'var(--v-mut)' }}>লোড হচ্ছে…</div>;
+  if (!d) return failed ? <LoadFailedCard what="শিডিউলার তথ্য" onRetry={() => void load()} /> : <div className="card p-5 text-[13px]" style={{ color: 'var(--v-mut)' }}>লোড হচ্ছে…</div>;
 
   return (
     <div className="space-y-4">

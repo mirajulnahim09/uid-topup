@@ -4,7 +4,7 @@ import { rateLimit, getIp, LIMITS } from '@/lib/rateLimit';
 import { consumeOtp, otpMessage, issueOtp } from '@/lib/otp/core';
 import { signupChannels } from '@/lib/otp/channels';
 import {
-  requestWithdrawal, listUserWithdrawals, getWithdrawalConfig, withdrawableAmount,
+  requestWithdrawal, listUserWithdrawals, getWithdrawalConfig, withdrawableAmount, assertWithdrawalInputs,
 } from '@/lib/services/withdrawal';
 import { assessOneDeposit, toDbRisk, summarizeSignals } from '@/lib/riskSignals';
 import { prisma } from '@/lib/prisma';
@@ -94,6 +94,10 @@ export async function POST(req: Request) {
 
     const parsed = reqSchema.safeParse(await readJson(req));
     if (!parsed.success) throw new ApiError(parsed.error.errors[0].message, 400);
+
+    // ★★★ স্থির যাচাই **OTP খরচের আগে** — ভুল অঙ্ক/মাধ্যম/নাম্বারে কোড নষ্ট হয় না।
+    //   লক-নির্ভর যাচাই (ব্যালেন্স, দৈনিক সীমা) আগের মতোই `requestWithdrawal` এ।
+    assertWithdrawalInputs(await getWithdrawalConfig(), parsed.data);
 
     /**
      * ★★★ ঝুঁকি — Group H এর একই মূল্যায়ন এখানে পুনঃব্যবহার।

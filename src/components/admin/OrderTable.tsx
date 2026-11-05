@@ -24,15 +24,31 @@ type O = {
   refundedAmount: number;
 };
 
-/** ★ claim অবস্থার রঙ (3.7) */
+/**
+ * ★ claim অবস্থার রঙ (3.7)
+ *
+ * ★ আগে চারটি হার্ডকোড লিটারেল — থিম-অন্ধ। "আমার কাছে" = সফল/নিরাপদ,
+ *   "অন্যের কাছে" = সতর্কতা; দুটিই ভূমিকা, তাই `--sem-*` টোকেন।
+ *   `stale` নিরপেক্ষ ধূসরই থাকল, কেবল আভাটি `--v-fill2` থেকে।
+ */
 const CLAIM_STYLE: Record<ClaimState['state'], { bg: string; color: string } | null> = {
   free: null,
-  mine: { bg: 'rgba(120,200,160,.12)', color: '#6ec49a' },
-  held: { bg: 'rgba(230,160,90,.14)', color: '#e0a05a' },
-  stale: { bg: 'rgba(150,150,150,.12)', color: 'var(--mut)' },
+  mine: {
+    bg: 'color-mix(in srgb, var(--sem-success) 12%, transparent)',
+    color: 'var(--sem-success)',
+  },
+  held: {
+    bg: 'color-mix(in srgb, var(--sem-warning) 14%, transparent)',
+    color: 'var(--sem-warning)',
+  },
+  stale: { bg: 'var(--v-fill2)', color: 'var(--mut)' },
 };
 
 const FILTERS = ['ALL', 'PENDING', 'PROCESSING', 'COMPLETED', 'REFUNDED'];
+// ★ ট্যাবের লেখা Badge-এর শব্দেই — সারির স্ট্যাটাস আর ফিল্টার একই ভাষায় (URL-এর মান ইংরেজিই থাকে)
+const FILTER_LABEL: Record<string, string> = {
+  ALL: 'সব', PENDING: 'পেন্ডিং', PROCESSING: 'প্রসেসিং', COMPLETED: 'সম্পন্ন', REFUNDED: 'ফেরত',
+};
 type Act = 'PROCESSING' | 'COMPLETE' | 'FAIL';
 
 export default function OrderTable({ orders, current }: { orders: O[]; current: string }) {
@@ -64,7 +80,10 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [bulkAct, setBulkAct] = useState<'CLAIM' | 'PROCESSING' | 'COMPLETE' | null>(null);
   /** ★ আংশিক ফেরত ডায়ালগের অবস্থা (3.14) */
-  const [partial, setPartial] = useState<{ o: O; amount: string; reason: string } | null>(null);
+  const [partial, setPartial] = useState<{ o: O; amount: string; reason: string; key: string } | null>(null);
+  // ★ idempotency — এক ডায়ালগ-বিষয়বস্তু = এক চাবি; ব্যর্থ হলে একই অর্ডারে আবার খুললে
+  //   একই চাবি ও মান ফিরে আসে, তাই প্রথমটি আসলে পৌঁছে থাকলে সার্ভার দ্বিতীয়বার ফেরত দেয় না
+  const [refundDraft, setRefundDraft] = useState<{ o: O; amount: string; reason: string; key: string } | null>(null);
   const [bulkResult, setBulkResult] = useState<
     { okCount: number; failCount: number; results: { orderNo: number | null; ok: boolean; error?: string }[] } | null
   >(null);
@@ -232,13 +251,16 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
       const res = await fetch('/api/admin/order/refund', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: p.o.id, amount: amt, reason: p.reason.trim() }),
+        body: JSON.stringify({ orderId: p.o.id, amount: amt, reason: p.reason.trim(), requestId: p.key }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error);
-      toast.success(`৳${amt.toFixed(2)} ফেরত দেওয়া হয়েছে`);
+      toast.success(j.duplicate ? 'এই ফেরত আগেই দেওয়া হয়েছে — আবার দেওয়া হয়নি' : `৳${amt.toFixed(2)} ফেরত দেওয়া হয়েছে`);
+      setRefundDraft(null);
       startTransition(() => router.refresh());
     } catch (e) {
+      // ★ খসড়া + চাবি রাখা — আবার খুললে একই চাবিতে retry (নেট-কাটায় দুবার ফেরত নয়)
+      setRefundDraft(p);
       toast.error(e instanceof Error ? e.message : 'কাজটি করা যায়নি');
     } finally {
       setBusy(null);
@@ -281,7 +303,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
               current === f ? 'bg-purple-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
-            {f}
+            {FILTER_LABEL[f] ?? f}
           </Link>
         ))}
       </div>
@@ -292,7 +314,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
       {sel.size > 0 && (
         <div
           className="flex flex-wrap items-center gap-2 rounded-xl border p-3"
-          style={{ borderColor: 'var(--hair)', background: 'rgba(230,197,132,.06)' }}
+          style={{ borderColor: 'var(--hair)', background: 'var(--v-steel)' }}
         >
           <span className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
             {sel.size} টি নির্বাচিত — ৳
@@ -340,24 +362,33 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                   <td>
                     {/* ★ শুধু চলমান অর্ডার বাছা যায় — ক্লোজড অর্ডারে
                         চেকবক্স থাকলে ভুল প্রত্যাশা তৈরি হতো (3.8) */}
+                    {/* ★ চেকবক্সটি ছিল খালি ১৬px — অ্যাডমিনের অন্য
+                        চেকবক্সগুলো `<label>` এর ভিতরে থাকায় পুরো সারিই
+                        ছোঁয়ার লক্ষ্য হয়, কিন্তু এটির কোনো মোড়ক ছিল না।
+                        এখন ৪০×৪০ লেবেল-মোড়ক ছোঁয়ার লক্ষ্য দেয়, বাক্সটি
+                        নিজে ১৮px — দৃশ্য প্রায় একই, আঙুলের জন্য আড়াই গুণ।
+                        ⚠️ নির্বাচনের যুক্তি (`sel`) হুবহু অপরিবর্তিত। */}
                     {live && (
-                      <input
-                        type="checkbox"
-                        aria-label={`অর্ডার ${o.orderNo} নির্বাচন করুন`}
-                        checked={sel.has(o.id)}
-                        onChange={(e) => {
-                          setSel((prev) => {
-                            const next = new Set(prev);
-                            if (e.target.checked) next.add(o.id);
-                            else next.delete(o.id);
-                            return next;
-                          });
-                        }}
-                        className="h-4 w-4 cursor-pointer accent-emerald-500"
-                      />
+                      <label className="grid h-10 w-10 cursor-pointer place-items-center">
+                        <input
+                          type="checkbox"
+                          aria-label={`অর্ডার ${o.orderNo} নির্বাচন করুন`}
+                          checked={sel.has(o.id)}
+                          onChange={(e) => {
+                            setSel((prev) => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.add(o.id);
+                              else next.delete(o.id);
+                              return next;
+                            });
+                          }}
+                          className="h-[18px] w-[18px] cursor-pointer accent-emerald-500"
+                        />
+                      </label>
                     )}
                   </td>
-                  <td data-label="অর্ডার" className="font-mono font-semibold text-rose-600">#{o.orderNo}</td>
+                  {/* ★ nowrap — ৫ অঙ্কের নম্বর সরু কলামে "#474 / 5" হয়ে ভাঙত (walkthrough ১৪৪০px) */}
+                  <td data-label="অর্ডার" className="whitespace-nowrap font-mono font-semibold text-rose-600">#{o.orderNo}</td>
                   <td data-label="ইউজার">
                     <div className="text-sm font-medium text-slate-900">{o.user.name}</div>
                     <div className="text-xs text-slate-400">{o.user.phone}</div>
@@ -370,7 +401,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                     {/* ★ একই CopyButton — আগে এখানে আলাদা বাস্তবায়ন ছিল,
                         এখন পুরো অ্যাডমিনে একই আচরণ ও একই a11y (3.4) */}
                     <span className="inline-flex items-center gap-1.5">
-                      <code className="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-amber-700">
+                      <code className="whitespace-nowrap rounded bg-slate-100 px-2 py-1 font-mono text-xs text-amber-700">
                         {o.playerUid}
                       </code>
                       <CopyButton value={o.playerUid} label="Player UID" />
@@ -415,7 +446,11 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                     {o.breach.level !== 'ok' && (
                       <div
                         className="mt-1 font-semibold"
-                        style={{ color: o.breach.level === 'breached' ? '#e07878' : '#e0a05a' }}
+                        /* ★ উপরের সারাংশ-ব্যানার (`admin/orders/page.tsx`)
+                             একই সংকেত দেখায় — সেটি টোকেনে সরানোর পর এই
+                             টেবিলটি লিটারেলে থাকলে একই "ভঙ্গ" দুই রঙে
+                             দেখাত। তাই দুটোই `--sem-danger`/`--sem-warning`। */
+                        style={{ color: o.breach.level === 'breached' ? 'var(--sem-danger)' : 'var(--sem-warning)' }}
                       >
                         {o.breach.level === 'breached' ? '🚨 ' : '⏰ '}
                         {breachLabel(o.breach)}
@@ -475,7 +510,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
                          তখনই যখন ফেরত দেওয়ার মতো টাকা বাকি আছে (3.14) */
                       <button
                         disabled={busy === o.id}
-                        onClick={() => setPartial({ o, amount: '', reason: '' })}
+                        onClick={() => setPartial(refundDraft && refundDraft.o.id === o.id ? refundDraft : { o, amount: '', reason: '', key: crypto.randomUUID() })}
                         className="btn-ghost px-2.5 py-1.5 text-xs"
                         title={`সর্বোচ্চ ৳${round2(o.price - o.refundedAmount).toFixed(2)}`}
                       >
@@ -526,7 +561,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
             max={partial ? round2(partial.o.price - partial.o.refundedAmount) : undefined}
             className="input"
             value={partial?.amount ?? ''}
-            onChange={(e) => setPartial((p) => (p ? { ...p, amount: e.target.value } : p))}
+            onChange={(e) => setPartial((p) => (p ? { ...p, amount: e.target.value, key: crypto.randomUUID() } : p))}
             placeholder="যেমন 50.00"
           />
         </div>
@@ -536,7 +571,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
             id="pr-reason"
             className="input"
             value={partial?.reason ?? ''}
-            onChange={(e) => setPartial((p) => (p ? { ...p, reason: e.target.value } : p))}
+            onChange={(e) => setPartial((p) => (p ? { ...p, reason: e.target.value, key: crypto.randomUUID() } : p))}
             placeholder="যেমন: ৫০০ এর বদলে ৩০০ ডায়মন্ড পৌঁছেছে"
           />
         </div>
@@ -629,7 +664,7 @@ export default function OrderTable({ orders, current }: { orders: O[]; current: 
               ))}
             </select>
             <p className="mt-2 rounded-lg border border-[var(--hair)] p-2.5 text-[11px] leading-relaxed"
-              style={{ background: 'rgba(230,197,132,.06)', color: 'var(--mut)' }}>
+              style={{ background: 'var(--v-steel)', color: 'var(--mut)' }}>
               গ্রাহক যা দেখবে:{' '}
               <span style={{ color: 'var(--ink)' }}>
                 {ORDER_FAIL_COPY[failReason as keyof typeof ORDER_FAIL_COPY]?.customerMessage

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import DepositTable from '@/components/admin/DepositTable';
 import DepositQueue from '@/components/admin/DepositQueue';
 import { assessDeposits } from '@/lib/riskSignals';
+import { requireAdminPage } from '@/lib/pageGuard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'ডিপোজিট' };
@@ -17,11 +18,12 @@ const TABS: Array<{ key: string; label: string; href: string }> = [
   { key: 'REJECTED', label: 'বাতিল', href: '/admin/deposits?status=REJECTED' },
 ];
 
-export default async function AdminDeposits({
-  searchParams,
-}: {
-  searchParams: { status?: string };
+export default async function AdminDeposits(props: {
+  searchParams: Promise<{ status?: string }>;
 }) {
+  const searchParams = await props.searchParams;
+  // ★ SEC-01 — পাতার নিজস্ব DB-গার্ড (সফট-নেভিগেশনে লেআউট চলে না)
+  await requireAdminPage();
   const s = searchParams.status;
   const status = s && (VALID as readonly string[]).includes(s) ? (s as S) : undefined;
 
@@ -79,7 +81,7 @@ export default async function AdminDeposits({
         {pendingCount > 0 && (
           <span
             className="rounded-lg px-3 py-1.5 text-sm font-bold"
-            style={{ background: 'rgba(230,197,132,.12)', color: 'var(--gold)' }}
+            style={{ background: 'rgba(var(--gold-glow),.12)', color: 'var(--gold)' }}
           >
             {pendingCount} টি যাচাই বাকি
           </span>
@@ -96,8 +98,13 @@ export default async function AdminDeposits({
               href={t.href}
               className="inline-flex min-h-[40px] items-center px-4 text-xs font-bold transition"
               style={{
-                background: active ? 'rgba(230,197,132,.12)' : 'var(--glass)',
-                border: `1px solid ${active ? 'rgba(230,197,132,.45)' : 'var(--hair)'}`,
+                background: active ? 'rgba(var(--gold-glow),.12)' : 'var(--glass)',
+                // ★ সক্রিয় বর্ডারটি **নিরেট** `--gold`, আভা নয় — এটি
+                //   "কোন ট্যাবে আছি" বোঝানোর সীমানা, তাই WCAG 1.4.11
+                //   অনুযায়ী পৃষ্ঠতলের বিপরীতে ≥৩:১ লাগে। মাপা: .45
+                //   আভায় লাইটে ছিল **১.২৪:১** (কার্যত অদৃশ্য), নিরেটে
+                //   ৪.১৪:১; ডার্কে ৩.৬৯ → ১৩.৪:১।
+                border: `1px solid ${active ? 'var(--gold)' : 'var(--hair)'}`,
                 color: active ? 'var(--gold)' : 'var(--mut)',
               }}
             >

@@ -57,8 +57,12 @@ export default function CopyButton({
       className={`inline-grid h-10 w-10 shrink-0 place-items-center rounded-md transition ${className}`}
       style={{
         border: '1px solid var(--hair)',
-        background: copied ? 'rgba(127,224,187,.14)' : 'var(--glass)',
-        color: copied ? 'var(--v-volt)' : 'var(--v-mut)',
+        // ★ কপি-সফল সংকেত: আগে মিন্ট লিটারেল (থিম-অন্ধ) + `--v-volt`
+        //   (= `--accent-text`, অর্থাৎ **প্রিসেট-চালিত**)। লাল accent
+        //   প্রিসেটে "কপি হয়েছে" লাল দেখাত। ভূমিকার রঙ পছন্দের রঙের
+        //   উপর নির্ভর করা উচিত নয় (globals.css §C3) — তাই `--sem-success`।
+        background: copied ? 'color-mix(in srgb, var(--sem-success) 14%, transparent)' : 'var(--glass)',
+        color: copied ? 'var(--sem-success)' : 'var(--v-mut)',
       }}
       aria-label={copied ? `${label} কপি হয়েছে` : `${label} কপি করুন`}
       title={copied ? 'কপি হয়েছে' : `${label} কপি করুন`}

@@ -32,6 +32,44 @@
 /** কত মিনিট পর claim এমনিতেই মুক্ত ধরা হবে */
 export const CLAIM_TTL_MIN = 15;
 
+/** ★ অটো-ডেলিভারির claim-পরিচয় — `fulfillment/autoFulfill.ts` এটিই লেখে */
+export const AUTO_FULFILL_ACTOR_ID = 'system:auto-fulfill';
+
+/**
+ * ★★★ D1-1 — প্রোভাইডার-কল "চলমান" ধরা হয় claim-এর পর এতক্ষণ।
+ *
+ *   কেন ২ মিনিট: অর্ডার-রুটের `maxDuration` ৬০s, আর প্রোভাইডার-চেষ্টার সর্বোচ্চ
+ *   যোগফল (৩ × ১৫s টাইমআউট + ১.২s ব্যাক-অফ) ≈ ৪৬s। অর্থাৎ ২ মিনিট পরেও
+ *   claim থাকলে ফাংশনটি নিশ্চিতভাবে মৃত — তখন ফল **অজানা**, চলমান নয়।
+ *   সেই অর্ডার sla-breach ক্রন `sweepStuckAutoFulfill()` দিয়ে ম্যানুয়াল কিউতে
+ *   ফেরায়, "যাচাই করে তবেই" সতর্কবার্তাসহ।
+ */
+export const AUTO_INFLIGHT_MAX_MS = 2 * 60 * 1000;
+
+/**
+ * ★★★ D1-1 — অটো-ডেলিভারি এই মুহূর্তে প্রোভাইডারের উত্তরের অপেক্ষায়?
+ *
+ *   সত্য হলে অ্যাডমিনের FAIL / COMPLETE / টেক-ওভার **টেক-ওভার দিয়েও** চলে না।
+ *   প্রমাণিত ক্ষতি (tests/auto-fulfill-takeover-race): ধীর প্রোভাইডারের ফাঁকে
+ *   টেক-ওভার-FAIL → পুরো রিফান্ড, তারপর প্রোভাইডার "delivered" → গ্রাহক ডায়মন্ড
+ *   ও টাকা দুটোই পেলেন, খতিয়ান নিখুঁত মেলায় কোনো reconcile তা ধরে না।
+ *   সাধারণ claim-এর মতো মানুষের অনুমানের উপর ছাড়া যায় না, কারণ এখানে "কাজ
+ *   চলছে কি না" অ্যাডমিন দেখতেই পান না — প্রোভাইডারের ভেতরে ঘটছে।
+ */
+export function isAutoFulfillInFlight(
+  order: { status: string; claimedById: string | null; claimedAt: Date | string | null },
+  now: Date = new Date(),
+): boolean {
+  if (order.status !== 'PROCESSING' || order.claimedById !== AUTO_FULFILL_ACTOR_ID || !order.claimedAt) {
+    return false;
+  }
+  const at = order.claimedAt instanceof Date ? order.claimedAt : new Date(order.claimedAt);
+  return now.getTime() - at.getTime() < AUTO_INFLIGHT_MAX_MS;
+}
+
+export const AUTO_INFLIGHT_MESSAGE =
+  'অটো-ডেলিভারি এই মুহূর্তে গেম-প্রোভাইডারের উত্তরের অপেক্ষায়। ফল না জেনে বাতিল বা হাতে ডেলিভার করলে গ্রাহক ডায়মন্ড ও টাকা দুটোই পেতে পারেন — এক-দুই মিনিট পর আবার দেখুন।';
+
 export type ClaimFields = {
   claimedById: string | null;
   claimedByName: string | null;

@@ -55,11 +55,29 @@ export type QueueDeposit = {
   };
 };
 
-/** সংকেতের রঙ — সতর্কতা, প্রসঙ্গ, আশ্বাস */
+/**
+ * সংকেতের রঙ — সতর্কতা, প্রসঙ্গ, আশ্বাস
+ *
+ * ★ আগে গোলাপি (`242,168,196`) ও মিন্ট (`127,224,187`) লিটারেল ছিল —
+ *   JSX-এ হার্ডকোড, তাই **থিম জানত না**; দুই থিমেই এক মান।
+ *
+ * ⚠️ তার চেয়ে বড় সমস্যা: নিচের `TIER.elevated` **একই গোলাপি** ব্যবহার
+ *   করত। অর্থাৎ "সতর্কতা-সংকেত" আর "বাড়তি যাচাই দরকার" — দুটি ভিন্ন
+ *   অর্থের বাক্স হুবহু একই রঙে রেন্ডার হতো। এটি ঠিক সেই সমস্যার
+ *   পুনরাবৃত্তি যা C3 বাংলা-অনুবাদে ধরেছিল (সফল ≡ সতর্কতা)।
+ *   এখন সতর্কতা = `--sem-warning` (অ্যাম্বার), ঝুঁকি = `--sem-danger`
+ *   (রোজ) — দুই থিমেই আলাদা, আর accent প্রিসেটে অপরিবর্তিত।
+ */
 const TONE: Record<'warn' | 'info' | 'good', { bg: string; border: string }> = {
-  warn: { bg: 'rgba(242,168,196,.08)', border: 'rgba(242,168,196,.28)' },
-  info: { bg: 'rgba(230,197,132,.07)', border: 'var(--hair)' },
-  good: { bg: 'rgba(127,224,187,.08)', border: 'rgba(127,224,187,.28)' },
+  warn: {
+    bg: 'color-mix(in srgb, var(--sem-warning) 8%, transparent)',
+    border: 'color-mix(in srgb, var(--sem-warning) 28%, transparent)',
+  },
+  info: { bg: 'var(--v-steel)', border: 'var(--hair)' },
+  good: {
+    bg: 'color-mix(in srgb, var(--sem-success) 8%, transparent)',
+    border: 'color-mix(in srgb, var(--sem-success) 28%, transparent)',
+  },
 };
 
 /**
@@ -85,9 +103,12 @@ const TIER: Record<
 > = {
   trusted: {
     label: 'পরিচিত গ্রাহক',
-    color: 'var(--v-volt)',
-    bg: 'rgba(127,224,187,.10)',
-    border: 'rgba(127,224,187,.32)',
+    // ★ `--v-volt` = `--accent-text`, অর্থাৎ প্রিসেট-চালিত — লাল accent
+    //   বেছে নেওয়া অ্যাডমিনের চোখে "পরিচিত গ্রাহক" লাল দেখাত। ভূমিকার
+    //   রঙ পছন্দের রঙ থেকে আসা উচিত নয়, তাই `--sem-success`।
+    color: 'var(--sem-success)',
+    bg: 'color-mix(in srgb, var(--sem-success) 10%, transparent)',
+    border: 'color-mix(in srgb, var(--sem-success) 32%, transparent)',
   },
   normal: {
     label: 'স্বাভাবিক',
@@ -97,9 +118,11 @@ const TIER: Record<
   },
   elevated: {
     label: 'বাড়তি যাচাই দরকার',
-    color: 'var(--red)',
-    bg: 'rgba(242,168,196,.10)',
-    border: 'rgba(242,168,196,.34)',
+    // ★ আভা ও লেখা এখন একই টোকেন থেকে। আগে আভা ছিল হার্ডকোড গোলাপি আর
+    //   লেখা `--red` — লাইট থিমে দুটি ভিন্ন লাল পাশাপাশি বসত।
+    color: 'var(--sem-danger)',
+    bg: 'color-mix(in srgb, var(--sem-danger) 10%, transparent)',
+    border: 'color-mix(in srgb, var(--sem-danger) 34%, transparent)',
   },
 };
 
@@ -124,12 +147,26 @@ function Row({
   mono?: boolean;
 }) {
   return (
+    /**
+     * ★★★ `truncate` → মোড়ানো।
+     *
+     *   অডিটে ৩২০–৩৭৫px ফোনে ৬টি ক্লিপ ধরা পড়েছে, সবই এখানে:
+     *   লম্বা বাংলা নাম ("মোহাম্মদ আব্দুর রহমান চৌধুরী সিদ…") ও
+     *   TrxID ("TBLSTACKTRX0028A15D7E0F") কেটে যেত এবং **কোথাও
+     *   পুরোটা দেখার উপায় ছিল না**। ঠিক এই দুটি মানই বিরোধ
+     *   নিষ্পত্তির সময় অ্যাডমিনের সবার আগে দরকার হয় — bKash-এর
+     *   এসএমএসের সাথে মিলিয়ে দেখতে হয়।
+     *
+     *   এখন নামটি স্বাভাবিকভাবে পরের লাইনে যায়, আর TrxID
+     *   (`mono`) `break-all` দিয়ে ভাঙে — কারণ ওতে ফাঁকা জায়গা
+     *   নেই বলে সাধারণ wrap কাজ করে না।
+     */
     <div className="flex items-baseline justify-between gap-3 py-1.5">
       <dt className="shrink-0 text-[11px] uppercase" style={{ letterSpacing: '.1em', color: 'var(--mut)' }}>
         {label}
       </dt>
       <dd
-        className={`min-w-0 truncate text-right text-sm font-semibold ${mono ? 'font-mono' : ''}`}
+        className={`min-w-0 text-right text-sm font-semibold ${mono ? 'break-all font-mono' : 'break-words'}`}
         style={{ color: 'var(--ink)' }}
       >
         {children}
@@ -361,7 +398,8 @@ export default function DepositQueue({ deposits }: { deposits: QueueDeposit[] })
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs" style={{ color: 'var(--mut)' }}>
+                  {/* ★ "কত আগে" SSR ও হাইড্রেশনের মাঝে মিনিট-সীমায় বদলায় — StorefrontShell-এর মতোই */}
+                  <p suppressHydrationWarning className="text-xs" style={{ color: 'var(--mut)' }}>
                     {ago(d.createdAt)}
                   </p>
                   <p className="text-[11px]" style={{ color: 'var(--mut)' }}>
@@ -390,9 +428,22 @@ export default function DepositQueue({ deposits }: { deposits: QueueDeposit[] })
                     </span>
                   </Row>
                   <Row label="গ্রাহক">
+                    {/* ★ ২৪px উঁচু ছিল — ডিপোজিট কিউতে এটিই সবচেয়ে বেশি
+                        চাপা লিংক (অডিটে ৭২টি হিট), আর অ্যাডমিন প্রায়ই
+                        ফোন থেকেই অনুমোদন করেন।
+
+                        ⚠️⚠️ `min-h-[40px]` ইউটিলিটিটি এখানে **কাজ করত না**,
+                        আর সেটি নীরবে: `globals.css` এর
+                        `.card a.underline { min-height:24px }` নিয়মটির
+                        specificity (0,2,1) Tailwind-এর একক ক্লাসকে (0,1,0)
+                        হারিয়ে দেয়। ব্রাউজারে মাপা computed মান ছিল
+                        **24px**, যদিও ক্লাসটি মার্কআপে ছিল — অর্থাৎ ফিক্সটি
+                        লেখা হয়েছিল, প্রয়োগ হয়নি। ইনলাইন স্টাইল ঐ নিয়মকে
+                        হারায় **`!important` ছাড়াই** (CLAUDE.md §5)। */}
                     <Link
                       href={`/admin/users/${d.user.id}`}
-                      className="underline decoration-dotted underline-offset-2"
+                      style={{ minHeight: 40 }}
+                      className="inline-flex items-center justify-end underline decoration-dotted underline-offset-2"
                     >
                       {d.user.name}
                     </Link>
@@ -451,7 +502,11 @@ export default function DepositQueue({ deposits }: { deposits: QueueDeposit[] })
                           className="flex cursor-pointer items-start gap-2.5 rounded-lg px-3 py-2 text-xs font-medium"
                           style={{
                             background: TONE.warn.bg,
-                            border: `1px solid ${isAcked ? 'rgba(127,224,187,.35)' : TONE.warn.border}`,
+                            // ★ স্বীকার করা হলে বর্ডার সবুজ — সতর্কতার
+                            //   আভা থেকে যায়, কিন্তু "দেখা হয়েছে" বোঝায়।
+                            //   আগে মিন্ট লিটারেল, এখন `TONE.good` এর
+                            //   পরিবার থেকেই (একটু ঘন, .35 → 35%)।
+                            border: `1px solid ${isAcked ? 'color-mix(in srgb, var(--sem-success) 35%, transparent)' : TONE.warn.border}`,
                             color: 'var(--ink)',
                           }}
                         >
@@ -564,7 +619,7 @@ export default function DepositQueue({ deposits }: { deposits: QueueDeposit[] })
             </select>
             <p
               className="mb-3 rounded-lg p-2.5 text-[11px] leading-relaxed"
-              style={{ background: 'rgba(230,197,132,.06)', border: '1px solid var(--hair)', color: 'var(--mut)' }}
+              style={{ background: 'var(--v-steel)', border: '1px solid var(--hair)', color: 'var(--mut)' }}
             >
               গ্রাহক যা দেখবে:{' '}
               <span style={{ color: 'var(--ink)' }}>

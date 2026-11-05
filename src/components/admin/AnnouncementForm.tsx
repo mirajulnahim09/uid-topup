@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useToast } from '@/components/Toast';
 import CannedPicker from '@/components/admin/CannedPicker';
 
@@ -10,15 +10,19 @@ export default function AnnouncementForm() {
   const [body, setBody] = useState('');
   const [link, setLink] = useState('');
   const [busy, setBusy] = useState(false);
+  // ★ OPS-01 — প্রতি ঘোষণায় একটি অনুরোধ-চিহ্ন: ডাবল-ক্লিক বা নেট কেটে "আবার
+  //   চাপা"-তে সবাই দুবার পায় না। লেখা বদলালে বা সফল হলে মুছে যায় (নতুন ঘোষণা)।
+  const requestId = useRef('');
 
   async function send() {
     if (!title.trim() || !body.trim()) return toast.error('শিরোনাম ও বার্তা দুইটাই দিন');
+    if (!requestId.current) requestId.current = crypto.randomUUID();
     setBusy(true);
     try {
       const res = await fetch('/api/admin/announce', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), body: body.trim(), link: link.trim() || undefined }),
+        body: JSON.stringify({ title: title.trim(), body: body.trim(), link: link.trim() || undefined, requestId: requestId.current }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
@@ -26,6 +30,7 @@ export default function AnnouncementForm() {
       setTitle('');
       setBody('');
       setLink('');
+      requestId.current = '';
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'পাঠানো যায়নি');
     } finally {
@@ -40,19 +45,19 @@ export default function AnnouncementForm() {
       <div className="mt-4 space-y-3">
         <div>
           <label className="label">শিরোনাম</label>
-          <input aria-label="শিরোনাম" className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} placeholder="যেমন: ঈদ অফার!" />
+          <input aria-label="শিরোনাম" className="input" value={title} onChange={(e) => { setTitle(e.target.value); requestId.current = ''; }} maxLength={100} placeholder="যেমন: ঈদ অফার!" />
         </div>
         <div>
           <div className="flex items-center justify-between gap-2">
             <label className="label">বার্তা</label>
             {/* ★ তৈরি বার্তা (3.15) — ঘোষণাতেও একই লাইব্রেরি */}
-            <CannedPicker onPick={(t) => setBody((b) => (b ? `${b} ${t}` : t))} />
+            <CannedPicker onPick={(t) => { setBody((b) => (b ? `${b} ${t}` : t)); requestId.current = ''; }} />
           </div>
-          <textarea aria-label="বার্তা" className="input min-h-[70px]" value={body} onChange={(e) => setBody(e.target.value)} maxLength={500} placeholder="বিস্তারিত লিখুন..." />
+          <textarea aria-label="বার্তা" className="input min-h-[70px]" value={body} onChange={(e) => { setBody(e.target.value); requestId.current = ''; }} maxLength={500} placeholder="বিস্তারিত লিখুন..." />
         </div>
         <div>
           <label className="label">লিংক (ঐচ্ছিক)</label>
-          <input aria-label="লিংক (ঐচ্ছিক)" className="input" value={link} onChange={(e) => setLink(e.target.value)} maxLength={200} placeholder="/faq বা https://..." />
+          <input aria-label="লিংক (ঐচ্ছিক)" className="input" value={link} onChange={(e) => { setLink(e.target.value); requestId.current = ''; }} maxLength={200} placeholder="/faq বা https://..." />
         </div>
         <button onClick={send} disabled={busy} className="btn-primary">
           {busy ? 'পাঠানো হচ্ছে...' : 'সবাইকে পাঠান'}

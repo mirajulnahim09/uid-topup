@@ -178,7 +178,14 @@ describe('টিকিট — স্ট্যাটাসের প্রবা�
     expect((await c.patch(`/api/tickets/${id}`, {})).status).toBe(200);
     expect((await db.ticket.findUnique({ where: { id } }))!.status).toBe('CLOSED');
 
-    expect((await c.post(`/api/tickets/${id}`, { body: 'আরও কিছু' })).status).toBe(400);
+    /**
+     * ★ ৪০৯ (ছিল ৪০০) — EXTREME অডিট, ২০২৬-০৯-১৮। "বন্ধ টিকিটে লেখা" হলো
+     *   **অবস্থার সংঘাত**, ভ্যালিডেশন-ভুল নয়; অ্যাপের বাকি সব সংঘাতও ৪০৯
+     *   (ডিপোজিট বাতিলের পরে অনুমোদন, ফেরতের পরে COMPLETE, ডুপ্লিকেট TrxID)।
+     *   ক্লায়েন্ট কোথাও স্ট্যাটাস-কোডে branch করে না (`res.ok` + বার্তা), তাই
+     *   UI-তে কোনো প্রভাব নেই — কেবল API-র শব্দার্থ সঠিক হলো।
+     */
+    expect((await c.post(`/api/tickets/${id}`, { body: 'আরও কিছু' })).status).toBe(409);
   });
 
   it('বন্ধ করলে থ্রেডে সিস্টেম-বার্তা থাকে', async () => {

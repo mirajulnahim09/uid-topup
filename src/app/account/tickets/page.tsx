@@ -1,7 +1,6 @@
 import Link from 'next/link';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireUserPage } from '@/lib/pageGuard';
 import { fmtDate } from '@/lib/date';
 import { listUserTickets } from '@/lib/services/tickets';
 import NewTicketForm from '@/components/tickets/NewTicketForm';
@@ -22,19 +21,18 @@ const STATUS_BN: Record<string, string> = {
   CLOSED: 'বন্ধ',
 };
 
-export default async function TicketsPage({
-  searchParams,
-}: {
-  searchParams: { order?: string };
+export default async function TicketsPage(props: {
+  searchParams: Promise<{ order?: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null;
+  const searchParams = await props.searchParams;
+  // ★ SEC-01 — DB-যাচাই (ban + sessionEpoch), ব্যর্থ হলে লগইনে (আগে ফাঁকা পাতা)
+  const me = await requireUserPage();
 
   const [tickets, orders] = await Promise.all([
-    listUserTickets(session.user.id),
+    listUserTickets(me.id),
     // ★ বিরোধের ড্রপডাউনের জন্য — শুধু নিজের অর্ডার, সাম্প্রতিক ২০টি
     prisma.order.findMany({
-      where: { userId: session.user.id },
+      where: { userId: me.id },
       orderBy: { createdAt: 'desc' },
       take: 20,
       select: { id: true, orderNo: true, productName: true },

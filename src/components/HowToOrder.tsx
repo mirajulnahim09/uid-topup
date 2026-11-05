@@ -10,7 +10,7 @@ const STEPS = [
   {
     n: 1,
     title: 'ব্যালেন্স যোগ করুন',
-    body: 'Add Money পেজে যান। bKash / Nagad / Rocket এর যেকোনো একটা বেছে নিয়ে দেখানো নাম্বারে Send Money করুন (Cash Out নয়)।',
+    body: '"টাকা যোগ" পেজে যান। bKash / Nagad / Rocket এর যেকোনো একটা বেছে নিয়ে দেখানো নাম্বারে Send Money করুন (Cash Out নয়)।',
   },
   {
     n: 2,

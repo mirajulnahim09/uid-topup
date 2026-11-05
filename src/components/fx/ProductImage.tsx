@@ -66,10 +66,15 @@ export default function ProductImage({
         className="absolute inset-0"
         style={{ background: 'radial-gradient(circle at 50% 30%, rgba(255,255,255,.22), transparent 60%)' }}
       />
+      {/* soft diagonal sheen + facet pattern instead of a cropped giant glyph */}
+      <span
+        className="absolute inset-0 opacity-[.18]"
+        style={{ backgroundImage: 'repeating-linear-gradient(135deg, rgba(255,255,255,.5) 0 1px, transparent 1px 14px)' }}
+      />
       {mono && (
         <span
-          className="absolute font-extrabold leading-none"
-          style={{ right: -6, bottom: -14, fontSize: '5.5rem', color: 'rgba(255,255,255,.18)', fontFamily: "'Unbounded','Anek Bangla',sans-serif" }}
+          className="absolute bottom-1.5 right-2 font-extrabold leading-none"
+          style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,.75)', fontFamily: "var(--font-unbounded),var(--font-anek),sans-serif" }}
         >
           {mono}
         </span>
