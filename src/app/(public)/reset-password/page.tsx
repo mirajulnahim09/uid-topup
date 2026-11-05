@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
+import AuthStage, { AuthStageSkeleton } from '@/components/AuthStage';
 
 function ResetForm() {
   const router = useRouter();
@@ -50,19 +51,19 @@ function ResetForm() {
 
   if (!token) {
     return (
-      <div className="mx-auto max-w-md px-4 py-16">
+      <AuthStage>
         <div className="card p-6 text-center">
           <p className="text-4xl" aria-hidden="true">⚠️</p>
           <h1 className="mt-3 text-xl font-bold text-slate-900">লিংকটি অবৈধ</h1>
           <p className="mt-2 text-slate-600">লিংকটি অসম্পূর্ণ বা মেয়াদোত্তীর্ণ।</p>
           <Link href="/forgot-password" className="btn-primary mt-5">আবার রিসেট করুন</Link>
         </div>
-      </div>
+      </AuthStage>
     );
   }
 
   return (
-    <div className="mx-auto max-w-md page-x page-y">
+    <AuthStage>
       <div className="card p-6 sm:p-7">
         <h1 className="mb-1 text-2xl font-bold text-slate-900">নতুন পাসওয়ার্ড</h1>
         <p className="mb-6 text-sm text-slate-400">একটি শক্তিশালী নতুন পাসওয়ার্ড দিন।</p>
@@ -111,13 +112,13 @@ function ResetForm() {
           </Link>
         </p>
       </div>
-    </div>
+    </AuthStage>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-md p-16"><div className="skeleton h-80 w-full" /></div>}>
+    <Suspense fallback={<AuthStageSkeleton height="26rem" />}>
       <ResetForm />
     </Suspense>
   );

@@ -117,7 +117,10 @@ export const SESSION_REVALIDATE_MS = 5 * 60 * 1000;
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
-  pages: { signIn: '/login' },
+  // `error` too: without it a refused Google sign-in (2FA account, banned) or a
+  // provider/config failure landed on NextAuth's unstyled English error page.
+  // `/login` reads `?error=` and shows a Bangla message (authErrorMessage).
+  pages: { signIn: '/login', error: '/login' },
 
   // ★ অডিট: লগইন/লগআউট রেকর্ড (best-effort — auth flow ভাঙে না)।
   //   IP/device এখানে পাওয়া যায় না (NextAuth event req দেয় না), তাই

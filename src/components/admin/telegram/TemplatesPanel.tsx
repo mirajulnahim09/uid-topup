@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useToast } from '@/components/Toast';
+import LoadFailedCard from '@/components/admin/LoadFailedCard';
 
 /**
  * ★ বার্তা টেমপ্লেট — {{চলক}} সহ, লাইভ প্রিভিউ।
@@ -26,6 +27,9 @@ export default function TemplatesPanel() {
   const [busy, setBusy] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const debounce = useRef<NodeJS.Timeout | null>(null);
+  // An empty list used to mean "loading" forever, even after a failed fetch or
+  // when no templates exist; track the fetch state explicitly.
+  const [loadState, setLoadState] = useState<'loading' | 'ok' | 'failed'>('loading');
 
   const load = useCallback(async () => {
     try {
@@ -38,7 +42,8 @@ export default function TemplatesPanel() {
         setBody(d.templates[0].body);
         setPreview(d.templates[0].preview);
       }
-    } catch { toast.error('টেমপ্লেট আনা যায়নি'); }
+      setLoadState('ok');
+    } catch { setLoadState((s) => (s === 'ok' ? s : 'failed')); toast.error('টেমপ্লেট আনা যায়নি'); }
   }, [toast, active]);
 
   useEffect(() => { void load(); }, [load]);
@@ -115,6 +120,8 @@ export default function TemplatesPanel() {
   }
 
   if (list.length === 0) {
+    if (loadState === 'failed') return <LoadFailedCard what="টেমপ্লেট" onRetry={() => { setLoadState('loading'); void load(); }} />;
+    if (loadState === 'ok') return <div className="card p-5 text-[13px]" style={{ color: 'var(--v-mut)' }}>কোনো টেমপ্লেট নেই।</div>;
     return <div className="card p-5 text-[13px]" style={{ color: 'var(--v-mut)' }}>লোড হচ্ছে…</div>;
   }
 

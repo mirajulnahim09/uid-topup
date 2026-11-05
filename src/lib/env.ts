@@ -48,6 +48,31 @@ const OPTIONAL: Check[] = [
 let checked = false;
 
 /**
+ * NEXTAUTH_URL format. Presence alone was checked before, but NextAuth builds
+ * every auth URL from this value: a stray quote, a missing scheme, `http://` on
+ * a public host or a page path (e.g. `/login`) breaks sign-in and
+ * `/api/auth/session` for every user while the variable still looks "set".
+ * Value is never echoed back — only what is wrong with it.
+ */
+export function nextAuthUrlProblem(raw: string, production: boolean): string | null {
+  const v = raw.trim();
+  if (/["'\s]/.test(v)) return 'উদ্ধৃতি চিহ্ন বা ফাঁকা জায়গা আছে — কেবল URL দিন (যেমন https://example.com)';
+  let u: URL;
+  try {
+    u = new URL(v);
+  } catch {
+    return 'বৈধ URL নয় — https:// সহ পুরো ঠিকানা দিন';
+  }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return 'http:// বা https:// দিয়ে শুরু হতে হবে';
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname);
+  if (production && u.protocol === 'http:' && !local) return 'প্রোডাকশনে https:// হতে হবে — নাহলে লগইন কুকি কাজ করে না';
+  if (u.search || u.hash) return '? বা # অংশ থাকা যাবে না';
+  const p = u.pathname.replace(/\/+$/, '');
+  if (p && p !== '/api/auth') return `পাথ "${p}" থাকা যাবে না — কেবল সাইটের মূল ঠিকানা দিন`;
+  return null;
+}
+
+/**
  * ★ non-throwing পরিবেশ যাচাই রিপোর্ট (Phase 4 — One Click Validation)
  *   assertEnv() throw করে (boot-guard); এটি একই যুক্তি দিয়ে একটি
  *   রিপোর্ট দেয় — অ্যাডমিন release-checklist এন্ডপয়েন্ট এটি দেখায়।
@@ -67,7 +92,18 @@ export function validateEnv(): EnvReport {
     return { key: c.key, present, problem, hint: c.hint };
   });
 
-  // production-এ NEXTAUTH_URL কার্যত required
+  // production-এ NEXTAUTH_URL কার্যত required; যেখানেই সেট, সেখানে ফরম্যাটও যাচাই
+  const prod = process.env.NODE_ENV === 'production';
+  const authUrl = process.env.NEXTAUTH_URL?.trim();
+  if (prod || authUrl) {
+    required.push({
+      key: 'NEXTAUTH_URL',
+      present: Boolean(authUrl),
+      problem: authUrl ? nextAuthUrlProblem(authUrl, prod) : 'সেট করা নেই',
+      hint: 'সাইটের মূল URL, যেমন https://example.com',
+    });
+  }
+
   const optional = OPTIONAL.map((c) => ({
     key: c.key,
     present: Boolean(process.env[c.key]?.trim()),
@@ -99,6 +135,12 @@ export function assertEnv(): void {
   if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL) {
     errors.push('  ✗ NEXTAUTH_URL সেট করা নেই — production এ লগইন কাজ করবে না');
   }
+
+  // Format problems are logged, not thrown: a bad NEXTAUTH_URL breaks sign-in,
+  // but throwing here would take the whole storefront down with it.
+  const authUrl = process.env.NEXTAUTH_URL?.trim();
+  const authUrlProblem = authUrl ? nextAuthUrlProblem(authUrl, process.env.NODE_ENV === 'production') : null;
+  if (authUrlProblem) console.error(`✗ NEXTAUTH_URL: ${authUrlProblem}`);
 
   if (errors.length) {
     throw new Error(

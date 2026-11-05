@@ -95,7 +95,7 @@ function buildFingerprint(env: NodeJS.ProcessEnv): string {
     const abs = path.join(ROOT, f);
     if (existsSync(abs)) h.update(f).update('\0').update(readFileSync(abs)).update('\0');
   }
-  const keys = [...Object.keys(TEST_ISOLATED_ENV), 'DIRECT_URL', 'STORAGE_DRIVER', 'TRUSTED_PROXY', 'STREAM_ENABLED', 'NEXT_DIST_DIR']
+  const keys = [...Object.keys(TEST_ISOLATED_ENV), 'STORAGE_DRIVER', 'TRUSTED_PROXY', 'STREAM_ENABLED', 'NEXT_DIST_DIR']
     .concat(Object.keys(env).filter((k) => k.startsWith('NEXT_PUBLIC_')))
     .filter((k) => !PER_RUN_ENV.has(k))
     .sort();

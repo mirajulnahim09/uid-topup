@@ -18,9 +18,14 @@
  * ═══════════════════════════════════════════════════════════
  */
 import { loadEnvConfig } from '@next/env';
-loadEnvConfig(process.cwd());
+// Load env exactly like the server under test: the local production rig
+// (scripts/prod-rig.mjs, ports 3100/3443) runs with `.env.development` layered
+// on `.env`, so the expected Blob host must come from the same files.
+const RIG = process.argv.some((a) => a === '--port=3100' || a === '--port=3443');
+loadEnvConfig(process.cwd(), RIG);
 
 import { openBrowser } from './_browser';
+import { ownBlobHost } from '../../src/lib/blobHost';
 
 import path from 'node:path';
 
@@ -65,7 +70,12 @@ const HYDRATED = `(function () {
   check("script-src এ 'unsafe-inline' নেই", !scriptSrc.includes("'unsafe-inline'"), scriptSrc.slice(0, 90));
   check("script-src এ 'strict-dynamic' আছে", scriptSrc.includes("'strict-dynamic'"));
   check('img-src এ বেয়ার https: নেই', !/\bhttps:(?=\s|$)/.test(imgSrc), imgSrc);
-  check('img-src এ Blob হোস্ট আছে', imgSrc.includes('blob.vercel-storage.com'));
+  // The Blob host is derived from BLOB_READ_WRITE_TOKEN (src/lib/blobHost.ts).
+  // Without a token (local/test DB runs) the CSP correctly lists no Blob host,
+  // so the check only applies when a store is configured.
+  const expectedBlob = ownBlobHost(process.env);
+  if (expectedBlob) check('img-src এ Blob হোস্ট আছে', imgSrc.includes(expectedBlob), expectedBlob);
+  else console.log('  SKIP  img-src এ Blob হোস্ট — BLOB_READ_WRITE_TOKEN নেই, তাই কোনো হোস্ট প্রত্যাশিত নয়');
 
   // ★ ইনলাইন থিম-স্ক্রিপ্ট hash দিয়ে অনুমোদিত (nonce নয় — hydration
   //   mismatch এড়াতে; বিস্তারিত middleware.ts এর মন্তব্যে)

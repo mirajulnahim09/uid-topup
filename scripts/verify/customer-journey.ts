@@ -86,6 +86,18 @@ async function main() {
     ignoreHTTPSErrors: true, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
   });
   const page = await ctx.newPage();
+  // Requests still open — printed if a navigation times out, so a stall is
+  // diagnosable (Firefox reload timeout seen in earlier cross-browser runs).
+  const openReq = new Map<string, string>();
+  page.on('request', (r) => openReq.set(r.url(), r.resourceType()));
+  page.on('requestfinished', (r) => openReq.delete(r.url()));
+  page.on('requestfailed', (r) => openReq.delete(r.url()));
+  const reloadOrExplain = async () => {
+    try { await page.reload(); } catch (e) {
+      console.log(`  reload stalled; open requests: ${[...openReq].map(([u, t]) => `${t} ${u.replace(BASE, '')}`).join(' | ').slice(0, 600)}`);
+      throw e;
+    }
+  };
   const consoleErrors: string[] = [];
   const badResponses: string[] = [];
   /** ★ ইচ্ছাকৃত ৪০৪-নেভিগেশন — ব্রাউজার নিজেই "Failed to load resource: 404" লেখে; সেটি অ্যাপের ত্রুটি নয় */
@@ -230,7 +242,7 @@ async function main() {
     await go(page, '/account/orders');
     const listed = async () => (await page.locator('body').innerText()).includes(String(order?.orderNo));
     check('অর্ডার তালিকায় আছে', await listed(), `#${order?.orderNo}`);
-    await page.reload(); await settle(page);
+    await reloadOrExplain(); await settle(page);
     check('রিফ্রেশের পরেও আছে', await listed());
     await page.goBack(); await settle(page);
     check('back → আগের পাতা', new URL(page.url()).pathname !== '/account/orders', page.url().replace(BASE, ''));

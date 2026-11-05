@@ -8,31 +8,9 @@ import { useToast } from '@/components/Toast';
 import GoogleButton from '@/components/GoogleButton';
 import BrandLogo from '@/components/brand/BrandLogo';
 import { useLogo } from '@/components/brand/BrandProvider';
-
-/**
- * ★★★ লগইনের পর ফেরার পথ — কেবল **নিজের origin**।
- *
- *   আগে শর্ত ছিল `startsWith('/') && !startsWith('//')`। এটি স্ট্রিং
- *   দেখে, অথচ গন্তব্য ঠিক করে ব্রাউজারের URL-পার্সার — আর সেটি `\` কে
- *   `/` ধরে এবং TAB/newline মুছে দেয়। ফলে `/\evil.com` ও `/<TAB>/evil.com`
- *   দুটোই শর্ত পার হতো, কিন্তু ব্রাউজারে হয়ে যেত `//evil.com` — অন্য
- *   সাইট। ব্রাউজারে মাপা: লগইনের পর সত্যিই `http://evil.example/x` এ
- *   নামত (`scripts/verify/security-probes.ts`)। অর্থাৎ আসল লগইন-পাতার
- *   লিংক দিয়ে ফিশিং-সাইটে পাঠানো যেত।
- *
- *   এখন পার্সারকেই জিজ্ঞেস করি: resolve করার পর origin কি নিজের? হলে
- *   কেবল path+query+hash ফেরত যায় — যা ব্রাউজার ঠিক যেভাবে বুঝেছে।
- */
-function safeCallbackPath(raw: string | null): string | null {
-  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null;
-  try {
-    const u = new URL(raw, window.location.origin);
-    if (u.origin !== window.location.origin) return null;
-    return u.pathname + u.search + u.hash;
-  } catch {
-    return null;
-  }
-}
+import AuthStage, { AuthStageSkeleton } from '@/components/AuthStage';
+import { safeCallbackPath } from '@/lib/safeCallback';
+import { authErrorMessage } from '@/lib/authErrors';
 
 function LoginForm() {
   const router = useRouter();
@@ -44,7 +22,8 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState('');
+  // A failed Google/provider sign-in comes back as /login?error=<code>.
+  const [err, setErr] = useState(() => authErrorMessage(params.get('error')) ?? '');
   // ★ 2FA — password ঠিক হলে সার্ভার '2FA_REQUIRED' দেয়; তখন কোড চাই
   const [needsTotp, setNeedsTotp] = useState(false);
   const [totp, setTotp] = useState('');
@@ -180,7 +159,7 @@ function LoginForm() {
        */
       const back = params.get('callbackUrl');
       // ★ Open redirect আটকানো — শুধু নিজের origin (বিস্তারিত `safeCallbackPath`)
-      const safeBack = safeCallbackPath(back);
+      const safeBack = safeCallbackPath(back, window.location.origin);
 
       let dest = safeBack;
       if (!dest) {
@@ -201,7 +180,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="mx-auto max-w-md page-x page-y">
+    <AuthStage>
       {/* ★ এখানে কোনো লোডার মাউন্ট করা হয় না — ইচ্ছাকৃত।
           `/api/auth/callback` গ্লোবাল `LoadingProvider`-এর BLOCKING_PATHS
           এ আছে, তাই লগইনের সময় প্ল্যাটফর্মের একমাত্র ওভারলেটিই আসে।
@@ -294,13 +273,13 @@ function LoginForm() {
           </Link>
         </p>
       </div>
-    </div>
+    </AuthStage>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-md p-16"><div className="skeleton h-80 w-full" /></div>}>
+    <Suspense fallback={<AuthStageSkeleton height="40rem" />}>
       <LoginForm />
     </Suspense>
   );

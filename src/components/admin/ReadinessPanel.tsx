@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useToast } from '../Toast';
+import LoadFailedCard from '@/components/admin/LoadFailedCard';
 
 /**
  * ★ Release Readiness + Feature Flags প্যানেল (অ্যাডমিন টুলস)।
@@ -31,7 +32,7 @@ export default function ReadinessPanel() {
     try {
       const r = await fetch('/api/admin/readiness');
       if (r.ok) setData(await r.json());
-    } catch { /* নীরব */ }
+    } catch { /* handled below: `!data` renders the failure card */ }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -60,7 +61,8 @@ export default function ReadinessPanel() {
   }
 
   if (loading) return <div className="card p-5 text-sm text-slate-500">লোড হচ্ছে…</div>;
-  if (!data) return null;
+  // Used to be `return null`: a failed readiness fetch made the whole panel vanish silently.
+  if (!data) return <LoadFailedCard what="সিস্টেম প্রস্তুতির তথ্য" onRetry={() => void load()} />;
 
   return (
     <div className="card p-5">

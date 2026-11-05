@@ -72,6 +72,10 @@ export const TEST_ISOLATED_ENV: Readonly<Record<string, string>> = Object.freeze
   // ★ DATABASE_URL-ও — `npx vitest` সরাসরি চালালে main প্রসেসে এটি থাকে না,
   //   তখন Prisma `.env`-এর **লাইভ** URL বসাত
   DATABASE_URL: TEST_DATABASE_URL,
+  // Prisma's `directUrl`. Without it, a direct `npx vitest run <file>` stopped in
+  // globalSetup because `.env`'s DIRECT_URL leaked into the test process (a key
+  // that may hold the live database). Same value as DATABASE_URL: no pooler here.
+  DIRECT_URL: TEST_DATABASE_URL,
   NEXTAUTH_SECRET: TEST_NEXTAUTH_SECRET,
   BACKUP_SIGNING_KEY: TEST_BACKUP_SIGNING_KEY,
   CRON_SECRET: TEST_CRON_SECRET,

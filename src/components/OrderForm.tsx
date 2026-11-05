@@ -82,6 +82,9 @@ export default function OrderForm({
 
   // ★ ব্যালেন্স ক্লায়েন্ট-সাইডে আনা হয় — তাই পেজটা ক্যাশ করা যায় (দ্রুত লোড)
   const [balance, setBalance] = useState<number | null>(null);
+  // `/api/me` failed: without this flag the wallet button area stayed a
+  // skeleton forever (balance never arrived, nothing retried).
+  const [balanceFailed, setBalanceFailed] = useState(false);
   const [sel, setSel] = useState<V | null>(null);
   const [uid, setUid] = useState('');
   const [uidErr, setUidErr] = useState('');
@@ -127,12 +130,15 @@ export default function OrderForm({
 
   const loadBalance = useCallback(async () => {
     if (status !== 'authenticated') return;
+    setBalanceFailed(false);
     try {
       // ★ শেয়ার্ড de-dup (4.5)
       const d = await fetchMe<{ balance: string }>();
       setBalance(Number(d.balance));
     } catch {
-      /* silent — ব্যালেন্স না এলেও অর্ডার বোতাম কাজ করবে, সার্ভার যাচাই করবে */
+      // Show a retry instead of an endless skeleton. The server re-checks the
+      // balance on every order anyway, so this is display-only.
+      setBalanceFailed(true);
     }
   }, [status]);
 
@@ -981,9 +987,23 @@ export default function OrderForm({
               <button disabled className="btn-primary w-full py-3.5 text-base font-bold">
                 ← আগে একটি প্যাকেজ বেছে নিন
               </button>
-            ) : balance === null ? (
-              /* ── ব্যালেন্স আসছে ── */
-              <div className="skeleton h-12 w-full" />
+            ) : balance === null && payMode !== 'direct' ? (
+              balanceFailed ? (
+                /* ── balance could not be loaded: retry instead of an endless skeleton ── */
+                <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-rose-300 bg-rose-50 p-3">
+                  <p className="text-sm font-semibold text-rose-800">ব্যালেন্স দেখা যাচ্ছে না — সংযোগ দেখে আবার চেষ্টা করুন</p>
+                  <button
+                    type="button"
+                    onClick={() => { invalidateMe(); void loadBalance(); }}
+                    className="btn-ghost shrink-0 px-3 py-2 text-sm font-bold"
+                  >
+                    আবার চেষ্টা
+                  </button>
+                </div>
+              ) : (
+                /* ── ব্যালেন্স আসছে ── */
+                <div className="skeleton h-12 w-full" />
+              )
             ) : payMode === 'direct' ? (
               /* ── ডাইরেক্ট পে — ব্যালেন্স লাগে না ── */
               !uidTrim ? (

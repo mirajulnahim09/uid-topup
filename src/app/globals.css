@@ -838,6 +838,30 @@ p, li { text-wrap: pretty; }
 .page-y { padding-top: 2.5rem; padding-bottom: 3.5rem; }
 @media (min-width: 640px) { .page-y { padding-top: 3.5rem; padding-bottom: 4.5rem; } }
 
+/* Auth pages (login/register/forgot/reset): the card is centred in the first
+   screen = viewport − sticky header (68px + 1px border) − mobile tab bar
+   (`--tabbar-space`, already reserved by body padding). `svh`, not `dvh`, so
+   the card does not jump while the phone toolbar shows/hides. If the card is
+   taller than the space, the grid simply grows and the page scrolls.
+   Component: src/components/AuthStage.tsx. */
+.auth-stage {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 69px - var(--tabbar-space));
+  min-height: calc(100svh - 69px - var(--tabbar-space));
+  /* 16px breathing room; the card is centred whenever card + 32px fits. */
+  padding: 1rem;
+}
+@media (min-width: 640px) { .auth-stage { padding: 1rem 1.5rem; } }
+/* Phones: `--tabbar-space` includes an 8px gap above the tab bar that is still
+   visible free space, so shift the centre down by half of it. */
+@media (max-width: 767px) { .auth-stage { padding-top: 1rem; padding-bottom: .5rem; } }
+.auth-stage__inner { width: 100%; max-width: 28rem; }
+
+/* Keyboard focus and scroll-into-view never park a field under the sticky
+   header (68px + border) or the mobile tab bar (WCAG 2.4.11 focus not obscured). */
+html { scroll-padding-top: 77px; scroll-padding-bottom: var(--tabbar-space); }
+
 /* সেকশন হেড — eyebrow + শিরোনাম + hairline (এক স্টাইল) */
 .eyebrow { font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:var(--gold); }
 .rule-gold { height:1px; width:6rem; margin-top:.75rem; background:linear-gradient(90deg,rgba(var(--gold-glow),.7),transparent); }

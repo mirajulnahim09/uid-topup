@@ -8,6 +8,7 @@ import { useToast } from '@/components/Toast';
 import GoogleButton from '@/components/GoogleButton';
 import BrandLogo from '@/components/brand/BrandLogo';
 import { useLogo } from '@/components/brand/BrandProvider';
+import AuthStage, { AuthStageSkeleton } from '@/components/AuthStage';
 
 function RegisterForm() {
   const router = useRouter();
@@ -119,11 +120,20 @@ function RegisterForm() {
 
       toast.success('অ্যাকাউন্ট তৈরি হয়েছে!');
 
-      await signIn('credentials', {
+      const login = await signIn('credentials', {
         email: f.email.trim().toLowerCase(),
         password: f.password,
         redirect: false,
-      });
+      }).catch(() => null);
+
+      // The account exists now; if the automatic sign-in did not go through
+      // (rate limit, network), send the customer to the login page instead of
+      // landing them on the home page silently signed out.
+      if (!login || login.error) {
+        toast.info('অ্যাকাউন্ট তৈরি হয়েছে — এখন লগইন করুন');
+        router.push('/login');
+        return;
+      }
 
       router.push('/');
       router.refresh();
@@ -134,7 +144,7 @@ function RegisterForm() {
   }
 
   return (
-    <div className="mx-auto max-w-md page-x page-y">
+    <AuthStage>
       {/* ★ কোনো স্থানীয় লোডার নেই — `/api/register` ও `/api/auth/*`
           দুটোই গ্লোবাল BLOCKING_PATHS-এ, তাই একমাত্র ওভারলেটিই আসে। */}
       <div className="card p-6 sm:p-7">
@@ -269,13 +279,13 @@ function RegisterForm() {
           </Link>
         </p>
       </div>
-    </div>
+    </AuthStage>
   );
 }
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-md p-16"><div className="skeleton h-96 w-full" /></div>}>
+    <Suspense fallback={<AuthStageSkeleton height="46rem" />}>
       <RegisterForm />
     </Suspense>
   );

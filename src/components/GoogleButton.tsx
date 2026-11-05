@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useResetOnBfcacheRestore } from '@/lib/useBfcacheReset';
 import { signIn } from 'next-auth/react';
 import InlinePulse from '@/components/loading/InlinePulse';
 
@@ -11,6 +12,7 @@ import InlinePulse from '@/components/loading/InlinePulse';
  */
 export default function GoogleButton({ callbackUrl = '/account' }: { callbackUrl?: string }) {
   const [loading, setLoading] = useState(false);
+  useResetOnBfcacheRestore(useCallback(() => setLoading(false), []));
 
   return (
     <div>
@@ -26,7 +28,11 @@ export default function GoogleButton({ callbackUrl = '/account' }: { callbackUrl
 
       <button
         type="button"
-        onClick={() => { setLoading(true); signIn('google', { callbackUrl }); }}
+        onClick={() => {
+          setLoading(true);
+          // A failed provider/CSRF fetch rejects instead of redirecting: re-enable the button.
+          signIn('google', { callbackUrl }).catch(() => setLoading(false));
+        }}
         disabled={loading}
         className="flex w-full items-center justify-center gap-3 rounded-lg py-3 text-sm font-bold transition active:scale-[0.98] disabled:opacity-60"
         style={{ background: 'rgba(255,255,255,.95)', color: '#1f2937' }}
